@@ -1,47 +1,108 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Plus, Home, Users, Workflow, ShoppingCart, DollarSign, BarChart2, Package, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { CreateNewModal } from "./create-new-modal"
+import { useState } from "react";
+import Link from "next/link";
+import {
+  Plus,
+  Home,
+  Users,
+  Workflow,
+  ShoppingCart,
+  DollarSign,
+  BarChart2,
+  Package,
+  Settings,
+  MenuIcon, // Import MenuIcon for the toggle button
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreateNewModal } from "./create-new-modal";
+import { SalesMenu } from "./SalesMenu"; // Import SalesMenu
+import { PurchaseMenu } from "./PurchaseMenu"; // Import PurchaseMenu
+import { AccountingMenu } from "./AccountingMenu"; // Import AccountingMenu
+
 
 export function Sidebar() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // State to track sidebar expansion
+
+  const toggleSidebar = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   const menuItems = [
-    { icon: <Home className="h-5 w-5" />, label: "Home", href: "#" },
-    { icon: <Users className="h-5 w-5" />, label: "CRM", href: "#" },
-    { icon: <Workflow className="h-5 w-5" />, label: "Workflow", href: "#" },
-    { icon: <ShoppingCart className="h-5 w-5" />, label: "Sales", href: "#" },
-    { icon: <ShoppingCart className="h-5 w-5" />, label: "Purchase", href: "#" },
-    { icon: <DollarSign className="h-5 w-5" />, label: "Accounting", href: "#" },
-    { icon: <Package className="h-5 w-5" />, label: "Inventory", href: "#" },
-    { icon: <BarChart2 className="h-5 w-5" />, label: "Reports", href: "#" },
-    { icon: <Settings className="h-5 w-5" />, label: "Configurations", href: "#" },
-  ]
+    {
+      icon: <Home className="h-5 w-5" />,
+      label: "Home",
+      href: "#",
+    },
+    {
+      icon: <Users className="h-5 w-5" />,
+      label: "CRM",
+      href: "#",
+    },
+    {
+      icon: <Workflow className="h-5 w-5" />,
+      label: "Workflow",
+      href: "#",
+    },
+    // Replace Sales menu with SalesMenu component, pass isExpanded prop
+    { component: <SalesMenu key="sales" isExpanded={isExpanded} /> },
+    // Replace Purchase menu with PurchaseMenu component, pass isExpanded prop
+    { component: <PurchaseMenu key="purchase" isExpanded={isExpanded} /> },
+    // Replace Accounting menu with AccountingMenu component, pass isExpanded prop
+    { component: <AccountingMenu key="accounting" isExpanded={isExpanded} /> },
+    {
+      icon: <Package className="h-5 w-5" />,
+      label: "Inventory",
+      href: "#",
+    },
+    {
+      icon: <BarChart2 className="h-5 w-5" />,
+      label: "Reports",
+      href: "#",
+    },
+    {
+      icon: <Settings className="h-5 w-5" />,
+      label: "Configurations",
+      href: "#",
+    },
+  ];
 
   return (
     <>
-      <aside className="hidden md:flex w-60 flex-col border-r bg-white">
-        <div className="p-4">
-          <Button
-            className="w-full justify-start gap-2 bg-green-500 hover:bg-green-600"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <Plus className="h-5 w-5" />
-            Create New
-          </Button>
+      <aside className={`hidden md:flex ${isExpanded ? "w-60" : "w-16"} flex-col border-r bg-white transition-all duration-300 ease-in-out`}> {/* Apply conditional width and transition */}
+        <div className={`p-4 flex items-center ${isExpanded ? "justify-between" : "justify-center"}`}> {/* Adjust padding and add flex properties */}
+           {isExpanded && <span className="text-2xl font-bold">App Name</span>} {/* Optional: Add app name when expanded */}
+           <Button variant="ghost" size="icon" onClick={toggleSidebar}> {/* Toggle button */}
+             <MenuIcon className="h-5 w-5" />
+           </Button>
         </div>
-        <nav className="flex-1">
+        {isExpanded ? ( 
+          <div className="p-4">
+            <Button
+              className="w-full justify-start gap-2 bg-green-500 hover:bg-green-600"
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+              Create New
+            </Button>
+          </div>
+        ) : null} {/* Render null when collapsed */}
+        <nav className="flex-1 overflow-y-auto">
           <ul>
             {menuItems.map((item, index) => (
-              <li key={index}>
-                <Link href={item.href} className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100">
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </li>
+              item.component ? (
+                // Render the component if it exists
+                item.component
+              ) : (
+                // Render a regular link if no component
+                <li key={index} className="border-b last:border-b-0">
+                  <Link href={item.href} className={`flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}> {/* Adjust alignment when collapsed */}
+                    {item.icon}
+                    {isExpanded && <span>{item.label}</span>} {/* Conditionally render label */}
+                  </Link>
+                </li>
+              )
             ))}
           </ul>
         </nav>
@@ -49,5 +110,5 @@ export function Sidebar() {
 
       <CreateNewModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
     </>
-  )
+  );
 }

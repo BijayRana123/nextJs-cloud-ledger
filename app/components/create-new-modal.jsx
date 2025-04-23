@@ -3,36 +3,43 @@
 import { X, Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // Import DialogTitle
 import { Button } from "@/components/ui/button"
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 export function CreateNewModal({ isOpen, onClose }) {
+  const router = useRouter(); // Initialize useRouter
+
   const categories = [
     {
       title: "GENERAL",
-      items: ["Customer", "Supplier", "Products", "Accounts", "Accounts Group"],
+      items: ["Customer", "Supplier", "Products", "Accounts"],
     },
     {
       title: "SALES",
-      items: ["Quotation", "Sales Order", "Invoice", "Customer Payment", "Credit Note"],
+      items: [ "Sales Voucher", "Sales Return"],
     },
     {
       title: "PURCHASE",
-      items: ["Purchase Order", "Purchase Bill", "Expenses", "Supplier Payment", "Debit Note"],
+      items: ["Purchase Voucher", "Purchase Return"],
     },
     {
       title: "ACCOUNTING",
-      items: ["Journal Voucher", "Cash Transfer", "Quick Payment", "Quick Receipt"],
+      items: ["Journal Voucher", "Contra Voucher", "Receipt Voucher", "Payment Voucher"],
     },
   ]
 
   const handleItemClick = (category, item) => {
-    console.log(`Creating new ${item} in ${category}`)
-    onClose()
+    console.log(`Creating new ${item} in ${category}`);
+    onClose();
+    if (category === "PURCHASE" && item === "Purchase Voucher") {
+      router.push('/dashboard/purchase/add-purchase-bill'); // Redirect to add purchase bill page
+    }
+    // Add more conditions here for other items if they need specific redirects
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden border-none" hideCloseButton> {/* Remove default border and hide default close button */}
-        <DialogHeader className="p-2 border-b flex flex-row items-center justify-between"> {/* Add padding, border-b, and flex properties */}
+      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden border-none"> {/* Remove default border */}
+        <DialogHeader className="p-6 border-b flex flex-row items-center justify-between"> {/* Add padding, border-b, and flex properties */}
           <DialogTitle className="text-xl font-semibold">Create New</DialogTitle> {/* Style title */}
           <Button
             variant="ghost"

@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QuickLinkCard } from "../components/quick-link-card"
-import { Sidebar } from "../components/sidebar"
-import { TopNavbar } from "../components/top-navbar"
+// Sidebar and TopNavbar are now handled in the layout.jsx
+// import { Sidebar } from "../components/sidebar"
+// import { TopNavbar } from "../components/top-navbar"
+import { MobileSidebar } from "../components/mobile-sidebar" // Assuming MobileSidebar is needed
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("sales")
@@ -24,15 +26,19 @@ export default function Dashboard() {
     { title: "Debit Notes", category: "Purchase", icon: <FileText className="h-4 w-4" /> },
     { title: "Purchase Order", category: "Purchase", icon: <ShoppingCart className="h-4 w-4" /> },
     { title: "Allocate Customer Payments", category: "Sales", icon: <CreditCard className="h-4 w-4" /> },
-    { title: "Journal report", category: "Reports", icon: <BarChart2 className="h-4 w-4" /> },
+    { label: "Journal report", category: "Reports", icon: <BarChart2 className="h-4 w-4" /> }, // Changed from title to label to match image
   ]
 
   return (
-    <div className="flex h-screen flex-col">
-      <TopNavbar />
+    <div className="flex h-screen flex-col"> {/* This flex-col is likely redundant with layout */}
+      {/* TopNavbar is now in layout */}
+      {/* <TopNavbar>
+        <MobileSidebar />
+      </TopNavbar> */}
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+      <div className="flex flex-1 overflow-hidden"> {/* This flex container is likely redundant with layout */}
+        {/* Sidebar is now in layout */}
+        {/* <Sidebar /> */}
 
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -44,7 +50,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {quickLinks.map((link, index) => (
-              <QuickLinkCard key={index} title={link.title} category={link.category} icon={link.icon} />
+              <QuickLinkCard key={index} title={link.title || link.label} category={link.category} icon={link.icon} /> // Use title or label
             ))}
           </div>
 
@@ -68,6 +74,7 @@ export default function Dashboard() {
                   <CardTitle>Sales Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Placeholder for Sales content - replace with actual components/data */}
                   <p>Your sales dashboard content will appear here.</p>
                 </CardContent>
               </Card>
@@ -78,6 +85,7 @@ export default function Dashboard() {
                   <CardTitle>Purchase Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
+                   {/* Placeholder for Purchase content - replace with actual components/data */}
                   <p>Your purchase dashboard content will appear here.</p>
                 </CardContent>
               </Card>
@@ -88,6 +96,7 @@ export default function Dashboard() {
                   <CardTitle>Receipt Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
+                   {/* Placeholder for Receipt content - replace with actual components/data */}
                   <p>Your receipt dashboard content will appear here.</p>
                 </CardContent>
               </Card>
@@ -98,6 +107,7 @@ export default function Dashboard() {
                   <CardTitle>Payment Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
+                   {/* Placeholder for Payment content - replace with actual components/data */}
                   <p>Your payment dashboard content will appear here.</p>
                 </CardContent>
               </Card>

@@ -2,10 +2,11 @@ import { Search, Headphones, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-export function TopNavbar() {
+export function TopNavbar({ children }) {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-[#2a2f4a] px-4">
       <div className="flex items-center">
+        {children}
         <div className="text-white font-bold text-2xl mr-6">tigg</div>
         <div className="relative w-64 lg:w-96">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
