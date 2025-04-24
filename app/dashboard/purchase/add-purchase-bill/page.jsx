@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Import useEffect
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Import shadcn/ui table components
+import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable"; // Import custom table components
 import { CalendarIcon, XIcon, SearchIcon } from "lucide-react"; // Icons
 
 export default function AddPurchaseBillPage() {
+  const [isClient, setIsClient] = useState(false); // State to track if component is mounted on client
+
+  useEffect(() => {
+    setIsClient(true); // Set to true after component mounts on client
+  }, []);
+
   const [formData, setFormData] = useState({
     supplierName: '',
     referenceNo: '',
@@ -69,6 +75,11 @@ export default function AddPurchaseBillPage() {
     // TODO: Implement form submission logic
     console.log("Submitting Purchase Bill:", formData);
   };
+
+  // Only render the component content on the client side after mounting
+  if (!isClient) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <div className="p-4">
@@ -146,55 +157,57 @@ export default function AddPurchaseBillPage() {
           <CardTitle>Items</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table className="mb-4"> {/* Use shadcn/ui Table */}
-            <TableHeader><TableRow className="bg-gray-200"><TableHead>Product / service</TableHead><TableHead>Qty</TableHead><TableHead>Rate</TableHead><TableHead>Discount</TableHead><TableHead>Tax</TableHead><TableHead>Amount</TableHead><TableHead></TableHead>{/* Action column */}</TableRow></TableHeader>
-            <TableBody>
-              {formData.items.map((item, index) => (
-                <TableRow key={index} className="border-b last:border-b-0"><TableCell>
-                    <Input
-                      placeholder="Add Code or Product"
-                      value={item.product}
-                      onChange={(e) => handleItemInputChange(index, 'product', e.target.value)}
-                    />
-                  </TableCell><TableCell>
-                     <Input
-                      type="number"
-                      value={item.qty}
-                      onChange={(e) => handleItemInputChange(index, 'qty', e.target.value)}
-                    />
-                  </TableCell><TableCell>
-                     <Input
-                      type="number"
-                      value={item.rate}
-                      onChange={(e) => handleItemInputChange(index, 'rate', e.target.value)}
-                    />
-                  </TableCell><TableCell>
-                     <Input
-                      type="number"
-                      value={item.discount}
-                      onChange={(e) => handleItemInputChange(index, 'discount', e.target.value)}
-                    />
-                  </TableCell><TableCell>
-                     <Input
-                      type="number"
-                      value={item.tax}
-                      onChange={(e) => handleItemInputChange(index, 'tax', e.target.value)}
-                    />
-                  </TableCell><TableCell>
-                     <Input
-                      type="number"
-                      value={item.amount}
-                      readOnly // Amount is calculated
-                    />
-                  </TableCell><TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
-                      <XIcon className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {isClient && (
+            <CustomTable className="mb-4"> {/* Use CustomTable */}
+              <CustomTableHeader><CustomTableRow className="bg-gray-200"><CustomTableHead>Product / service</CustomTableHead><CustomTableHead>Qty</CustomTableHead><CustomTableHead>Rate</CustomTableHead><CustomTableHead>Discount</CustomTableHead><CustomTableHead>Tax</CustomTableHead><CustomTableHead>Amount</CustomTableHead><CustomTableHead></CustomTableHead>{/* Action column */}</CustomTableRow></CustomTableHeader>
+              <CustomTableBody>
+                {formData.items.map((item, index) => (
+                  <CustomTableRow key={index} className="border-b last:border-b-0"><CustomTableCell>
+                      <Input
+                        placeholder="Add Code or Product"
+                        value={item.product}
+                        onChange={(e) => handleItemInputChange(index, 'product', e.target.value)}
+                      />
+                    </CustomTableCell><CustomTableCell>
+                       <Input
+                        type="number"
+                        value={item.qty}
+                        onChange={(e) => handleItemInputChange(index, 'qty', e.target.value)}
+                      />
+                    </CustomTableCell><CustomTableCell>
+                       <Input
+                        type="number"
+                        value={item.rate}
+                        onChange={(e) => handleItemInputChange(index, 'rate', e.target.value)}
+                      />
+                    </CustomTableCell><CustomTableCell>
+                       <Input
+                        type="number"
+                        value={item.discount}
+                        onChange={(e) => handleItemInputChange(index, 'discount', e.target.value)}
+                      />
+                    </CustomTableCell><CustomTableCell>
+                       <Input
+                        type="number"
+                        value={item.tax}
+                        onChange={(e) => handleItemInputChange(index, 'tax', e.target.value)}
+                      />
+                    </CustomTableCell><CustomTableCell>
+                       <Input
+                        type="number"
+                        value={item.amount}
+                        readOnly // Amount is calculated
+                      />
+                    </CustomTableCell><CustomTableCell>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
+                        <XIcon className="h-4 w-4" />
+                      </Button>
+                    </CustomTableCell>
+                  </CustomTableRow>
+                ))}
+              </CustomTableBody>
+            </CustomTable>
+          )}
           <Button variant="outline" onClick={handleAddItem}>+ Add Additional Cost</Button> {/* Assuming this button adds items */}
         </CardContent>
       </Card>

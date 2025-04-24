@@ -1,7 +1,8 @@
 "use client";
-
-import { useState } from "react";
+import React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from 'next/navigation';
 import {
   Plus,
   Home,
@@ -12,22 +13,29 @@ import {
   BarChart2,
   Package,
   Settings,
-  MenuIcon, // Import MenuIcon for the toggle button
+  MenuIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateNewModal } from "./create-new-modal";
-import { SalesMenu } from "./SalesMenu"; // Import SalesMenu
-import { PurchaseMenu } from "./PurchaseMenu"; // Import PurchaseMenu
-import { AccountingMenu } from "./AccountingMenu"; // Import AccountingMenu
+import { SalesMenu } from "./SalesMenu";
+import { PurchaseMenu } from "./PurchaseMenu";
+import { AccountingMenu } from "./AccountingMenu";
 
 
 export function Sidebar() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true); // State to track sidebar expansion
+  const pathname = usePathname();
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const toggleSidebar = () => {
-    setIsExpanded(!isExpanded);
-  };
+  useEffect(() => {
+    // Determine expanded state based on the current route
+    if (pathname === '/dashboard/purchase/add-purchase-bill') {
+      setIsExpanded(false);
+    } else {
+      setIsExpanded(true); // Keep expanded for other paths, adjust as needed for other collapsed pages
+    }
+  }, [pathname]);
+
 
   const menuItems = [
     {
@@ -72,12 +80,13 @@ export function Sidebar() {
     <>
       <aside className={`hidden md:flex ${isExpanded ? "w-60" : "w-16"} flex-col border-r bg-white transition-all duration-300 ease-in-out`}> {/* Apply conditional width and transition */}
         <div className={`p-4 flex items-center ${isExpanded ? "justify-between" : "justify-center"}`}> {/* Adjust padding and add flex properties */}
-           {isExpanded && <span className="text-2xl font-bold">App Name</span>} {/* Optional: Add app name when expanded */}
-           <Button variant="ghost" size="icon" onClick={toggleSidebar}> {/* Toggle button */}
+           {/* Removed App Name */}
+           {/* Removed toggle button */}
+           {/* <Button variant="ghost" size="icon" onClick={toggleSidebar}>
              <MenuIcon className="h-5 w-5" />
-           </Button>
+           </Button> */}
         </div>
-        {isExpanded ? ( 
+        {isExpanded && (
           <div className="p-4">
             <Button
               className="w-full justify-start gap-2 bg-green-500 hover:bg-green-600"
@@ -87,16 +96,16 @@ export function Sidebar() {
               Create New
             </Button>
           </div>
-        ) : null} {/* Render null when collapsed */}
+        )}
         <nav className="flex-1 overflow-y-auto">
           <ul>
             {menuItems.map((item, index) => (
               item.component ? (
-                // Render the component if it exists
-                item.component
+                // Render the component if it exists, passing isExpanded
+                React.cloneElement(item.component, { isExpanded: isExpanded, key: item.key || index })
               ) : (
                 // Render a regular link if no component
-                <li key={index} className="border-b last:border-b-0">
+                <li key={item.key || index} className="border-b last:border-b-0">
                   <Link href={item.href} className={`flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}> {/* Adjust alignment when collapsed */}
                     {item.icon}
                     {isExpanded && <span>{item.label}</span>} {/* Conditionally render label */}
