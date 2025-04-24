@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
@@ -80,7 +81,7 @@ export function Sidebar() {
     <>
       <aside className={`hidden md:flex ${isExpanded ? "w-60" : "w-16"} flex-col border-r bg-white transition-all duration-300 ease-in-out`}> {/* Apply conditional width and transition */}
         <div className={`p-4 flex items-center ${isExpanded ? "justify-between" : "justify-center"}`}> {/* Adjust padding and add flex properties */}
-           {isExpanded && <span className="text-2xl font-bold">App Name</span>} {/* Optional: Add app name when expanded */}
+           {/* {isExpanded && <span className="text-2xl font-bold">App Name</span>} Optional: Add app name when expanded */}
            {/* Removed toggle button */}
            {/* <Button variant="ghost" size="icon" onClick={toggleSidebar}>
              <MenuIcon className="h-5 w-5" />

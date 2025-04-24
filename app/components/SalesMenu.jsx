@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState } from "react";
 import Link from "next/link";
 import { ShoppingCart, ChevronDown, ChevronRight, Plus } from "lucide-react";
@@ -22,10 +20,8 @@ export function SalesMenu({ isExpanded: isSidebarExpanded }) { // Accept isExpan
     <li className="border-b last:border-b-0 relative group"> {/* Add relative positioning and group class */}
       <div>
         <button
-          className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-100 ${isMenuExpanded && isSidebarExpanded ? "bg-gray-100" : ""} ${!isSidebarExpanded && 'justify-center'}`} // Adjust alignment and background when sidebar is collapsed
-          onClick={toggleMenu}
-        >
-          <div className={`flex items-center gap-3 ${!isSidebarExpanded && 'justify-center w-full'}`}> {/* Adjust alignment and width */}
+          className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-100 ${isMenuExpanded && isSidebarExpanded ? "bg-gray-100" : ""} ${!isSidebarExpanded ? 'justify-center' : ''}`}> {/* Adjust alignment and background when sidebar is collapsed */}
+          <div className={`flex items-center gap-3 ${!isSidebarExpanded ? 'justify-center w-full' : ''}`}> {/* Adjust alignment and width */}
             <ShoppingCart className="h-5 w-5" />
             {isSidebarExpanded && <span>Sales</span>} {/* Conditionally render label */}
           </div>
