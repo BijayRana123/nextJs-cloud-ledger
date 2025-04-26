@@ -3,10 +3,13 @@ import { Supplier } from '@/lib/models'; // Import the Supplier model
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 import { NextResponse } from 'next/server';
 
-export async function GET(req, { params }) {
+export async function GET(req, context) {
   await dbConnect();
 
   try {
+    // Get params from context and await it
+    const params = await context.params;
+    
     // Authenticate and authorize the user
     const authResult = await protect(req);
     if (authResult && authResult.status !== 200) {
@@ -22,7 +25,11 @@ export async function GET(req, { params }) {
       return NextResponse.json({ message: 'User is not associated with an organization' }, { status: 400 });
     }
 
-    const supplierId = params.id; // Get the supplier ID from the URL parameters
+    // Get the supplier ID from the URL parameters after awaiting params
+    const supplierId = params.id;
+    
+    // Log for debugging
+    console.log(`Fetching supplier with ID: ${supplierId} for organization: ${organizationId}`);
 
     // Find the supplier by ID and organization ID
     const supplier = await Supplier.findOne({ _id: supplierId, organization: organizationId });

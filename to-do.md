@@ -144,3 +144,27 @@ There was a mismatch between the data structure being passed from the modal to t
 - Better debugging information is available through console logs
 
 The user can now seamlessly add new suppliers and continue their workflow without interruption.
+
+## New Task: Fix API Route Error with Dynamic Params - COMPLETED ✅
+
+### Issue:
+The terminal was showing an error: "Route '/api/organization/suppliers/[id]' used `params.id`. `params` should be awaited before using its properties."
+
+### Root Cause:
+In Next.js App Router, the `params` object in API routes needs to be awaited before accessing its properties. This is because dynamic route parameters are resolved asynchronously.
+
+### Solution Implemented:
+1. ✅ Modified the API route handler to properly await the context.params object
+2. ✅ Changed the function signature to use context instead of destructuring params directly
+3. ✅ Added explicit awaiting of the params object before accessing the id property
+4. ✅ Added additional logging for better debugging
+5. ✅ Improved the overall structure of the API route handler
+
+### Benefits:
+- Eliminated the Next.js warning about synchronous access to params
+- Made the API route more robust and compliant with Next.js best practices
+- Improved error handling and debugging capabilities
+- Enhanced overall API route stability
+- Better aligned with Next.js App Router architecture
+
+The API route now correctly handles dynamic parameters in an asynchronous manner, following Next.js best practices.
