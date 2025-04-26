@@ -61,7 +61,7 @@ export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCrea
 
     // Send data to the backend API
     try {
-      const response = await fetch('/api/organization/create', {
+      const response = await fetch('/api/organization/suppliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

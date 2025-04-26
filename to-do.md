@@ -168,3 +168,100 @@ In Next.js App Router, the `params` object in API routes needs to be awaited bef
 - Better aligned with Next.js App Router architecture
 
 The API route now correctly handles dynamic parameters in an asynchronous manner, following Next.js best practices.
+
+## New Task: Show Supplier Name with Address in Combobox - COMPLETED ✅
+
+### Issue:
+The combobox was only showing the supplier name, but needed to display both the supplier name and address from the database.
+
+### Root Cause:
+1. The supplier options were being formatted with only the name field
+2. There was no code to fetch all suppliers when the component mounted
+3. The address field was available in the supplier data but not being used in the label
+
+### Solution Implemented:
+1. ✅ Added a useEffect hook to fetch all suppliers when the component mounts
+2. ✅ Modified the supplier options format to include both name and address:
+   ```javascript
+   {
+     value: supplier._id,
+     label: supplier.name + (supplier.address ? ` - ${supplier.address}` : ''),
+     supplierData: supplier // Store the full supplier object
+   }
+   ```
+3. ✅ Updated the onSupplierCreated handler to also include the address in the label
+4. ✅ Added loading state to handle the asynchronous data fetching
+5. ✅ Stored the full supplier object in the options for easier access
+
+### Benefits:
+- Users can now see both the supplier name and address in the dropdown
+- Improved user experience with more context about each supplier
+- Better data organization with the full supplier object stored in the options
+- Consistent formatting between existing suppliers and newly created ones
+- More informative UI that helps users make better selections
+
+The combobox now displays supplier information in a more comprehensive format, making it easier for users to identify and select the correct supplier.
+
+## New Task: Enhance Combobox Search and Display - COMPLETED ✅
+
+### Issue:
+The combobox search functionality needed improvements to be case-insensitive, limit displayed suppliers to 4 maximum, and ensure the "Add New" option is always shown. Additionally, there was an inconsistency in the API URL for creating new suppliers.
+
+### Root Cause:
+1. The search functionality was using default case-sensitive matching
+2. There was no limit on the number of suppliers displayed in the dropdown
+3. The API endpoint for creating suppliers was inconsistent with the API structure
+4. The Command component's built-in filtering was interfering with our custom filtering
+
+### Solution Implemented:
+1. ✅ Made the search functionality case-insensitive:
+   ```javascript
+   const filteredOptions = React.useMemo(() => {
+     if (!inputValue) return options;
+     return options.filter(option => 
+       option.label.toLowerCase().includes(inputValue.toLowerCase())
+     );
+   }, [options, inputValue]);
+   ```
+
+2. ✅ Limited displayed suppliers to maximum 4:
+   ```javascript
+   const displayedOptions = React.useMemo(() => {
+     return filteredOptions.slice(0, 4);
+   }, [filteredOptions]);
+   ```
+
+3. ✅ Ensured "Add New" option is always shown after the suppliers
+   - Kept the "Add New" option outside the filtered options mapping
+
+4. ✅ Fixed the API URL inconsistency:
+   - Changed the supplier creation endpoint from `/api/organization/create` to `/api/organization/suppliers`
+   - Added a POST method to the suppliers API route to handle supplier creation
+
+5. ✅ Disabled the Command component's built-in filtering:
+   ```javascript
+   <Command className="w-full" shouldFilter={false}>
+   ```
+
+6. ✅ Added better handling of empty search results:
+   ```javascript
+   {displayedOptions.length === 0 && inputValue !== "" ? (
+     <CommandEmpty>No item found.</CommandEmpty>
+   ) : (
+     <CommandGroup>
+       {/* Options and Add New button */}
+     </CommandGroup>
+   )}
+   ```
+
+7. ✅ Added debugging logs to help troubleshoot filtering issues
+
+### Benefits:
+- More intuitive search experience that matches user expectations
+- Cleaner dropdown UI with limited number of options
+- Consistent API structure following RESTful conventions
+- Better user experience with the "Add New" option always available
+- Improved code organization and maintainability
+- Fixed search functionality to properly filter options based on user input
+
+The combobox now provides a more refined user experience with properly functioning search capabilities and a cleaner interface.

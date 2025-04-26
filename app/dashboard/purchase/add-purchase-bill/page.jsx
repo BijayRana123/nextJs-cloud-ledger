@@ -19,23 +19,50 @@ export default function AddPurchaseBillPage() {
   // State to store details of the selected supplier
   const [selectedSupplierDetails, setSelectedSupplierDetails] = useState(null);
   // State to manage the supplier combobox options
-  const [supplierOptions, setSupplierOptions] = useState([
-    { value: "supplier1", label: "Aakrist pathak (Customer)" }, // Example data
-    { value: "supplier2", label: "Aayush Stores (Supplier)" },
-    { value: "supplier3", label: "ABC Associates Pvt Ltd (Supplier)" },
-    { value: "supplier4", label: "abc chinese company (Supplier)" },
-    { value: "supplier5", label: "ABC Fabrics (Supplier)" },
-    { value: "supplier6", label: "ABC metal (Supplier)" },
-  ]);
+  const [supplierOptions, setSupplierOptions] = useState([]); // Initialize as empty array
   // State to control the supplier details modal visibility
   const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] = useState(false); // State for supplier details modal
-
+  // State to track if suppliers are loading
+  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
 
   // Using dynamic import with next/dynamic for client-side only rendering
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // Fetch all suppliers when component mounts
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      if (!mounted) return;
+      
+      setIsLoadingSuppliers(true);
+      try {
+        const response = await fetch('/api/organization/suppliers');
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Format suppliers for the combobox - include name and address
+          const formattedOptions = result.suppliers.map(supplier => ({
+            value: supplier._id,
+            label: supplier.name + (supplier.address ? ` - ${supplier.address}` : ''),
+            // Store the full supplier object for reference
+            supplierData: supplier
+          }));
+          
+          setSupplierOptions(formattedOptions);
+        } else {
+          console.error("Error fetching suppliers:", result.message);
+        }
+      } catch (error) {
+        console.error("Error fetching suppliers:", error);
+      } finally {
+        setIsLoadingSuppliers(false);
+      }
+    };
+    
+    fetchSuppliers();
+  }, [mounted]);
 
   const [formData, setFormData] = useState({
     supplierName: '',
@@ -351,12 +378,13 @@ export default function AddPurchaseBillPage() {
           // Extract the appropriate ID field from the supplier
           const supplierId = newSupplier._id || newSupplier.id || newSupplier.code;
           
-          // Add the new supplier to the options
+          // Add the new supplier to the options with name and address
           setSupplierOptions((prevOptions) => [
             ...prevOptions,
             { 
               value: supplierId, 
-              label: newSupplier.name + (newSupplier.contactType ? ` (${newSupplier.contactType})` : '')
+              label: newSupplier.name + (newSupplier.address ? ` - ${newSupplier.address}` : ''),
+              supplierData: newSupplier // Store the full supplier object
             }
           ]);
           
