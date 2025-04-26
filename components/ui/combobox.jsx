@@ -23,7 +23,7 @@ import {
 // It will need to be adapted to fetch and filter supplier data,
 // and handle the "Add New" functionality.
 
-export function Combobox({ options, value, onValueChange, placeholder = "Select item", onAddNew }) {
+export function Combobox({ options, value, onValueChange, placeholder = "Select item", onAddNew }) { // Added onAddNew prop
   const [open, setOpen] = React.useState(false);
   
   return (
@@ -52,9 +52,9 @@ export function Combobox({ options, value, onValueChange, placeholder = "Select 
           <CommandList>
             <CommandEmpty>No item found.</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {Array.isArray(options) && options.map((option) => (
                 <CommandItem
-                  key={option.value}
+                  key={option.value || `option-${Math.random()}`}
                   value={option.value}
                   onSelect={(currentValue) => {
                     onValueChange(currentValue === value ? "" : currentValue);
@@ -76,7 +76,7 @@ export function Combobox({ options, value, onValueChange, placeholder = "Select 
                 value="add-new"
                 onSelect={() => {
                   setOpen(false);
-                  if (onAddNew) {
+                  if (onAddNew) { // Call onAddNew if provided
                     onAddNew();
                   }
                 }}

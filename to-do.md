@@ -92,3 +92,55 @@ After reviewing the initial implementation, a more elegant solution was implemen
 - More performant as it avoids unnecessary re-renders
 
 The combobox dropdown now perfectly matches the width of the input field with a cleaner implementation.
+
+## New Task: Fix Console Error with Combobox Keys - COMPLETED ✅
+
+### Issue:
+The console was showing an error: "Each child in a list should have a unique 'key' prop. Check the render method of Context.Provider."
+
+### Root Cause:
+The error was occurring in the Combobox component when mapping over the options array. There were potential issues with:
+1. Missing key props
+2. Duplicate key values
+3. Handling of undefined or null values in the options array
+
+### Solution Implemented:
+1. ✅ Added a check to ensure options is an array before mapping over it
+2. ✅ Improved the key generation to handle cases where option.value might be undefined or null
+3. ✅ Added a fallback key using Math.random() to ensure uniqueness in all cases
+
+### Benefits:
+- Eliminated the React warning about missing/duplicate keys
+- Made the component more robust against different types of input data
+- Improved error handling for edge cases
+- Enhanced overall component stability
+
+The combobox now properly handles all options data without generating console errors.
+
+## New Task: Fix New Supplier Not Showing in Combobox - COMPLETED ✅
+
+### Issue:
+When a new supplier was added through the modal, it was saved to the database but not appearing in the supplier combobox field.
+
+### Root Cause:
+There was a mismatch between the data structure being passed from the modal to the parent component:
+1. The modal was passing a simplified object with just value and label properties
+2. The parent component was expecting the full supplier object with _id and name properties
+3. The ID field naming was inconsistent (sometimes _id, sometimes code)
+
+### Solution Implemented:
+1. ✅ Modified the supplier modal to pass the complete supplier object returned from the API
+2. ✅ Updated the parent component to handle different possible ID field names (_id, id, or code)
+3. ✅ Added better logging to track the data flow
+4. ✅ Improved the supplier option creation with proper formatting
+5. ✅ Added code to update the selected supplier details immediately
+6. ✅ Increased the timeout duration to ensure state updates are processed
+
+### Benefits:
+- New suppliers now appear immediately in the dropdown after creation
+- The newly created supplier is automatically selected
+- The supplier details section is updated with the new supplier's information
+- The solution is more robust against variations in the API response format
+- Better debugging information is available through console logs
+
+The user can now seamlessly add new suppliers and continue their workflow without interruption.

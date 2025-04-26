@@ -11,10 +11,25 @@ import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, Custom
 import { CalendarIcon, XIcon, SearchIcon, PlusCircleIcon } from "lucide-react"; // Icons
 import { Combobox } from "@/components/ui/combobox";
 import CreateNewSupplierModal from "@/app/components/create-new-supplier-modal"; // Import the new modal component
+import SupplierDetailsModal from "@/app/components/supplier-details-modal"; // Import the supplier details modal
 
 export default function AddPurchaseBillPage() {
   // State to control the new supplier modal visibility
   const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
+  // State to store details of the selected supplier
+  const [selectedSupplierDetails, setSelectedSupplierDetails] = useState(null);
+  // State to manage the supplier combobox options
+  const [supplierOptions, setSupplierOptions] = useState([
+    { value: "supplier1", label: "Aakrist pathak (Customer)" }, // Example data
+    { value: "supplier2", label: "Aayush Stores (Supplier)" },
+    { value: "supplier3", label: "ABC Associates Pvt Ltd (Supplier)" },
+    { value: "supplier4", label: "abc chinese company (Supplier)" },
+    { value: "supplier5", label: "ABC Fabrics (Supplier)" },
+    { value: "supplier6", label: "ABC metal (Supplier)" },
+  ]);
+  // State to control the supplier details modal visibility
+  const [isSupplierDetailsModalOpen, setIsSupplierDetailsModalOpen] = useState(false); // State for supplier details modal
+
 
   // Using dynamic import with next/dynamic for client-side only rendering
   const [mounted, setMounted] = useState(false);
@@ -41,6 +56,45 @@ export default function AddPurchaseBillPage() {
       handleAddItem();
     }
   }, [mounted]); // Only run this effect when mounted
+
+  // Fetch supplier details when supplierName changes
+  useEffect(() => {
+    const fetchSupplierDetails = async () => {
+      const supplierId = formData.supplierName;
+      if (supplierId) {
+        try {
+          const response = await fetch(`/api/organization/suppliers/${supplierId}`);
+          const result = await response.json();
+          if (response.ok) {
+            const fetchedSupplier = result.supplier;
+            setSelectedSupplierDetails(fetchedSupplier);
+
+            // Ensure the fetched supplier is in the combobox options
+            setSupplierOptions((prevOptions) => {
+              if (!prevOptions.some(option => option.value === fetchedSupplier._id)) {
+                return [...prevOptions, { value: fetchedSupplier._id, label: fetchedSupplier.name }];
+              }
+              return prevOptions;
+            });
+
+          } else {
+            console.error("Error fetching supplier details:", result.message);
+            setSelectedSupplierDetails(null); // Clear details on error
+            // TODO: Optionally remove the supplier from options if fetching fails
+          }
+        } catch (error) {
+          console.error("Error fetching supplier details:", error);
+          setSelectedSupplierDetails(null); // Clear details on error
+          // TODO: Optionally remove the supplier from options on network error
+        }
+      } else {
+        setSelectedSupplierDetails(null); // Clear details if no supplier is selected
+        // TODO: Optionally clear the selected value in the combobox if details are cleared
+      }
+    };
+
+    fetchSupplierDetails();
+  }, [formData.supplierName]); // Run effect when supplierName changes
 
   const handleInputChange = (e) => {
     const { id, value, type, checked } = e.target;
@@ -108,19 +162,33 @@ export default function AddPurchaseBillPage() {
               {/* Replace Input with Combobox */}
               <Combobox
                className="w-full"
-                options={[
-                  { value: "supplier1", label: "Aakrist pathak (Customer)" }, // Example data
-                  { value: "supplier2", label: "Aayush Stores (Supplier)" },
-                  { value: "supplier3", label: "ABC Associates Pvt Ltd (Supplier)" },
-                  { value: "supplier4", label: "abc chinese company (Supplier)" },
-                  { value: "supplier5", label: "ABC Fabrics (Supplier)" },
-                  { value: "supplier6", label: "ABC metal (Supplier)" },
-                ]}
+                options={supplierOptions} // Use state for options
                 value={formData.supplierName}
                 onValueChange={(value) => handleSelectChange('supplierName', value)}
                 placeholder="Select Supplier"
                 onAddNew={() => setIsNewSupplierModalOpen(true)} // Open modal on "add new"
               />
+              {/* Display selected supplier details */}
+              {selectedSupplierDetails && (
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mt-2">
+                  <div>
+                    <strong>PAN Number:</strong> {selectedSupplierDetails.pan || 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Address:</strong> {selectedSupplierDetails.address || 'N/A'}
+                  </div>
+                  <div>
+                    <strong>Code:</strong> {selectedSupplierDetails.code || 'N/A'}
+                  </div>
+                  <div>
+                    {/* View Details link */}
+                    <a href="#" className="text-blue-600 hover:underline" onClick={(e) => {
+                      e.preventDefault(); // Prevent default link behavior
+                      setIsSupplierDetailsModalOpen(true); // Open the details modal
+                    }}>View Details</a>
+                  </div>
+                </div>
+              )}
             </div>
              <div className="flex flex-col space-y-1.5">
               <Label htmlFor="referenceNo">Reference No</Label>
@@ -277,6 +345,36 @@ export default function AddPurchaseBillPage() {
       <CreateNewSupplierModal
         isOpen={isNewSupplierModalOpen}
         onClose={() => setIsNewSupplierModalOpen(false)} // Function to close the modal
+        onSupplierCreated={(newSupplier) => { // Function to handle new supplier creation
+          console.log("New supplier created:", newSupplier);
+          
+          // Extract the appropriate ID field from the supplier
+          const supplierId = newSupplier._id || newSupplier.id || newSupplier.code;
+          
+          // Add the new supplier to the options
+          setSupplierOptions((prevOptions) => [
+            ...prevOptions,
+            { 
+              value: supplierId, 
+              label: newSupplier.name + (newSupplier.contactType ? ` (${newSupplier.contactType})` : '')
+            }
+          ]);
+          
+          // Select the new supplier
+          setTimeout(() => {
+            handleSelectChange('supplierName', supplierId);
+            
+            // Also update the selected supplier details
+            setSelectedSupplierDetails(newSupplier);
+          }, 100); // Slightly longer timeout to ensure state updates
+        }}
+      />
+
+      {/* Supplier Details Modal */}
+      <SupplierDetailsModal
+        isOpen={isSupplierDetailsModalOpen}
+        onClose={() => setIsSupplierDetailsModalOpen(false)} // Function to close the modal
+        supplier={selectedSupplierDetails} // Pass the selected supplier details
       />
     </div>
   );

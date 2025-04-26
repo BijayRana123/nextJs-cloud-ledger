@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Assuming Tabs components are available
 
-export default function CreateNewSupplierModal({ isOpen, onClose }) {
+export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCreated }) { // Added onSupplierCreated prop
   const [formData, setFormData] = useState({
     contactType: 'Supplier', // Default to Supplier based on the image
     name: '',
@@ -53,11 +53,43 @@ export default function CreateNewSupplierModal({ isOpen, onClose }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Added async keyword
     e.preventDefault();
-    // TODO: Implement logic to save new supplier
-    console.log("Saving New Supplier:", formData);
-    onClose(); // Close modal after saving (or handle success/error)
+    e.preventDefault();
+    
+    // TODO: Add client-side validation before submitting
+
+    // Send data to the backend API
+    try {
+      const response = await fetch('/api/organization/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Supplier created successfully
+        console.log("Supplier saved successfully:", result.supplier);
+        // Call the callback function with the new supplier data
+        if (onSupplierCreated) {
+          onSupplierCreated(result.supplier); // Pass the entire supplier object
+        }
+        onClose(); // Close modal on success
+      } else {
+        // Handle API errors
+        console.error("Error saving supplier:", result.message);
+        // TODO: Display error message to the user
+        alert(`Error saving supplier: ${result.message}`); // Basic alert for now
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      // TODO: Handle network errors
+      alert("An unexpected error occurred."); // Basic alert for now
+    }
   };
 
   return (
