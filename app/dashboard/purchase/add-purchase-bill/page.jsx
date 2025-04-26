@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'; // Import useEffect
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NepaliDatePicker } from 'nepali-datepicker-reactjs'; // Import the Nepali Date Picker component
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,8 +22,8 @@ export default function AddPurchaseBillPage() {
     supplierName: '',
     referenceNo: '',
     billNumber: '',
-    billDate: '',
-    dueDate: '',
+    billDate: '', // Reverted to ''
+    dueDate: '', // Reverted to ''
     supplierInvoiceReferenceNo: '',
     currency: 'Nepalese Rupee', // Default currency
     exchangeRateToNPR: '1', // Default exchange rate
@@ -102,6 +103,7 @@ export default function AddPurchaseBillPage() {
               <Label htmlFor="supplierName">Supplier Name *</Label>
               {/* Replace Input with Combobox */}
               <Combobox
+               className="w-full"
                 options={[
                   { value: "supplier1", label: "Aakrist pathak (Customer)" }, // Example data
                   { value: "supplier2", label: "Aayush Stores (Supplier)" },
@@ -113,7 +115,7 @@ export default function AddPurchaseBillPage() {
                 value={formData.supplierName}
                 onValueChange={(value) => handleSelectChange('supplierName', value)}
                 placeholder="Select Supplier"
-                className="w-full"
+               
               />
             </div>
              <div className="flex flex-col space-y-1.5">
@@ -128,16 +130,32 @@ export default function AddPurchaseBillPage() {
               <Input id="billNumber" placeholder="Bill Number" value={formData.billNumber} onChange={handleInputChange} />
             </div>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="billDate">Bill Date *</Label>
-               <div className="flex items-center gap-2">
-                 <Input id="billDate" type="date" value={formData.billDate} onChange={handleInputChange} required />
+              <Label htmlFor="billDate">Bill Date (BS) *</Label> {/* Updated label */}
+               <div className="flex items-center gap-7">
+                 {/* Replace standard date input with NepaliDatePicker */}
+                 <NepaliDatePicker
+                   className='w-full'
+                   inputClassName="w-full" // Apply styling similar to Input
+                   value={formData.billDate}
+                   onChange={(value) => handleSelectChange('billDate', value)} // Use handleSelectChange for consistency
+                   options={{  calenderLocale: "ne", valueLocale: "en" }} // Optional: Add custom class
+                   format="YYYY-MM-DD" // Added format prop (adjust format as needed for BS)
+                 />
                  <CalendarIcon className="h-5 w-5 text-gray-500" />
                </div>
             </div>
              <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="dueDate">Due Date *</Label>
+              <Label htmlFor="dueDate">Due Date (BS) *</Label> {/* Updated label */}
                <div className="flex items-center gap-2">
-                 <Input id="dueDate" type="date" value={formData.dueDate} onChange={handleInputChange} required />
+                 {/* Replace standard date input with NepaliDatePicker */}
+                 <NepaliDatePicker
+                   className='w-full'
+                   inputClassName="w-full" // Apply styling similar to Input
+                   value={formData.dueDate}
+                   onChange={(value) => handleSelectChange('dueDate', value)} // Use handleSelectChange for consistency
+                   options={{ calenderCssClassName: 'custom-calendar-class',calenderLocale: "ne", valueLocale: "en" }} // Optional: Add custom class
+                   format="YYYY-MM-DD" // Added format prop (adjust format as needed for BS)
+                 />
                  <CalendarIcon className="h-5 w-5 text-gray-500" />
                </div>
             </div>

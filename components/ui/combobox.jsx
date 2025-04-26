@@ -25,11 +25,35 @@ import {
 
 export function Combobox({ options, value, onValueChange, placeholder = "Select item" }) {
   const [open, setOpen] = React.useState(false);
+ 
+  
+  // Create a ref to measure the width of the trigger button
+  const triggerRef = React.useRef(null);
+  const [width, setWidth] = React.useState(0);
+
+  // Update width when the component mounts and when window resizes
+  React.useEffect(() => {
+    const updateWidth = () => {
+      if (triggerRef.current) {
+        setWidth(triggerRef.current.offsetWidth);
+      }
+    };
+
+    // Initial width calculation
+    updateWidth();
+
+    // Add resize listener
+    window.addEventListener('resize', updateWidth);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover className="w-full" open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="outline"
           role="combobox"
           aria-expanded={open}
@@ -41,8 +65,13 @@ export function Combobox({ options, value, onValueChange, placeholder = "Select 
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 ">
-        <Command>
+      <PopoverContent 
+        className="p-0" 
+        style={{ width: `${width}px` }} // Set exact width to match trigger
+        align="start"
+        sideOffset={4}
+      >
+        <Command className="w-full">
           <CommandInput placeholder="Search item..." />
           <CommandList>
             <CommandEmpty>No item found.</CommandEmpty>

@@ -54,8 +54,8 @@
   --primary-foreground: oklch(0.985 0.002 247.839);
   --secondary: oklch(0.967 0.003 264.542);
   --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
+  --muted: oklch(0.278 0.033 256.848);
+  --muted-foreground: oklch(0.707 0.022 261.325);
   --accent: oklch(0.967 0.003 264.542);
   --accent-foreground: oklch(0.21 0.034 264.665);
   --destructive: oklch(0.577 0.245 27.325);
@@ -67,14 +67,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
+  --sidebar: oklch(0.21 0.034 264.665);
   --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
+  --sidebar-accent: oklch(0.278 0.033 256.848);
+  --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
 .dark {
@@ -102,7 +102,7 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.21 0.034 264.665);
-  --sidebar-foreground: oklch(0.985 0.002 247.839);
+  --sidebar-foreground: oklch(0.13 0.028 261.692);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
   --sidebar-accent: oklch(0.278 0.033 256.848);
@@ -117,5 +117,161 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .nepali-date-picker {
+    position: relative;
+  }
+
+  .nepali-date-picker .calender {
+    background: #fff none repeat scroll 0 0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    color: #8c8c8c;
+    display: block;
+    font-family: NotoSans, sans-serif;
+    font-size: 14px;
+    font-style: normal;
+    font-weight: normal;
+    height: auto;
+    letter-spacing: 0.2px;
+    line-height: 1.25em;
+    padding: 15px;
+    position: absolute;
+    text-align: right;
+    -webkit-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+    left: 0;
+    z-index: 9999;
+  }
+
+  .nepali-date-picker .calender .calendar-controller {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .date-indicator {
+    display: flex;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control {
+    cursor: pointer;
+    position: relative;
+    text-align: center;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control.icon-today {
+    position: absolute;
+    right: 20px;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control.month, .nepali-date-picker .calender .calendar-controller .control.year {
+    border: 1px solid #eee;
+    line-height: 24px;
+    width: 70px;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control.month .current-month, .nepali-date-picker .calender .calendar-controller .control.month .current-year, .nepali-date-picker .calender .calendar-controller .control.year .current-month, .nepali-date-picker .calender .calendar-controller .control.year .current-year {
+    display: block;
+    padding: 4px;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control.year {
+    border-left: none;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control .drop-down {
+    background-color: #fff;
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1);
+    left: 0;
+    max-height: 200px;
+    overflow-y: scroll;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control .drop-down ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control .drop-down li {
+    padding: 4px 10px;
+  }
+
+  .nepali-date-picker .calender .calendar-controller .control .drop-down li.active {
+    background: #2096f5;
+    color: #fff;
+  }
+
+  .nepali-date-picker .calender td.month-day.current {
+    opacity: 1;
+  }
+
+  .nepali-date-picker .calender td.month-day.disabled {
+    color: #d8d8d8;
+  }
+
+  .nepali-date-picker .calender td.month-day.today {
+    color: #4a4a4a;
+    position: relative;
+  }
+
+  .nepali-date-picker .calender td.month-day.today::before {
+    background-color: #2096f5;
+    border-radius: 50%;
+    bottom: 6px;
+    content: "";
+    height: 4px;
+    left: 50%;
+    margin: auto;
+    position: absolute;
+    transform: translateX(-50%);
+    width: 4px;
+  }
+
+  .nepali-date-picker .calender td.month-day.selected {
+    color: #fff;
+    position: relative;
+  }
+
+  .nepali-date-picker .calender td.month-day.selected::after {
+    background: #2096f5;
+    border-radius: 50%;
+    content: "";
+    height: 35px;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 35px;
+    z-index: -1;
+  }
+
+  .nepali-date-picker .calender table {
+    text-align: center;
+    width: 100%;
+    border: none;
+  }
+
+  .nepali-date-picker .calender table td {
+    height: 40px;
+    width: 40px;
+    border: none;
+  }
+
+  .nepali-date-picker .calender table tr {
+    border: none;
+    height: 36px;
   }
 }
