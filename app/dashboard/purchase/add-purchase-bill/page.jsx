@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable"; // Import custom table components
 import { CalendarIcon, XIcon, SearchIcon } from "lucide-react"; // Icons
+import { Combobox } from "@/components/ui/combobox";
 
 export default function AddPurchaseBillPage() {
   // Using dynamic import with next/dynamic for client-side only rendering
@@ -99,7 +100,21 @@ export default function AddPurchaseBillPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="supplierName">Supplier Name *</Label>
-              <Input id="supplierName" placeholder="Supplier Name" value={formData.supplierName} onChange={handleInputChange} required />
+              {/* Replace Input with Combobox */}
+              <Combobox
+                options={[
+                  { value: "supplier1", label: "Aakrist pathak (Customer)" }, // Example data
+                  { value: "supplier2", label: "Aayush Stores (Supplier)" },
+                  { value: "supplier3", label: "ABC Associates Pvt Ltd (Supplier)" },
+                  { value: "supplier4", label: "abc chinese company (Supplier)" },
+                  { value: "supplier5", label: "ABC Fabrics (Supplier)" },
+                  { value: "supplier6", label: "ABC metal (Supplier)" },
+                ]}
+                value={formData.supplierName}
+                onValueChange={(value) => handleSelectChange('supplierName', value)}
+                placeholder="Select Supplier"
+                className="w-full"
+              />
             </div>
              <div className="flex flex-col space-y-1.5">
               <Label htmlFor="referenceNo">Reference No</Label>
