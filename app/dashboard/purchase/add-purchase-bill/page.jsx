@@ -8,10 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable"; // Import custom table components
-import { CalendarIcon, XIcon, SearchIcon } from "lucide-react"; // Icons
+import { CalendarIcon, XIcon, SearchIcon, PlusCircleIcon } from "lucide-react"; // Icons
 import { Combobox } from "@/components/ui/combobox";
+import CreateNewSupplierModal from "@/app/components/create-new-supplier-modal"; // Import the new modal component
 
 export default function AddPurchaseBillPage() {
+  // State to control the new supplier modal visibility
+  const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
+
   // Using dynamic import with next/dynamic for client-side only rendering
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -115,7 +119,7 @@ export default function AddPurchaseBillPage() {
                 value={formData.supplierName}
                 onValueChange={(value) => handleSelectChange('supplierName', value)}
                 placeholder="Select Supplier"
-               
+                onAddNew={() => setIsNewSupplierModalOpen(true)} // Open modal on "add new"
               />
             </div>
              <div className="flex flex-col space-y-1.5">
@@ -268,6 +272,12 @@ export default function AddPurchaseBillPage() {
            <Button variant="outline" onClick={handleAddItem}>+ Add Additional Cost</Button> 
         </CardContent>
       </Card>
+
+      {/* New Supplier Modal */}
+      <CreateNewSupplierModal
+        isOpen={isNewSupplierModalOpen}
+        onClose={() => setIsNewSupplierModalOpen(false)} // Function to close the modal
+      />
     </div>
   );
 }

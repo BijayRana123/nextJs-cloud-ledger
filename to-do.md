@@ -69,16 +69,26 @@ The combobox dropdown width needed to match the width of the input field.
 ### Issue:
 The dropdown menu of the combobox component was not matching the width of the input field, causing a visual inconsistency in the UI.
 
-### Steps Taken:
+### Initial Approach:
 1. ✅ Added a React ref to measure the width of the trigger button
 2. ✅ Implemented a state variable to store the measured width
-3. ✅ Added an effect hook to:
-   - Calculate the width when the component mounts
-   - Update the width when the window resizes
-   - Clean up the event listener when the component unmounts
-4. ✅ Applied the exact width to the PopoverContent component using inline styles
-5. ✅ Set the alignment to "start" to ensure proper positioning
-6. ✅ Fixed icon sizing issues (changed w-full to w-4 for the icons)
+3. ✅ Added an effect hook to calculate and update the width
+4. ✅ Applied the width to the PopoverContent component using inline styles
 
-### Solution Implemented:
-The combobox dropdown now dynamically matches the exact width of the input field, creating a more polished and consistent UI experience. The solution is responsive and will maintain the correct width even if the window is resized.
+### Improved Solution:
+After reviewing the initial implementation, a more elegant solution was implemented:
+
+1. ✅ Removed the manual width calculation using refs and useEffect
+2. ✅ Utilized Radix UI's built-in CSS variable `--radix-popover-trigger-width`
+3. ✅ Applied this variable directly in the className with `w-[var(--radix-popover-trigger-width)]`
+4. ✅ Maintained the alignment to "start" for proper positioning
+5. ✅ Kept the proper icon sizing (w-4)
+
+### Benefits of the New Solution:
+- More maintainable code with fewer lines
+- No need for manual width calculations or event listeners
+- Automatically handles resizing without additional JavaScript
+- Uses the built-in functionality of Radix UI components
+- More performant as it avoids unnecessary re-renders
+
+The combobox dropdown now perfectly matches the width of the input field with a cleaner implementation.
