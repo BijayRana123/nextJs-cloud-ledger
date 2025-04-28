@@ -138,6 +138,10 @@ function Step3({ onBack, onNext, phoneNumber, setPhoneNumber, orgEmail, setOrgEm
     onNext();
   };
 
+  const handleAgreePrivacyChange = (e) => {
+    setAgreePrivacy(e.target.checked);
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-4">Step 3 of 4: Organization Details</h2>
@@ -196,7 +200,7 @@ function Step3({ onBack, onNext, phoneNumber, setPhoneNumber, orgEmail, setOrgEm
           type="checkbox"
           id="agree-privacy"
           checked={agreePrivacy}
-          onChange={(e) => setAgreePrivacy(e.target.checked)}
+          onChange={handleAgreePrivacyChange} // Use the new handler function
           required
         />
         <Label htmlFor="agree-privacy">I agree to the Privacy Policy</Label>
@@ -262,6 +266,8 @@ function SubmissionSuccess() {
 
 
 export default function OrgSetupPage() {
+  const router = useRouter(); // Call useRouter at the top level
+
   const [currentStep, setCurrentStep] = useState(1);
   // State for all form fields
   const [businessName, setBusinessName] = useState('');
@@ -315,12 +321,12 @@ export default function OrgSetupPage() {
 
     try {
       // Call the backend API to create and link the organization
+      // The browser will automatically include the HTTP-only cookie
       const response = await fetch('/api/user/setup-organization', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Include authorization header if your setup-organization route requires it
-          // 'Authorization': `Bearer ${yourAuthToken}`
+          // Do NOT manually include the Authorization header for HTTP-only cookies
         },
         body: JSON.stringify(organizationData),
       });
@@ -329,6 +335,10 @@ export default function OrgSetupPage() {
 
       if (response.ok) {
         console.log("Organization setup successful:", data);
+        // Store the new organization ID in local storage
+        if (data.organizationId) { // Assuming the API returns the new organization ID as 'organizationId'
+          localStorage.setItem('organizationId', data.organizationId);
+        }
         setCurrentStep(5); // Move to success step
       } else {
         setError(data.message || 'Organization setup failed');

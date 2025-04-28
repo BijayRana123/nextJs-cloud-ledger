@@ -9,7 +9,6 @@ export function CustomTable({ children, className }) {
         {children}
       </table>
     </div>
-
   );
 }
 

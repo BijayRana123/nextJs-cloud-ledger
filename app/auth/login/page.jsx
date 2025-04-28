@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'; // Import useState and useEffect
 import { useSearchParams, useRouter } from 'next/navigation'; // Import useSearchParams and useRouter
 import Link from 'next/link'; // Import Link
+import Cookies from 'js-cookie'; // Import Cookies library
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,13 +25,84 @@ export default function LoginPage() {
     }
   }, [searchParams]); // Depend on searchParams to re-run if query changes
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Make function async
     e.preventDefault();
-    // Simulate login
-    console.log("Logging in with:", email, password);
-    // TODO: Implement actual login logic
-    // Redirect to onboarding/org-setup after simulated successful login
-    router.push('/onboarding/org-setup');
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Login successful
+        console.log("Login successful:", result);
+        
+        // The cookie is set by the server in the login API response
+        // We don't need to set it client-side with js-cookie
+        
+        // Just verify that we received a token in the response
+        if (result.token) {
+          console.log("LoginPage: Auth token received from server:", result.token.substring(0, 10) + "..."); // Log partial token for security
+          
+          // For debugging: Check if the token is properly formatted
+          try {
+            // Split the token to check its structure (header.payload.signature)
+            const tokenParts = result.token.split('.');
+            if (tokenParts.length !== 3) {
+              console.error("LoginPage: Token does not have the expected JWT format (header.payload.signature)");
+            } else {
+              console.log("LoginPage: Token has valid JWT format with 3 parts");
+              
+              // Decode the payload (middle part) to check its content
+              const payload = JSON.parse(atob(tokenParts[1]));
+              console.log("LoginPage: Decoded token payload:", payload);
+            }
+          } catch (e) {
+            console.error("LoginPage: Error analyzing token format:", e);
+          }
+        } else if (result.authToken) {
+          console.log("LoginPage: Auth token received from server (authToken field):", result.authToken.substring(0, 10) + "...");
+        } else {
+          console.error("LoginPage: No token found in login response:", result);
+        }
+        
+        // Verify that the cookie was set by the server
+        console.log("LoginPage: Cookies after login:", document.cookie);
+        
+        if (result.organizationId) {
+          localStorage.setItem('organizationId', result.organizationId); // Keep organizationId in local storage
+          console.log("LoginPage: Organization ID stored in localStorage:", result.organizationId);
+        }
+
+        // Check if there's a returnUrl in the query parameters
+        const returnUrl = searchParams.get('returnUrl');
+        
+        if (returnUrl) {
+          console.log("LoginPage: Redirecting to return URL:", returnUrl);
+          router.push(returnUrl); // Redirect back to the original page
+        } else {
+          console.log("LoginPage: No return URL found, redirecting to default page");
+          // Redirect to the appropriate page (e.g., dashboard or organization setup)
+          router.push('/onboarding/org-setup');
+        }
+
+      } else {
+        // Handle login errors
+        console.error("Login failed:", result.message);
+        // TODO: Display error message to the user (e.g., invalid credentials)
+        alert(`Login failed: ${result.message}`); // Basic alert for now
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      // TODO: Handle network errors
+      alert("An unexpected error occurred during login."); // Basic alert for now
+    }
   };
 
   return (

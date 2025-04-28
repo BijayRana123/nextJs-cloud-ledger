@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react'; // Import useEffect
+import { useRouter } from 'next/navigation'; // Import useRouter
+import Cookies from 'js-cookie'; // Import Cookies library
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Assuming Tabs components are available
 
 export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCreated }) { // Added onSupplierCreated prop
+  const router = useRouter(); // Call useRouter at the top level
+
   const [formData, setFormData] = useState({
     contactType: 'Supplier', // Default to Supplier based on the image
     name: '',
@@ -61,10 +65,21 @@ export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCrea
 
     // Send data to the backend API
     try {
+      // Retrieve the JWT from the cookie
+      const authToken = Cookies.get('sb-mnvxxmmrlvjgpnhditxc-auth-token'); // Assuming the token is stored in this cookie
+
+      if (!authToken) {
+        console.error("CreateNewSupplierModal: Authentication token not found in cookie."); // Keep console error for debugging
+        // Redirect to login page if token is missing
+        router.push('/auth/login');
+        return;
+      }
+
       const response = await fetch('/api/organization/suppliers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`, // Include the JWT in the Authorization header
         },
         body: JSON.stringify(formData),
       });
