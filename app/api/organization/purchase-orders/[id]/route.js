@@ -7,7 +7,9 @@ export async function GET(request, { params }) {
     await dbConnect();
     const { id } = await params; // Await params
 
-    const purchaseOrder = await PurchaseOrder.findById(id);
+    const purchaseOrder = await PurchaseOrder.findById(id)
+      .populate('supplier')
+      .populate('items.item');
 
     if (purchaseOrder) {
       return NextResponse.json({ purchaseOrder }, { status: 200 });

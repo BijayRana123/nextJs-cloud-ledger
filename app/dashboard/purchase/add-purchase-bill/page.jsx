@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, XIcon } from "lucide-react";
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter, useSearchParams } from 'next/navigation'; // Import useRouter and useSearchParams
 
 // Import the new components
 import SupplierSection from "@/app/components/purchase/supplier-section";
@@ -19,9 +19,10 @@ import CalculationSection from "@/app/components/purchase/calculation-section";
 
 export default function AddPurchaseBillPage() {
   const router = useRouter(); // Initialize router
+  const searchParams = useSearchParams(); // Get search params
 
   const [formData, setFormData] = useState({
-    supplierName: '',
+    supplierName: '', // This should likely hold the supplier ID
     referenceNo: '',
     billNumber: '',
     billDate: '',
@@ -34,15 +35,12 @@ export default function AddPurchaseBillPage() {
   });
 
   const [organizationId, setOrganizationId] = useState(null); // State to hold organization ID
+  const [isEditing, setIsEditing] = useState(false); // State to indicate if we are in edit mode
 
-  // Initialize with an empty item for better UX and fetch organization ID
+  // Fetch organization ID and purchase order data if editing
   useEffect(() => {
-    if (formData.items.length === 0) {
-      setFormData((prev) => ({
-        ...prev,
-        items: [...prev.items, { product: '', productName: '', productCode: '', qty: '', rate: '', discount: '', tax: '', amount: '' }],
-      }));
-    }
+    const purchaseOrderId = searchParams.get('id'); // Get the 'id' parameter
+    setIsEditing(!!purchaseOrderId); // Set editing mode based on ID presence
 
     // Fetch organization ID
     const fetchOrganization = async () => {
@@ -64,7 +62,59 @@ export default function AddPurchaseBillPage() {
 
     fetchOrganization();
 
-  }, []);
+    // Fetch purchase order data if ID is present (for editing)
+    if (purchaseOrderId) {
+      const fetchPurchaseOrder = async () => {
+        try {
+          const response = await fetch(`/api/organization/purchase-orders/${purchaseOrderId}`);
+          const result = await response.json();
+
+          if (response.ok && result.purchaseOrder) {
+            const po = result.purchaseOrder;
+            // Map fetched data to formData structure
+            setFormData({
+              supplierName: po.supplier?._id || '', // Assuming supplierName in formData should be the ID
+              referenceNo: po.referenceNo || '',
+              billNumber: po.billNumber || '',
+              billDate: po.date ? new Date(po.date).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
+              dueDate: po.dueDate ? new Date(po.dueDate).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
+              supplierInvoiceReferenceNo: po.supplierInvoiceReferenceNo || '',
+              currency: po.currency || 'Nepalese Rupee',
+              exchangeRateToNPR: po.exchangeRateToNPR?.toString() || '1',
+              isImport: po.isImport || false,
+              items: po.items?.map(item => ({
+                product: item.item?._id || '', // Item ID
+                productName: item.item?.name || 'Unknown Product', // Item name
+                productCode: item.item?._id || 'No Code', // Item code (using ID for now)
+                qty: item.quantity?.toString() || '',
+                rate: item.price?.toString() || '',
+                discount: item.discount?.toString() || '',
+                tax: item.tax?.toString() || '',
+                amount: ((item.quantity || 0) * (item.price || 0)).toString() || '', // Calculate amount
+              })) || [],
+            });
+          } else {
+            console.error("Failed to fetch purchase order for editing:", result.message);
+            // TODO: Handle error, maybe show a message or redirect
+          }
+        } catch (error) {
+          console.error("Error fetching purchase order for editing:", error);
+          // TODO: Handle error
+        }
+      };
+
+      fetchPurchaseOrder();
+    } else {
+       // If no ID, initialize with an empty item for new purchase order
+       if (formData.items.length === 0) {
+         setFormData((prev) => ({
+           ...prev,
+           items: [...prev.items, { product: '', productName: '', productCode: '', qty: '', rate: '', discount: '', tax: '', amount: '' }],
+         }));
+       }
+    }
+
+  }, [searchParams]); // Add searchParams as a dependency
 
 
   const handleInputChange = (e) => {
@@ -92,6 +142,8 @@ export default function AddPurchaseBillPage() {
       return;
     }
 
+    const purchaseOrderId = searchParams.get('id'); // Get the 'id' parameter for updating
+
     // Calculate total amount
     const totalAmount = formData.items.reduce((sum, item) => {
       const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
@@ -113,7 +165,7 @@ export default function AddPurchaseBillPage() {
     // Construct the data object to send to the API
     const dataToSend = {
       organization: organizationId, // Use the fetched organization ID
-      purchaseOrderNumber: `PO-${Date.now()}`, // Simple mock PO number, consider a proper sequence generator
+      // purchaseOrderNumber: `PO-${Date.now()}`, // Simple mock PO number, consider a proper sequence generator - Keep existing PO number if editing
       date: formData.billDate, // Mapping billDate to date
       supplier: formData.supplierName, // Using the selected supplier ID (should also be ObjectId if backend expects it)
       items: validPurchaseOrderItems, // Use the filtered items
@@ -130,9 +182,12 @@ export default function AddPurchaseBillPage() {
 
     console.log("Submitting Purchase Order:", dataToSend);
 
+    const method = isEditing ? 'PUT' : 'POST';
+    const url = isEditing ? `/api/organization/purchase-orders/${purchaseOrderId}` : '/api/organization/purchase-orders';
+
     try {
-      const response = await fetch('/api/organization/purchase-orders', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -158,7 +213,7 @@ export default function AddPurchaseBillPage() {
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Add New Purchase Bill</h1>
+        <h1 className="text-2xl font-bold">{isEditing ? 'Edit Purchase Bill' : 'Add New Purchase Bill'}</h1>
         <div className="flex items-center gap-4">
           <Button className="bg-green-500 hover:bg-green-600" onClick={handleSubmit} disabled={!organizationId}>Save</Button> {/* Disable save until org ID is loaded */}
           {/* TODO: Add actual close functionality */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import CalculationSection from "@/app/components/purchase/calculation-section";
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams(); // Get the purchase order ID from the URL
+  const router = useRouter(); // Get router instance
   const [purchaseOrder, setPurchaseOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,7 +102,7 @@ export default function PurchaseOrderDetailPage() {
         <h1 className="text-2xl font-bold">Purchase Order Details</h1>
         {/* TODO: Add actions like Edit, Approve, Send Email, Print Preview */}
         <div className="flex items-center gap-4">
-           <Button variant="outline">Edit</Button>
+           <Button variant="outline" onClick={() => router.push(`/dashboard/purchase/add-purchase-bill?id=${id}`)}>Edit</Button>
            <Button className="bg-green-500 hover:bg-green-600">Approve</Button>
            <Button variant="ghost" size="icon"><XIcon className="h-5 w-5" /></Button> {/* Close button */}
         </div>
@@ -115,7 +116,10 @@ export default function PurchaseOrderDetailPage() {
         <CardContent className="grid grid-cols-2 gap-4">
           <div>
             <Label>Supplier Name</Label>
-            <div>{supplierName || 'N/A'}</div>
+            <div>
+              {typeof supplier === 'object' && supplier.name ? supplier.name :
+               typeof supplier === 'string' ? `Supplier ID: ${supplier}` : 'N/A'}
+            </div>
           </div>
           <div>
             <Label>Purchase Order Number</Label>
@@ -184,7 +188,7 @@ export default function PurchaseOrderDetailPage() {
                   {items.map((item, index) => (
                     <CustomTableRow key={index}>
                       <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.productName} {item.productCode && `(${item.productCode})`}
+                        {item.productName} {item.productCode !== 'No Code' && `(${item.productCode})`}
                       </CustomTableCell>
                       <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.qty}
