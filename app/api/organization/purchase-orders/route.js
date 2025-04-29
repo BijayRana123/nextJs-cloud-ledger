@@ -30,6 +30,18 @@ export async function POST(request) {
 
 
     const purchaseOrderData = await request.json();
+    
+    // Ensure purchaseOrderNumber is set
+    if (!purchaseOrderData.purchaseOrderNumber) {
+      purchaseOrderData.purchaseOrderNumber = `PO-${Date.now()}`;
+    }
+
+    // Log the data being sent to the database
+    console.log("Purchase Order Data to save:", {
+      ...purchaseOrderData,
+      organization: organizationId,
+      status: 'DRAFT'
+    });
 
     const newPurchaseOrder = new PurchaseOrder({
       ...purchaseOrderData,
@@ -45,7 +57,22 @@ export async function POST(request) {
     return NextResponse.json({ message: "Purchase Order created successfully", purchaseOrder: newPurchaseOrder }, { status: 201 });
   } catch (error) {
     console.error("Error creating purchase order:", error);
-    return NextResponse.json({ message: "Failed to create purchase order" }, { status: 500 });
+    
+    // Provide more detailed error message
+    let errorMessage = "Failed to create purchase order";
+    
+    // Check if it's a validation error
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(field => {
+        return `${field}: ${error.errors[field].message}`;
+      });
+      errorMessage = `Validation failed: ${validationErrors.join(', ')}`;
+    }
+    
+    return NextResponse.json({ 
+      message: errorMessage,
+      error: error.message
+    }, { status: 500 });
   }
 }
 

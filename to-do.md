@@ -466,6 +466,66 @@ After examining the code, we identified that there was a mismatch between the da
 - Proper handling of nested objects in the API response
 - More comprehensive display of purchase order details
 
+## New Task: Fix Purchase Order Creation Error - COMPLETED ✅
+
+### Issue:
+When trying to create a purchase order, the following error occurs:
+```
+Error creating purchase order: Error: PurchaseOrder validation failed: purchaseOrderNumber: Path `purchaseOrderNumber` is required.
+```
+
+### Root Cause:
+The `purchaseOrderNumber` field is required in the PurchaseOrder schema, but it was not being properly passed to the server or was being overwritten during the creation process.
+
+### Solution Implemented:
+1. ✅ Added safeguards in the API route to ensure `purchaseOrderNumber` is always set:
+   ```javascript
+   // Ensure purchaseOrderNumber is set
+   if (!purchaseOrderData.purchaseOrderNumber) {
+     purchaseOrderData.purchaseOrderNumber = `PO-${Date.now()}`;
+   }
+   ```
+
+2. ✅ Improved the purchase order creation in the add-purchase-bill page:
+   ```javascript
+   // Generate a unique purchase order number
+   const timestamp = Date.now();
+   const purchaseOrderNumber = `PO-${timestamp}`;
+   
+   // Construct the data object to send to the API
+   const dataToSend = {
+     purchaseOrderNumber: purchaseOrderNumber,
+     // other fields...
+   };
+   ```
+
+3. ✅ Added better error handling in the API route to provide more detailed error messages:
+   ```javascript
+   if (error.name === 'ValidationError') {
+     const validationErrors = Object.keys(error.errors).map(field => {
+       return `${field}: ${error.errors[field].message}`;
+     });
+     errorMessage = `Validation failed: ${validationErrors.join(', ')}`;
+   }
+   ```
+
+4. ✅ Added logging to help diagnose issues:
+   ```javascript
+   // Log the data being sent to the database
+   console.log("Purchase Order Data to save:", {
+     ...purchaseOrderData,
+     organization: organizationId,
+     status: 'DRAFT'
+   });
+   ```
+
+### Benefits:
+- Fixed the validation error when creating purchase orders
+- Ensured that the `purchaseOrderNumber` field is always set with a unique value
+- Improved error handling with more detailed error messages
+- Added logging to help diagnose issues in the future
+- Made the purchase order creation process more robust
+
 ## New Task: Fix Purchase Order Detail Page Data Display - IN PROGRESS
 
 ### Issue:
