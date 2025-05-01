@@ -31,7 +31,7 @@ export function CustomTableBody({ children, className }) {
 export function CustomTableRow({ children, className }) {
   return (
     <tr className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted ${className || ''}`}>
-      {children}
+      {children || ''}
     </tr>
   );
 }
@@ -47,7 +47,7 @@ export function CustomTableHead({ children, className }) {
 export function CustomTableCell({ children, className }) {
   return (
     <td className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 ${className || ''}`}>
-      {children}
+      {children || ''}
     </td>
   );
 }

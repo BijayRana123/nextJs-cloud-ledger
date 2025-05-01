@@ -1,90 +1,61 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Import shadcn/ui table components
-import { Plus, ChevronLeft, ChevronRight, Menu } from "lucide-react"; // Icons for buttons and pagination
-
-// Placeholder data for the table
-const purchaseBills = [
-  {
-    id: "1",
-    supplier: "ABC Associates Pvt Ltd",
-    billNo: "dsf655",
-    referenceNo: "asdf512",
-    date: "04-01-2082",
-    total: "0.00",
-    highlighted: false,
-  },
-  {
-    id: "2",
-    supplier: "abc chinese company",
-    billNo: "54125",
-    referenceNo: "8455",
-    date: "04-01-2082",
-    total: "0.00",
-    highlighted: false,
-  },
-  {
-    id: "3",
-    supplier: "Aakrist pathak",
-    billNo: "1215stssdg",
-    referenceNo: "asdf512",
-    date: "04-01-2082",
-    total: "0.00",
-    highlighted: true, // Example highlighted row
-  },
-  {
-    id: "4",
-    supplier: "table bhandary",
-    billNo: "12",
-    referenceNo: "12",
-    date: "01-01-2082",
-    total: "113.00",
-    highlighted: false,
-  },
-  {
-    id: "5",
-    supplier: "ABC SUPPLIERS PVT LTD",
-    billNo: "1234xxasdy",
-    referenceNo: "1234xxasdy",
-    date: "28-12-2081",
-    total: "0.00",
-    highlighted: false,
-  },
-  {
-    id: "6",
-    supplier: "Chaudhary Traders",
-    billNo: "1234333",
-    referenceNo: "1234333",
-    date: "28-12-2081",
-    total: "77,970.00",
-    highlighted: false,
-  },
-   {
-    id: "7",
-    supplier: "Chaudhary Traders",
-    billNo: "332323",
-    referenceNo: "332323",
-    date: "28-12-2081",
-    total: "1,24,300.00",
-    highlighted: false,
-  },
-];
-
+import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable"; // Import custom table components
+import { Plus, ChevronLeft, ChevronRight, Menu, Rocket } from "lucide-react"; // Icons for buttons and pagination
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"; // Import shadcn/ui select components
 
 export default function PurchaseBillsPage() {
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchPurchaseOrders = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Fetch data from the purchase orders API endpoint
+      const response = await fetch('/api/organization/purchase-orders');
+      const result = await response.json();
+
+      if (response.ok) {
+        setPurchaseOrders(result.purchaseOrders); // Assuming the response contains a purchaseOrders array
+      } else {
+        setError(result.message || "Failed to fetch purchase orders");
+      }
+    } catch (err) {
+      console.error("Error fetching purchase orders:", err);
+      setError("An error occurred while fetching the purchase orders.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPurchaseOrders();
+  }, []); // Fetch data on component mount
+
+  if (isLoading) {
+    return <div className="p-4">Loading purchase orders...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-600">Error: {error}</div>;
+  }
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Purchase Bills</h1>
-        <Button className="bg-green-500 hover:bg-green-600" asChild> {/* Use asChild to make the Button a link */}
-          <Link href="/dashboard/purchase/add-purchase-bill"> {/* Add Link and href */}
-            <Plus className="h-5 w-5 mr-2" />
-            ADD NEW
-          </Link>
-        </Button>
+        <h1 className="text-2xl font-bold">Purchase Bills (Displaying Orders)</h1> {/* Updated title */}
+        {/* Apply button styling directly to the Link */}
+        <Link href="/dashboard/purchase/add-purchase-bill" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2"> {/* Added button classes */}
+          <Rocket className="h-5 w-5 mr-2" /> {/* Changed icon to Rocket */}
+          ADD NEW
+        </Link>
       </div>
 
       <Tabs defaultValue="approved" className="w-full">
@@ -95,10 +66,23 @@ export default function PurchaseBillsPage() {
             {/* Add other tabs if necessary */}
           </TabsList>
           <div className="flex items-center gap-4">
-            {/* Pagination Placeholder */}
-            <div className="flex items-center gap-2">
+             {/* Rows Count and Pagination */}
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <span>Rows Count</span>
+              <Select defaultValue="20"> {/* Added Select for Rows Count */}
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
-              <span className="text-sm text-gray-700">1 - 20 / 214</span> {/* Placeholder text */}
+              {/* Placeholder text updated - will need dynamic values */}
+              <span className="text-sm text-gray-700">1 - {purchaseOrders.length} / {purchaseOrders.length}</span> {/* Updated length */}
               <Button variant="outline" size="icon"><ChevronRight className="h-4 w-4" /></Button>
             </div>
             {/* Options Button */}
@@ -118,32 +102,32 @@ export default function PurchaseBillsPage() {
         <TabsContent value="approved">
           {/* Approved Bills Table */}
           <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead>
-                    <input type="checkbox" />
-                  </TableHead>
-                  <TableHead>SUPPLIER</TableHead>
-                  <TableHead>BILL NO</TableHead>
-                  <TableHead>REFERENCE NO</TableHead>
-                  <TableHead>DATE</TableHead>
-                  <TableHead>TOTAL</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchaseBills.map((bill) => (
-                  <TableRow key={bill.id} className={bill.highlighted ? "bg-green-50" : ""}>
-                    <TableCell><input type="checkbox" /></TableCell>
-                    <TableCell>{bill.supplier}</TableCell>
-                    <TableCell>{bill.billNo}</TableCell>
-                    <TableCell>{bill.referenceNo}</TableCell>
-                    <TableCell>{bill.date}</TableCell>
-                    <TableCell>{bill.total}</TableCell>
-                  </TableRow>
+            <CustomTable>
+              <CustomTableHeader>
+                <CustomTableRow className="bg-gray-100">
+                  <CustomTableHead><input type="checkbox" /></CustomTableHead>
+                  <CustomTableHead>SUPPLIER</CustomTableHead>
+                  <CustomTableHead>ORDER NO</CustomTableHead> {/* Keep header as ORDER NO */}
+                  <CustomTableHead>REFERENCE NO</CustomTableHead>
+                  <CustomTableHead>DATE</CustomTableHead>
+                  <CustomTableHead>AMOUNT</CustomTableHead> {/* Keep header as AMOUNT */}
+                  <CustomTableHead>STAGE</CustomTableHead> {/* Keep header as STAGE */}
+                </CustomTableRow>
+              </CustomTableHeader>
+              <CustomTableBody>
+                {purchaseOrders.map((order) => ( 
+                  <CustomTableRow key={order._id} className={order.highlighted ? "bg-green-50" : ""}> {/* Assuming _id from database */}
+                    <CustomTableCell><input type="checkbox" /></CustomTableCell>
+                    <CustomTableCell>{order.supplier?.name || 'N/A'}</CustomTableCell> {/* Assuming supplier is an object with name */}
+                    <CustomTableCell>{order.purchaseOrderNumber || 'N/A'}</CustomTableCell> {/* Display purchaseOrderNumber */}
+                    <CustomTableCell>{order.referenceNo || ''}</CustomTableCell> {/* Assuming purchase order might have a referenceNo */}
+                    <CustomTableCell>{order.date ? new Date(order.date).toLocaleDateString('en-GB') : 'N/A'}</CustomTableCell> {/* Format date */}
+                    <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell> {/* Display totalAmount */}
+                    <CustomTableCell>{order.status || 'N/A'}</CustomTableCell> {/* Display status */}
+                  </CustomTableRow>
                 ))}
-              </TableBody>
-            </Table>
+              </CustomTableBody>
+            </CustomTable>
           </div>
         </TabsContent>
 

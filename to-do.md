@@ -541,3 +541,36 @@ After examining the code, we identified that there's a mismatch between the data
 4. ✅ Add proper formatting for dates and numbers
 5. ✅ Add fallback values for missing fields
 6. ✅ Update the display section to show all relevant fields from the purchase order
+
+## New Task: Fix Hydration Issue in Purchase Bills Page Table - COMPLETED ✅
+
+### Issue:
+The purchase bills page was experiencing a hydration error in the table component, similar to the issue previously fixed in the Purchase Order Detail page.
+
+### Root Cause:
+The error was caused by whitespace text nodes being children of `<tr>` elements, which is not allowed in HTML. Additionally, there were potential issues with null values in the table data that could cause hydration mismatches between server and client rendering.
+
+### Solution Implemented:
+1. ✅ Removed unnecessary comments and whitespace in the table JSX structure
+2. ✅ Added fallback for null values in the table cells:
+   ```javascript
+   <CustomTableCell>{bill.referenceNo || ''}</CustomTableCell>
+   ```
+3. ✅ Updated the CustomTableCell component to handle null/undefined children:
+   ```javascript
+   export function CustomTableCell({ children, className }) {
+     return (
+       <td className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 ${className || ''}`}>
+         {children || ''}
+       </td>
+     );
+   }
+   ```
+4. ✅ Ensured proper nesting of HTML elements in the table structure
+
+### Benefits:
+- Fixed the hydration error in the Purchase Bills page table
+- Improved handling of null/undefined values in table cells
+- Ensured valid HTML structure that renders consistently between server and client
+- Maintained the reusability of the custom table components
+- Prevented potential future hydration issues with similar table structures
