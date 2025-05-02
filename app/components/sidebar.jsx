@@ -42,16 +42,11 @@ export function Sidebar() {
     {
       icon: <Home className="h-5 w-5" />,
       label: "Home",
-      href: "#",
+      href: "/dashboard",
     },
     {
       icon: <Users className="h-5 w-5" />,
       label: "CRM",
-      href: "#",
-    },
-    {
-      icon: <Workflow className="h-5 w-5" />,
-      label: "Workflow",
       href: "#",
     },
     // Replace Sales menu with SalesMenu component, pass isExpanded prop
