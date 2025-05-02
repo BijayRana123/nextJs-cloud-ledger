@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { NepaliDatePicker } from 'nepali-datepicker-reactjs';
@@ -16,10 +14,14 @@ import SupplierSection from "@/app/components/purchase/supplier-section";
 import ItemsSection from "@/app/components/purchase/items-section";
 import CalculationSection from "@/app/components/purchase/calculation-section";
 
+// Import the useOrganization hook
+import { useOrganization } from '@/lib/context/OrganizationContext';
+
 
 export default function AddPurchaseBillPage() {
   const router = useRouter(); // Initialize router
   const searchParams = useSearchParams(); // Get search params
+  const organizationId = useOrganization(); // Get organizationId from context
 
   const [formData, setFormData] = useState({
     supplierName: '', // This should likely hold the supplier ID
@@ -34,33 +36,18 @@ export default function AddPurchaseBillPage() {
     items: [], // Array to hold product/service items
   });
 
-  const [organizationId, setOrganizationId] = useState(null); // State to hold organization ID
   const [isEditing, setIsEditing] = useState(false); // State to indicate if we are in edit mode
 
-  // Fetch organization ID and purchase order data if editing
+  // Log the organizationId from context whenever it changes
+  useEffect(() => {
+    console.log("AddPurchaseBillPage: organizationId from context:", organizationId);
+  }, [organizationId]);
+
+
+  // Fetch purchase order data if editing
   useEffect(() => {
     const purchaseOrderId = searchParams.get('id'); // Get the 'id' parameter
     setIsEditing(!!purchaseOrderId); // Set editing mode based on ID presence
-
-    // Fetch organization ID
-    const fetchOrganization = async () => {
-      try {
-        const response = await fetch('/api/user/organizations');
-        const result = await response.json();
-        if (response.ok && result.organizations && result.organizations.length > 0) {
-          // Assuming the user is associated with one organization for this context
-          setOrganizationId(result.organizations[0]._id);
-        } else {
-          console.error("Failed to fetch organization ID:", result.message);
-          // TODO: Handle error, maybe redirect or show a message
-        }
-      } catch (error) {
-        console.error("Error fetching organization ID:", error);
-        // TODO: Handle error
-      }
-    };
-
-    fetchOrganization();
 
     // Fetch purchase order data if ID is present (for editing)
     if (purchaseOrderId) {
@@ -90,7 +77,7 @@ export default function AddPurchaseBillPage() {
                 rate: item.price?.toString() || '',
                 discount: item.discount?.toString() || '',
                 tax: item.tax?.toString() || '',
-                amount: ((item.quantity || 0) * (item.price || 0)).toString() || '', // Calculate amount
+                amount: ((item.quantity || 0) * (parseFloat(item.rate) || 0)).toString() || '', // Calculate amount
               })) || [],
             });
           } else {
@@ -137,7 +124,7 @@ export default function AddPurchaseBillPage() {
     e.preventDefault();
 
     if (!organizationId) {
-      console.error("Organization ID is not available. Cannot submit.");
+      console.error("Organization ID is not available from context. Cannot submit.");
       // TODO: Display an error message to the user
       return;
     }
@@ -164,7 +151,7 @@ export default function AddPurchaseBillPage() {
 
     // Construct the data object to send to the API
     const dataToSend = {
-      organization: organizationId, // Use the fetched organization ID
+      organization: organizationId, // Use the organization ID from context
       // purchaseOrderNumber: `PO-${Date.now()}`, // Simple mock PO number, consider a proper sequence generator - Keep existing PO number if editing
       date: formData.billDate, // Mapping billDate to date
       supplier: formData.supplierName, // Using the selected supplier ID (should also be ObjectId if backend expects it)

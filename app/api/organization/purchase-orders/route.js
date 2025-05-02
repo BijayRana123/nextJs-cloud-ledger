@@ -15,18 +15,13 @@ export async function POST(request) {
       return authResult;
     }
 
-    // User is authenticated, get the user ID from the modified request object
-    const userId = request.user._id;
+    // Get the organization ID from the request object (set by the auth middleware)
+    const organizationId = request.organizationId;
 
-    // Find the user to get their organization ID
-    const user = await User.findById(userId).populate('organizations');
-    if (!user || user.organizations.length === 0) {
-      return NextResponse.json({ message: 'User or organization not found' }, { status: 404 });
+    // Check if organizationId was found
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-
-    // Assuming the user is associated with one organization for purchase orders
-    // You might need to adjust this logic if a user can manage multiple organizations
-    const organizationId = user.organizations[0]._id;
 
 
     const purchaseOrderData = await request.json();
@@ -88,20 +83,16 @@ export async function GET(request) {
       return authResult;
     }
 
-    // User is authenticated, get the user ID from the modified request object
-    const userId = request.user._id;
+    // Get the organization ID from the request object (set by the auth middleware)
+    const organizationId = request.organizationId;
 
-    // Find the user to get their organization ID
-    const user = await User.findById(userId).populate('organizations');
-    if (!user || user.organizations.length === 0) {
-      return NextResponse.json({ message: 'User or organization not found' }, { status: 404 });
+    // Check if organizationId was found
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    // Assuming the user is associated with one organization for purchase orders
-    const organizationId = user.organizations[0]._id;
-
-    // Fetch purchase orders for the authenticated user's organization
-    const purchaseOrders = await PurchaseOrder.find({ organization: organizationId });
+    // Fetch purchase orders for the authenticated user's organization and populate the supplier details
+    const purchaseOrders = await PurchaseOrder.find({ organization: organizationId }).populate('supplier');
 
     return NextResponse.json({ purchaseOrders }, { status: 200 });
   } catch (error) {

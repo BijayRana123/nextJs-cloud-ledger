@@ -15,18 +15,13 @@ export async function GET(request) {
       return authResult;
     }
 
-    // User is authenticated, get the user ID from the modified request object
-    const userId = request.user._id;
+    // Get the organization ID from the request object (set by the auth middleware)
+    const organizationId = request.organizationId;
 
-    // Find the user to get their organization ID
-    const user = await User.findById(userId).populate('organizations');
-    if (!user || user.organizations.length === 0) {
-      return NextResponse.json({ message: 'User or organization not found' }, { status: 404 });
+    // Check if organizationId was found
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-
-    // Assuming the user is associated with one organization for products
-    // You might need to adjust this logic if a user can manage multiple organizations
-    const organizationId = user.organizations[0]._id;
 
     const products = await Item.find({ organization: organizationId });
 

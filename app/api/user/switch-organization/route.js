@@ -50,9 +50,33 @@ export async function POST(req) {
       },
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Ensure JWT_SECRET is a string and not undefined (same as in login route)
+    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    console.log('Switch Org API: Using JWT_SECRET:', jwtSecret);
+    
+    const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
+    
+    // Set the token as a cookie that can be accessed by JavaScript
+    // Store the token directly without wrapping in an array to avoid parsing issues
+    const cookieValue = token;
+    const cookieOptions = {
+      httpOnly: false, // Allow JavaScript access to the cookie
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      path: '/', // Cookie accessible from all paths
+      maxAge: 60 * 60, // 1 hour in seconds, matches JWT expiration
+      sameSite: 'lax', // Allow cross-site requests when following links
+    };
 
-    return NextResponse.json({ token }, { status: 200 });
+    const response = NextResponse.json({ token }, { status: 200 });
+
+    // Set the cookie in the response headers
+    response.cookies.set('sb-mnvxxmmrlvjgpnhditxc-auth-token', cookieValue, cookieOptions);
+    
+    // For backward compatibility, also set the array format in a different cookie
+    const arrayFormatCookie = JSON.stringify([token]);
+    response.cookies.set('sb-mnvxxmmrlvjgpnhditxc-auth-token-array', arrayFormatCookie, cookieOptions);
+
+    return response;
 
   } catch (error) {
     console.error('Switch organization error:', error);

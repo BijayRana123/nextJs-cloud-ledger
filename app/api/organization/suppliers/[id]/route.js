@@ -16,14 +16,21 @@ export async function GET(req, context) {
       return authResult; // Return authentication error response
     }
 
-    // Assuming protect middleware adds user info to req.user
-    // Get the organization ID from the authenticated user's organizations array
-    const organizationId = req.user.organizations && req.user.organizations.length > 0 ? req.user.organizations[0] : null;
+    // Get the organization ID from the request object (set by the auth middleware)
+    // This should be the organization ID from the JWT token
+    let organizationId = req.organizationId;
+    
+    // If no organizationId in the token, try to get it from the user's organizations array
+    if (!organizationId && req.user && req.user.organizations && req.user.organizations.length > 0) {
+      organizationId = req.user.organizations[0];
+    }
 
     // Check if organizationId was found
     if (!organizationId) {
-      return NextResponse.json({ message: 'User is not associated with an organization' }, { status: 400 });
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
+    
+    console.log(`Supplier API: Using organization ID: ${organizationId}`);
 
     // Get the supplier ID from the URL parameters after awaiting params
     const supplierId = params.id;

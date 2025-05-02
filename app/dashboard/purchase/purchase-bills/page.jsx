@@ -100,30 +100,29 @@ export default function PurchaseBillsPage() {
         />
 
         <TabsContent value="approved">
-          {/* Approved Bills Table */}
           <div className="border rounded-md">
             <CustomTable>
               <CustomTableHeader>
                 <CustomTableRow className="bg-gray-100">
                   <CustomTableHead><input type="checkbox" /></CustomTableHead>
                   <CustomTableHead>SUPPLIER</CustomTableHead>
-                  <CustomTableHead>ORDER NO</CustomTableHead> {/* Keep header as ORDER NO */}
+                  <CustomTableHead>ORDER NO</CustomTableHead>
                   <CustomTableHead>REFERENCE NO</CustomTableHead>
                   <CustomTableHead>DATE</CustomTableHead>
-                  <CustomTableHead>AMOUNT</CustomTableHead> {/* Keep header as AMOUNT */}
-                  <CustomTableHead>STAGE</CustomTableHead> {/* Keep header as STAGE */}
+                  <CustomTableHead>AMOUNT</CustomTableHead>
+                  <CustomTableHead>STAGE</CustomTableHead>
                 </CustomTableRow>
               </CustomTableHeader>
               <CustomTableBody>
-                {purchaseOrders.map((order) => ( 
-                  <CustomTableRow key={order._id} className={order.highlighted ? "bg-green-50" : ""}> {/* Assuming _id from database */}
+                {purchaseOrders.map((order) => (
+                  <CustomTableRow key={order._id} className={order.highlighted ? "bg-green-50" : ""}>
                     <CustomTableCell><input type="checkbox" /></CustomTableCell>
-                    <CustomTableCell>{order.supplier?.name || 'N/A'}</CustomTableCell> {/* Assuming supplier is an object with name */}
-                    <CustomTableCell>{order.purchaseOrderNumber || 'N/A'}</CustomTableCell> {/* Display purchaseOrderNumber */}
-                    <CustomTableCell>{order.referenceNo || ''}</CustomTableCell> {/* Assuming purchase order might have a referenceNo */}
-                    <CustomTableCell>{order.date ? new Date(order.date).toLocaleDateString('en-GB') : 'N/A'}</CustomTableCell> {/* Format date */}
-                    <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell> {/* Display totalAmount */}
-                    <CustomTableCell>{order.status || 'N/A'}</CustomTableCell> {/* Display status */}
+                    <CustomTableCell>{order.supplier?.name || 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{order.purchaseOrderNumber || 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
+                    <CustomTableCell>{order.date ? new Date(order.date).toLocaleDateString('en-GB') : 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
+                    <CustomTableCell>{order.status || 'N/A'}</CustomTableCell>
                   </CustomTableRow>
                 ))}
               </CustomTableBody>
@@ -132,7 +131,6 @@ export default function PurchaseBillsPage() {
         </TabsContent>
 
         <TabsContent value="draft">
-          {/* Draft Bills Table Placeholder */}
           <div>
             <p>Placeholder for Draft Purchase Bills table.</p>
           </div>

@@ -212,10 +212,30 @@ export default function SupplierSection({ formData, setFormData }) {
       const supplierId = formData.supplierName;
       if (supplierId) {
         try {
-          const response = await fetch(`/api/organization/suppliers/${supplierId}`);
+          // Retrieve the JWT from the cookie
+          const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+          console.log("SupplierDetails: Using auth token:", authToken ? authToken.substring(0, 10) + '...' : 'null');
+          
+          if (!authToken) {
+            console.error("SupplierDetails: Authentication token not found in cookie.");
+            return;
+          }
+          
+          // Make the API call with the authentication token
+          const response = await fetch(`/api/organization/suppliers/${supplierId}`, {
+            headers: {
+              'Authorization': `Bearer ${authToken}`, // Include the JWT in the Authorization header
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          console.log("SupplierDetails: Fetch response status:", response.status);
+          
           const result = await response.json();
+          
           if (response.ok) {
             const fetchedSupplier = result.supplier;
+            console.log("SupplierDetails: Successfully fetched supplier:", fetchedSupplier.name);
             setSelectedSupplierDetails(fetchedSupplier);
 
             // Ensure the fetched supplier is in the combobox options
@@ -225,10 +245,16 @@ export default function SupplierSection({ formData, setFormData }) {
               }
               return prevOptions;
             });
-
           } else {
             console.error("Error fetching supplier details:", result.message);
             setSelectedSupplierDetails(null);
+            
+            // If unauthorized, redirect to login
+            if (response.status === 401 || response.status === 403) {
+              console.error(`SupplierDetails: Authorization error (${response.status}). Redirecting to login.`);
+              // Use window.location for navigation instead of router to avoid dependency
+              window.location.href = '/auth/login';
+            }
           }
         } catch (error) {
           console.error("Error fetching supplier details:", error);
@@ -240,7 +266,7 @@ export default function SupplierSection({ formData, setFormData }) {
     };
 
     fetchSupplierDetails();
-  }, [formData.supplierName]);
+  }, [formData.supplierName]); // Remove router from dependencies
 
    const handleSelectChange = (id, value) => {
     setFormData((prev) => ({

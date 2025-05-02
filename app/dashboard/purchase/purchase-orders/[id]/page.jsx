@@ -349,12 +349,7 @@ export default function PurchaseOrderDetailPage() {
               <CustomTable className="min-w-full divide-y divide-gray-200">
                 <CustomTableHeader className="bg-gray-50">
                   <CustomTableRow>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product / Service</CustomTableHead>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</CustomTableHead>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</CustomTableHead>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</CustomTableHead>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</CustomTableHead>
-                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</CustomTableHead>
+                    <CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product / Service</CustomTableHead><CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</CustomTableHead><CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</CustomTableHead><CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</CustomTableHead><CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</CustomTableHead><CustomTableHead className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</CustomTableHead>
                   </CustomTableRow>
                 </CustomTableHeader>
                 <CustomTableBody className="bg-white divide-y divide-gray-200">
@@ -362,20 +357,15 @@ export default function PurchaseOrderDetailPage() {
                     <CustomTableRow key={index}>
                       <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {item.productName} {item.productCode !== 'No Code' && `(${item.productCode})`}
-                      </CustomTableCell>
-                      <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </CustomTableCell><CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.qty}
-                      </CustomTableCell>
-                      <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </CustomTableCell><CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {typeof item.rate === 'number' ? item.rate.toFixed(2) : item.rate}
-                      </CustomTableCell>
-                      <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </CustomTableCell><CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.discount ? `${item.discount}%` : '0%'}
-                      </CustomTableCell>
-                      <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </CustomTableCell><CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {item.tax ? `${item.tax}%` : '0%'}
-                      </CustomTableCell>
-                      <CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      </CustomTableCell><CustomTableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {typeof item.amount === 'number' ? item.amount.toFixed(2) : item.amount}
                       </CustomTableCell>
                     </CustomTableRow>

@@ -114,36 +114,35 @@ export default function ItemsSection({ formData, setFormData }) {
           discount: productData.defaultDiscount !== undefined ? String(productData.defaultDiscount) : '0', // Default to '0', ensure string
           tax: productData.defaultTax !== undefined ? String(productData.defaultTax) : '0', // Default to '0', ensure string
         };
-         // Calculate initial amount after populating default values
+        // Calculate initial amount after populating default values
         newItems[index].amount = calculateAmount(newItems[index]);
 
         // If this is the last item and a product was selected, add a new empty row
         if (index === newItems.length - 1) {
-           newItems.push({
-             product: '',
-             productName: '',
-             productCode: '',
-             qty: '',
-             rate: '',
-             discount: '',
-             tax: '',
-             amount: ''
-           });
+          newItems.push({
+            product: '',
+            productName: '',
+            productCode: '',
+            qty: '',
+            rate: '',
+            discount: '',
+            tax: '',
+            amount: ''
+          });
         }
-
       } else {
-         // If product is cleared or not found, reset the item fields
-         newItems[index] = {
-           ...newItems[index],
-           product: '',
-           productName: '',
-           productCode: '',
-           qty: '',
-           rate: '',
-           discount: '',
-           tax: '',
-           amount: ''
-         };
+        // If product is cleared or not found, reset the item fields
+        newItems[index] = {
+          ...newItems[index],
+          product: '',
+          productName: '',
+          productCode: '',
+          qty: '',
+          rate: '',
+          discount: '',
+          tax: '',
+          amount: ''
+        };
       }
     } else {
       // Handle changes to other fields (qty, rate, discount, tax)
@@ -177,10 +176,7 @@ export default function ItemsSection({ formData, setFormData }) {
           }],
         };
       }
-      return {
-        ...prev,
-        items: newItems,
-      };
+      return { ...prev, items: newItems };
     });
   };
 
@@ -195,21 +191,14 @@ export default function ItemsSection({ formData, setFormData }) {
         <CardTitle>Items</CardTitle>
       </CardHeader>
       <CardContent>
-      {mounted ? (
-         <>
+        {mounted ? (
+          <>
             <CustomTable className="mb-4">
               <CustomTableHeader>
                 <CustomTableRow className="bg-gray-800 text-white">
-                  <CustomTableHead>Product / service</CustomTableHead>
-                  <CustomTableHead>Qty</CustomTableHead>
-                  <CustomTableHead>Rate</CustomTableHead>
-                  <CustomTableHead>Discount</CustomTableHead>
-                  <CustomTableHead>Tax</CustomTableHead>
-                  <CustomTableHead>Amount</CustomTableHead>
-                  <CustomTableHead></CustomTableHead>{/* Action column */}
+                  <CustomTableHead>Product / service</CustomTableHead><CustomTableHead>Qty</CustomTableHead><CustomTableHead>Rate</CustomTableHead><CustomTableHead>Discount</CustomTableHead><CustomTableHead>Tax</CustomTableHead><CustomTableHead>Amount</CustomTableHead><CustomTableHead></CustomTableHead>{/* Action column */}
                 </CustomTableRow>
-
-             </CustomTableHeader>
+              </CustomTableHeader>
               <CustomTableBody>
                 {formData.items.map((item, index) => (
                   <CustomTableRow key={`item-${index}`} className="border-b last:border-b-0">
@@ -225,20 +214,20 @@ export default function ItemsSection({ formData, setFormData }) {
                             e.preventDefault();
                             const fullProductData = productOptions.find(option => option.value === item.product)?.productData;
                             if (fullProductData) {
-                               handleViewProductDetails(fullProductData);
+                              handleViewProductDetails(fullProductData);
                             }
                           }}>View Details</a>
                         </div>
                       ) : (
                         // Display combobox for selection
                         <Combobox
-                           className="w-full"
-                           options={productOptions}
-                           value={item.product}
-                           onValueChange={(value) => handleItemInputChange(index, 'product', value)}
-                           placeholder="Add Code or Product"
-                           onAddNew={() => setIsNewProductModalOpen(true)} // Open new product modal
-                         />
+                          className="w-full"
+                          options={productOptions}
+                          value={item.product}
+                          onValueChange={(value) => handleItemInputChange(index, 'product', value)}
+                          placeholder="Add Code or Product"
+                          onAddNew={() => setIsNewProductModalOpen(true)} // Open new product modal
+                        />
                       )}
                     </CustomTableCell>
                     <CustomTableCell>
@@ -254,7 +243,7 @@ export default function ItemsSection({ formData, setFormData }) {
                         type="number"
                         value={item.rate}
                         onChange={(e) => handleItemInputChange(index, 'rate', e.target.value)}
-                         disabled={!item.product} // Disable if no product is selected
+                        disabled={!item.product} // Disable if no product is selected
                       />
                     </CustomTableCell>
                     <CustomTableCell>
@@ -262,7 +251,7 @@ export default function ItemsSection({ formData, setFormData }) {
                         type="number"
                         value={item.discount}
                         onChange={(e) => handleItemInputChange(index, 'discount', e.target.value)}
-                         disabled={!item.product} // Disable if no product is selected
+                        disabled={!item.product} // Disable if no product is selected
                       />
                     </CustomTableCell>
                     <CustomTableCell>
@@ -270,7 +259,7 @@ export default function ItemsSection({ formData, setFormData }) {
                         type="number"
                         value={item.tax}
                         onChange={(e) => handleItemInputChange(index, 'tax', e.target.value)}
-                         disabled={!item.product} // Disable if no product is selected
+                        disabled={!item.product} // Disable if no product is selected
                       />
                     </CustomTableCell>
                     <CustomTableCell>
@@ -292,7 +281,7 @@ export default function ItemsSection({ formData, setFormData }) {
           </>
         ) : (
           <div className="py-4 text-center">Loading table...</div>
-         )}
+        )}
          <Button variant="outline" onClick={handleAddItem}>+ Add Additional Cost</Button>
       </CardContent>
 
@@ -306,46 +295,46 @@ export default function ItemsSection({ formData, setFormData }) {
           setProductOptions((prevOptions) => [
             ...prevOptions,
             {
-              value: newProduct._id, // Or product.code
+              value: newProduct._id, // Or newProduct.code
               label: newProduct.name,
-              productData: newProduct
-            }
+              productData: newProduct,
+            },
           ]);
           // Optionally select the newly created product in the last row
           setFormData((prev) => {
-             const lastItemIndex = prev.items.length - 1;
-             if (lastItemIndex >= 0) {
-                const newItems = [...prev.items];
-                newItems[lastItemIndex] = {
-                   ...newItems[lastItemIndex],
-                   product: newProduct._id, // Or product.code
-                   productName: newProduct.name,
-                   productCode: newProduct.code,
-                   qty: newProduct.defaultQty !== undefined ? String(newProduct.defaultQty) : '1',
-                   rate: newProduct.defaultRate !== undefined ? String(newProduct.defaultRate) : '',
-                   discount: newProduct.defaultDiscount !== undefined ? String(newProduct.defaultDiscount) : '0',
-                   tax: newProduct.defaultTax !== undefined ? String(newProduct.defaultTax) : '0',
-                   amount: calculateAmount({ // Calculate amount for the new item
-                      qty: newProduct.defaultQty !== undefined ? String(newProduct.defaultQty) : '1',
-                      rate: newProduct.defaultRate !== undefined ? String(newProduct.defaultRate) : '',
-                      discount: newProduct.defaultDiscount !== undefined ? String(newProduct.defaultDiscount) : '0',
-                      tax: newProduct.defaultTax !== undefined ? String(newProduct.defaultTax) : '0',
-                   })
-                };
-                // Add another empty row after selecting the new product
-                newItems.push({
-                   product: '',
-                   productName: '',
-                   productCode: '',
-                   qty: '',
-                   rate: '',
-                   discount: '',
-                   tax: '',
-                   amount: ''
-                });
-                return { ...prev, items: newItems };
-             }
-             return prev;
+            const lastItemIndex = prev.items.length - 1;
+            if (lastItemIndex >= 0) {
+              const newItems = [...prev.items];
+              newItems[lastItemIndex] = {
+                ...newItems[lastItemIndex],
+                product: newProduct._id, // Or newProduct.code
+                productName: newProduct.name,
+                productCode: newProduct.code,
+                qty: newProduct.defaultQty !== undefined ? String(newProduct.defaultQty) : '1',
+                rate: newProduct.defaultRate !== undefined ? String(newProduct.defaultRate) : '',
+                discount: newProduct.defaultDiscount !== undefined ? String(newProduct.defaultDiscount) : '0',
+                tax: newProduct.defaultTax !== undefined ? String(newProduct.defaultTax) : '0',
+                amount: calculateAmount({ // Calculate amount for the new item
+                  qty: newProduct.defaultQty !== undefined ? String(newProduct.defaultQty) : '1',
+                  rate: newProduct.defaultRate !== undefined ? String(newProduct.defaultRate) : '',
+                  discount: newProduct.defaultDiscount !== undefined ? String(newProduct.defaultDiscount) : '0',
+                  tax: newProduct.defaultTax !== undefined ? String(newProduct.defaultTax) : '0',
+                }),
+              };
+              // Add another empty row after selecting the new product
+              newItems.push({
+                product: '',
+                productName: '',
+                productCode: '',
+                qty: '',
+                rate: '',
+                discount: '',
+                tax: '',
+                amount: ''
+              });
+              return { ...prev, items: newItems };
+            }
+            return prev;
           });
         }}
       />

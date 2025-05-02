@@ -13,13 +13,12 @@ export async function GET(req) {
       return authResult; // Return authentication error response
     }
 
-    // Assuming protect middleware adds user info to req.user
-    // Get the organization ID from the authenticated user's organizations array
-    const organizationId = req.user.organizations && req.user.organizations.length > 0 ? req.user.organizations[0] : null;
+    // Get the organization ID from the request object (set by the auth middleware)
+    const organizationId = req.organizationId;
 
     // Check if organizationId was found
     if (!organizationId) {
-      return NextResponse.json({ message: 'User is not associated with an organization' }, { status: 400 });
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
     // Find all suppliers for the organization
@@ -45,14 +44,12 @@ export async function POST(req) {
       return authResult; // Return authentication error response
     }
 
-    // Assuming protect middleware adds user info to req.user
-    // Get the organization ID from the authenticated user's organizations array
-    // Assuming the user is associated with at least one organization and we use the first one
-    const organizationId = req.user.organizations && req.user.organizations.length > 0 ? req.user.organizations[0] : null;
+    // Get the organization ID from the request object (set by the auth middleware)
+    const organizationId = req.organizationId;
 
     // Check if organizationId was found
     if (!organizationId) {
-      return NextResponse.json({ message: 'User is not associated with an organization' }, { status: 400 });
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
     const body = await req.json();
