@@ -10,22 +10,22 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100"> {/* Change to flex-col */}
-      {/* Header */}
-      <TopNavbar />
+      {/* Wrap the entire layout content with the OrganizationProvider */}
+      <OrganizationProvider>
+        {/* Header */}
+        <TopNavbar />
 
-      {/* Content Area */}
-      <div className="flex flex-1 overflow-hidden"> {/* New flex container for sidebar and main content */}
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Content Area */}
+        <div className="flex flex-1 overflow-hidden"> {/* New flex container for sidebar and main content */}
+          {/* Sidebar */}
+          <Sidebar />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-4">
-          {/* Wrap children with the OrganizationProvider */}
-          <OrganizationProvider> {/* Remove the value prop */}
-            {children}
-          </OrganizationProvider>
-        </main>
-      </div>
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-4">
+              {children}
+          </main>
+        </div>
+      </OrganizationProvider>
     </div>
   );
 }

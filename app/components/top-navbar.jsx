@@ -13,9 +13,11 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Cookies from 'js-cookie'; // Import js-cookie
+import { useOrganization } from "@/lib/context/OrganizationContext" // Import useOrganization
 
 export function TopNavbar({ children }) {
   const router = useRouter()
+  const { currentOrganization, loading } = useOrganization() // Use the hook
 
   const handleLogout = async () => {
     // Clear the authentication cookie
@@ -26,6 +28,16 @@ export function TopNavbar({ children }) {
 
     // Redirect to the login page
     router.push("/auth/login")
+  }
+
+  // Function to get initials from organization name
+  const getInitials = (name) => {
+    if (!name) return "CN"; // Default fallback
+    const words = name.split(' ');
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
   }
 
   return (
@@ -55,8 +67,10 @@ export function TopNavbar({ children }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
+              {/* Use AvatarFallback with initials */}
+              <AvatarFallback>
+                {loading ? "..." : getInitials(currentOrganization?.name)}
+              </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56">
