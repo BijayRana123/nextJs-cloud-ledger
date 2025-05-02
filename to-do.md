@@ -692,6 +692,56 @@ The issue persisted, so we implemented a more robust solution:
 - Prevented potential future hydration issues with similar table structures
 - Improved code readability with better formatting
 
+## New Task: Fix Nested Form Hydration Error in Sales Bill Page - COMPLETED ✅
+
+### Issue:
+The add-sales-bill page was experiencing a hydration error with the message: "In HTML, <form> cannot be a descendant of <form>. This will cause a hydration error." The error was occurring because the AddCustomerModal component contained a form that was nested inside the main form of the AddSalesBillPage component.
+
+### Root Cause:
+HTML does not allow nesting of form elements. In the application, the AddSalesBillPage component had a form that wrapped the entire page content, including the CustomerSection component. When the AddCustomerModal was opened from the CustomerSection, it created another form inside the existing form, which is invalid HTML and causes hydration errors.
+
+### Solution Implemented:
+1. ✅ Removed the form element from the AddCustomerModal component:
+   ```javascript
+   // Changed from:
+   <form onSubmit={handleSubmit}>
+     {/* form content */}
+   </form>
+   
+   // To:
+   <div className="space-y-4">
+     {/* form content */}
+   </div>
+   ```
+
+2. ✅ Modified the submit button to call the handleSubmit function directly:
+   ```javascript
+   // Changed from:
+   <Button type="submit" disabled={isLoading}>
+     {isLoading ? 'Creating...' : 'Create Customer'}
+   </Button>
+   
+   // To:
+   <Button type="button" onClick={handleSubmit} disabled={isLoading}>
+     {isLoading ? 'Creating...' : 'Create Customer'}
+   </Button>
+   ```
+
+3. ✅ Updated the handleSubmit function to handle being called directly:
+   ```javascript
+   const handleSubmit = async (e) => {
+     if (e) e.preventDefault(); // Make e optional since we might call directly
+     // Rest of the function remains the same
+   };
+   ```
+
+### Benefits:
+- Fixed the hydration error caused by nested forms
+- Maintained the same functionality without using nested form elements
+- Ensured valid HTML structure that renders consistently between server and client
+- Improved the robustness of the modal component
+- Prevented similar issues in other parts of the application that might use the same pattern
+
 ## New Task: Fix JWT Token Verification in Auth Middleware - COMPLETED ✅
 
 ### Issue:
@@ -858,3 +908,131 @@ The `router` object was included in the dependency array of the `useEffect` hook
 - Improved code stability and prevented potential memory leaks
 - Followed React best practices for useEffect hooks
 - Simplified the component's dependency tracking
+
+## New Task: Implement Sales Functionality Similar to Purchases - COMPLETED ✅
+
+### Requirements:
+1. ✅ Create a sales module with a similar structure to the purchases module
+2. ✅ Create a new Customer model (considering that suppliers can sometimes be customers too)
+3. ✅ Implement sales orders and sales bills functionality similar to purchase orders and purchase bills
+4. ✅ Reuse components where possible, adapting them for the sales context
+
+### Implementation Plan:
+1. ✅ Create the Customer model in the database
+2. ✅ Create the SalesOrder and SalesBill models
+3. ✅ Set up the directory structure for the sales module
+4. ✅ Create API routes for sales orders and bills
+5. ✅ Implement the UI components for sales
+6. ✅ Add navigation links for the sales module
+
+### Solution Implemented:
+1. ✅ Created a new Customer model with a relationship to Supplier:
+   ```javascript
+   const customerSchema = new mongoose.Schema({
+     name: {
+       type: String,
+       required: true,
+     },
+     contactType: {
+       type: String,
+       required: true,
+     },
+     // Other fields...
+     relatedSupplier: {
+       type: mongoose.Schema.Types.ObjectId,
+       ref: 'Supplier',
+     },
+     organization: {
+       type: mongoose.Schema.Types.ObjectId,
+       ref: 'Organization',
+       required: true,
+     },
+   });
+   ```
+
+2. ✅ Created SalesOrder and SalesBill models similar to PurchaseOrder and PurchaseBill:
+   ```javascript
+   const salesOrderSchema = new mongoose.Schema({
+     salesOrderNumber: {
+       type: String,
+       required: true,
+       unique: true,
+     },
+     customer: {
+       type: mongoose.Schema.Types.ObjectId,
+       ref: 'Customer',
+       required: true,
+     },
+     // Other fields...
+     status: {
+       type: String,
+       enum: ['DRAFT', 'APPROVED', 'CANCELLED'],
+       default: 'DRAFT',
+       required: true,
+     },
+   }, { timestamps: true });
+   ```
+
+3. ✅ Created API routes for sales functionality:
+   - `/api/organization/customers` - GET, POST
+   - `/api/organization/customers/[id]` - GET, PUT, DELETE
+   - `/api/organization/sales-orders` - GET, POST
+   - `/api/organization/sales-orders/[id]` - GET, DELETE
+   - `/api/organization/sales-orders/[id]/approve` - POST
+
+4. ✅ Created UI components for sales:
+   - `customer-section.jsx` - For selecting and managing customers
+   - `items-section.jsx` - For adding and managing sales items
+   - `calculation-section.jsx` - For calculating totals and additional information
+
+5. ✅ Created pages for the sales module:
+   - `/dashboard/sales/sales-bills/page.jsx` - For viewing all sales bills
+   - `/dashboard/sales/add-sales-bill/page.jsx` - For creating new sales bills
+   - `/dashboard/sales/sales-orders/[id]/page.jsx` - For viewing sales order details
+
+### Benefits:
+- Complete sales functionality that mirrors the purchase functionality
+- Ability to track customers and their relationships with suppliers
+- Support for both domestic and export sales with currency conversion
+- Reuse of UI components and patterns for consistency
+- Proper organization access control using the same middleware as purchases
+
+### Additional Features:
+- Added support for linking customers to suppliers when they are the same entity
+- Implemented export sales functionality with currency conversion
+- Added due date tracking for sales orders
+- Created a clean, consistent UI that matches the purchase module
+
+### Summary:
+We have successfully implemented a complete sales module that mirrors the purchase module functionality. The implementation includes:
+
+1. **Database Models**:
+   - Customer model with relationship to Supplier
+   - SalesOrder model for tracking sales orders
+   - SalesBill model for tracking sales bills
+
+2. **API Routes**:
+   - Customer management routes
+   - Sales order management routes
+   - Sales bill management routes
+
+3. **UI Components**:
+   - Customer selection and management
+   - Item selection and management
+   - Calculation and totals management
+   - NepaliDatePicker for consistent date selection
+
+4. **Pages**:
+   - Sales bills listing page
+   - Add/edit sales bill page
+   - Sales order detail page
+
+5. **Navigation**:
+   - Updated the sidebar to include sales functionality
+
+The sales module now provides a complete solution for managing sales transactions, with support for both domestic and export sales, customer management, and integration with the existing organization access control system.
+
+### Update (2023-10-15):
+- Fixed the date picker in the add-sales-bill page to use NepaliDatePicker for consistency with the purchase functionality
+- Updated the date handling to work correctly with the NepaliDatePicker component
+- Ensured consistent date format across the application

@@ -12,14 +12,15 @@ export function SalesMenu({ isExpanded: isSidebarExpanded }) { // Accept isExpan
   };
 
   const submenuItems = [
-    { label: "Purchase Voucher", href: "/dashboard/purchase/purchase-bills", icon: <Plus className="h-4 w-4" /> },
-    { label: "Purchase Return Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
+    { label: "Sales Bills", href: "/dashboard/sales/sales-bills", icon: <Plus className="h-4 w-4" /> },
+    { label: "Add Sales Bill", href: "/dashboard/sales/add-sales-bill", icon: <Plus className="h-4 w-4" /> },
   ];
 
   return (
     <li className="border-b last:border-b-0 relative group"> {/* Add relative positioning and group class */}
       <div>
         <button
+          onClick={toggleMenu}
           className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-100 ${isMenuExpanded && isSidebarExpanded ? "bg-gray-100" : ""} ${!isSidebarExpanded ? 'justify-center' : ''}`}> {/* Adjust alignment and background when sidebar is collapsed */}
           <div className={`flex items-center gap-3 ${!isSidebarExpanded ? 'justify-center w-full' : ''}`}> {/* Adjust alignment and width */}
             <ShoppingCart className="h-5 w-5" />
