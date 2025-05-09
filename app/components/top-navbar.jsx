@@ -26,8 +26,8 @@ export function TopNavbar({ children }) {
 
     // TODO: If a backend logout API exists, call it here to invalidate the session server-side.
 
-    // Redirect to the login page
-    router.push("/auth/login")
+    // Redirect to the select organization page
+    router.push("/")
   }
 
   // Function to get initials from organization name

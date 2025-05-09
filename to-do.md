@@ -1,5 +1,86 @@
 # To-Do List
 
+## New Task: Fix Organization Context Persistence - COMPLETED ✅
+
+### Issue:
+When navigating to the purchase voucher page after creating a new organization, the error "Error: No organization context found. Please select an organization." is displayed. The console logs show that the organization ID is found in localStorage but is immediately cleared, causing the organization context to be lost.
+
+Console logs:
+```
+OrganizationProvider: useEffect - Found organizationId in localStorage: 6808bb5cf691bbb5e9fd1d69
+OrganizationProvider: useEffect - Cleared organizationId from localStorage
+OrganizationProvider: currentOrganization state updated: null
+OrganizationProvider: useEffect - No organizationId found in auth token payload.
+OrganizationProvider: currentOrganization state updated: null
+OrganizationProvider: Fetched and set current organization:
+Object { _id: "6808bb5cf691bbb5e9fd1d69", name: "asdf", __v: 0 }
+OrganizationProvider: currentOrganization state updated:
+Object { _id: "6808bb5cf691bbb5e9fd1d69", name: "asdf", __v: 0 }
+```
+
+### Root Cause:
+The OrganizationContext.js file is removing the organizationId from localStorage immediately after reading it, which causes the context to be lost when navigating to other pages. Additionally, there's no mechanism to persist the selected organization across page navigations.
+
+### Solution Implemented:
+1. ✅ Modified the OrganizationContext.js file to store the current organization ID in localStorage for persistence:
+   ```javascript
+   // Store the organization ID in localStorage for persistence across page navigations
+   localStorage.setItem('currentOrganizationId', orgId);
+   ```
+
+2. ✅ Added a check for the currentOrganizationId in localStorage before checking for organizationId:
+   ```javascript
+   // First check if we have a currentOrganizationId in localStorage (for persistence across page navigations)
+   const currentOrgId = localStorage.getItem('currentOrganizationId');
+   if (currentOrgId) {
+     console.log("OrganizationProvider: useEffect - Found currentOrganizationId in localStorage:", currentOrgId);
+     fetchOrganization(currentOrgId);
+     return; // Exit early if we found a current organization ID
+   }
+   ```
+
+3. ✅ Added a function to update the current organization:
+   ```javascript
+   // Function to update the current organization
+   const updateCurrentOrganization = (organization) => {
+     setCurrentOrganization(organization);
+     if (organization && organization._id) {
+       localStorage.setItem('currentOrganizationId', organization._id);
+       console.log("OrganizationProvider: Updated current organization:", organization);
+     }
+   };
+   ```
+
+4. ✅ Updated the context provider value to include the updateCurrentOrganization function:
+   ```javascript
+   <OrganizationContext.Provider value={{ 
+     currentOrganization, 
+     loading, 
+     updateCurrentOrganization 
+   }}>
+   ```
+
+### Benefits:
+- Organization context is now persisted across page navigations
+- The organization ID is stored in localStorage as 'currentOrganizationId' for persistence
+- Added a function to update the current organization, which can be used when switching organizations
+- Improved error handling and logging for better debugging
+
+### Additional Fix:
+After initial implementation, we found that when creating a new organization, the old organization ID was still being stored in localStorage. We fixed this by:
+
+1. ✅ Updated the organization setup page to clear any existing organization IDs before storing the new one:
+   ```javascript
+   // Clear any existing organization IDs first
+   localStorage.removeItem('currentOrganizationId');
+   localStorage.removeItem('organizationId');
+   
+   // Store the new organization ID
+   localStorage.setItem('currentOrganizationId', data.organizationId);
+   ```
+
+This ensures that when a new organization is created, any old organization IDs are removed from localStorage, preventing conflicts between different organization contexts.
+
 ## New Task: Fix Authentication Token Retrieval in Forms - COMPLETED ✅
 
 ### Issue:

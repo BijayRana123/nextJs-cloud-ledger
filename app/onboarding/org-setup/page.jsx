@@ -337,7 +337,12 @@ export default function OrgSetupPage() {
         console.log("Organization setup successful:", data);
         // Store the new organization ID in local storage
         if (data.organizationId) { // Assuming the API returns the new organization ID as 'organizationId'
-          localStorage.setItem('organizationId', data.organizationId);
+          // Clear any existing organization IDs first
+          localStorage.removeItem('currentOrganizationId');
+          localStorage.removeItem('organizationId');
+          
+          // Store the new organization ID
+          localStorage.setItem('currentOrganizationId', data.organizationId);
         }
         setCurrentStep(5); // Move to success step
       } else {

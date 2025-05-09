@@ -2,6 +2,7 @@ import dbConnect from '@/lib/dbConnect';
 import { User, Organization } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 
 export async function POST(req) {
   const authResponse = await protect(req); // Apply protect middleware
@@ -44,8 +45,32 @@ export async function POST(req) {
         await user.save();
     }
 
+    // Generate a new JWT token with the updated organizationId
+    const payload = {
+      user: {
+        id: user._id,
+        organizationId: organization._id, // Use the new organization ID
+      },
+    };
 
-    return NextResponse.json({ message: 'Organization setup complete', organizationId: organization._id }, { status: 200 });
+    const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
+    const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
+
+    // Set the token as a cookie
+    const cookieOptions = {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60, // 1 hour
+      sameSite: 'lax',
+    };
+    const response = NextResponse.json({
+      message: 'Organization setup complete',
+      organizationId: organization._id,
+    });
+    response.cookies.set('sb-mnvxxmmrlvjgpnhditxc-auth-token', token, cookieOptions);
+
+    return response;
 
   } catch (error) {
     console.error('Organization setup error:', error);
