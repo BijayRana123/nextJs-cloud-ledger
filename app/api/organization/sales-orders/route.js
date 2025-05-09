@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { SalesOrder, User } from '@/lib/models'; // Import User model
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
+import { createSalesEntry } from '@/lib/accounting'; // Import accounting function
 
 export async function POST(request) {
   await dbConnect();
@@ -45,6 +46,9 @@ export async function POST(request) {
     });
 
     await newSalesOrder.save();
+
+    // Create accounting entry for the sales order
+    await createSalesEntry(newSalesOrder);
 
     console.log("New Sales Order saved:", newSalesOrder);
 

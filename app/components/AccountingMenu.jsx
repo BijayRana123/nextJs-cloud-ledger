@@ -12,10 +12,13 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
   };
 
   const submenuItems = [
-    { label: "Journal Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
-    { label: "Payment Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
-    { label: "Receipt Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
-    { label: "Contra Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
+    { label: "Payment Voucher", href: "/dashboard/accounting/transactions/pay-supplier", icon: <Plus className="h-4 w-4" /> },
+    { label: "Receipt Voucher", href: "/dashboard/accounting/transactions/receive-payment", icon: <Plus className="h-4 w-4" /> },
+    { label: "Expense Voucher", href: "/dashboard/accounting/transactions/record-expense", icon: <Plus className="h-4 w-4" /> },
+    { label: "Income Voucher", href: "/dashboard/accounting/transactions/record-other-income", icon: <Plus className="h-4 w-4" /> },
+    { label: "Owner Investment", href: "/dashboard/accounting/transactions/record-owner-investment", icon: <Plus className="h-4 w-4" /> },
+    { label: "Owner Drawings", href: "/dashboard/accounting/transactions/record-owner-drawings", icon: <Plus className="h-4 w-4" /> },
+     { label: "Journal Entries", href: "#", icon: <Plus className="h-4 w-4" /> }, // Keep Journal Entries, update href later if needed
   ];
 
   return (
@@ -37,9 +40,9 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
             )
           )}
         </button>
-        {/* Conditionally render submenu based on sidebar expanded state and menu expanded state or group hover */}
-        {(isSidebarExpanded && isMenuExpanded) || (!isSidebarExpanded && (
-           <ul className="absolute left-full top-0 w-48 bg-white border rounded-md shadow-lg hidden group-hover:block"> {/* Show on hover when sidebar is collapsed */}
+        {/* Conditionally render submenu based on menu expanded state */}
+        {isMenuExpanded && (
+           <ul className={`${isSidebarExpanded ? '' : 'absolute left-full top-0 w-48 bg-white border rounded-md shadow-lg'}`}> {/* Adjust positioning based on sidebar state */}
              {submenuItems.map((subItem, subIndex) => (
                <li key={subIndex}>
                  <Link
@@ -52,7 +55,7 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
                </li>
              ))}
            </ul>
-         ))}
+         )}
       </div>
     </li>
   );

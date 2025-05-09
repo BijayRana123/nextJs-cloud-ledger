@@ -1,5 +1,92 @@
 # To-Do List
 
+## New Task: Fix Authentication Token Retrieval in Forms - COMPLETED ✅
+
+### Issue:
+The PaySupplierForm and ReceivePaymentForm components were failing to retrieve the authentication token from cookies, resulting in 401 Unauthorized errors when trying to fetch suppliers and customers data.
+
+Error messages:
+```
+PaySupplierForm: Token from cookie: undefined
+XHRGEThttp://localhost:3000/api/organization/suppliers[HTTP/1.1 401 Unauthorized 1430ms]
+Failed to fetch suppliers: 401
+
+ReceivePaymentForm: Token from cookie: undefined
+XHRGEThttp://localhost:3000/api/organization/customers[HTTP/1.1 401 Unauthorized 272ms]
+Failed to fetch customers: 401
+```
+
+### Root Cause:
+The components were trying to retrieve the token from the `sb-mnvxxmmrlvjgpnhditxc-auth-token-array` cookie using `Cookies.get()`, but the token was stored in a JSON array format that wasn't being properly parsed. Additionally, the login route was setting two different cookies:
+1. `sb-mnvxxmmrlvjgpnhditxc-auth-token` (direct token)
+2. `sb-mnvxxmmrlvjgpnhditxc-auth-token-array` (array format for backward compatibility)
+
+### Solution Implemented:
+1. ✅ Created a utility function to handle token retrieval from both cookie formats:
+   ```javascript
+   // lib/utils/auth-helpers.js
+   export function getAuthToken() {
+     // Try to get the token from the direct cookie first
+     let token = Cookies.get('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+     
+     // If not found, try the array format cookie
+     if (!token) {
+       const arrayToken = Cookies.get('sb-mnvxxmmrlvjgpnhditxc-auth-token-array');
+       if (arrayToken) {
+         try {
+           // Parse the JSON array and get the first element
+           const tokenArray = JSON.parse(arrayToken);
+           if (Array.isArray(tokenArray) && tokenArray.length > 0) {
+             token = tokenArray[0];
+           }
+         } catch (e) {
+           console.error("Error parsing token array:", e);
+         }
+       }
+     }
+     
+     return token || null;
+   }
+   ```
+
+2. ✅ Created a helper function to generate headers with the authentication token:
+   ```javascript
+   export function getAuthHeaders(additionalHeaders = {}) {
+     const token = getAuthToken();
+     
+     return {
+       'Authorization': token ? `Bearer ${token}` : '',
+       'Content-Type': 'application/json',
+       ...additionalHeaders
+     };
+   }
+   ```
+
+3. ✅ Updated both PaySupplierForm and ReceivePaymentForm components to use these helper functions:
+   ```javascript
+   import { getAuthToken, getAuthHeaders } from '@/lib/utils/auth-helpers';
+   
+   // In useEffect for fetching data
+   const response = await fetch(`/api/organization/suppliers`, {
+     headers: getAuthHeaders(),
+   });
+   
+   // In handleSubmit for submitting form data
+   const response = await fetch('/api/organization/transactions/pay-supplier', {
+     method: 'POST',
+     headers: getAuthHeaders(),
+     body: JSON.stringify(dataToSend),
+   });
+   ```
+
+### Benefits:
+- Fixed the 401 Unauthorized errors when fetching suppliers and customers
+- Improved code maintainability by centralizing token retrieval logic
+- Added support for both cookie formats (direct token and array format)
+- Reduced code duplication across components
+- Made the authentication process more robust against different token storage formats
+- Ensured consistent authorization header usage across all API requests
+
 ## Task: Fix Organization Data Access Control - COMPLETED ✅
 
 ### Issue:
