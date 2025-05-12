@@ -68,24 +68,35 @@ export async function GET(request) {
           // For payment received from customer
           if (entry.memo.includes('Payment Received from Customer')) {
             // Extract customer ID - handle both formats with and without invoice reference
-            const customerId = entry.memo.includes(' for Invoice ')
-              ? entry.memo.split('Customer ')[1].split(' for Invoice ')[0]
-              : entry.memo.split('Customer ')[1];
+            let customerId;
+            if (entry.memo.includes(' for Invoice ')) {
+              customerId = entry.memo.split('Customer ')[1].split(' for Invoice ')[0];
+            } else {
+              customerId = entry.memo.split('Customer ')[1];
+            }
+            
+            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
+            if (customerId && customerId.includes('(')) {
+              customerId = customerId.split(' (')[0];
+            }
               
             try {
-              const customer = await Customer.findById(customerId);
-              if (customer) {
-                // Check if we have an invoice reference
-                if (entry.memo.includes(' for Invoice ')) {
-                  const invoiceRef = entry.memo.split(' for Invoice ')[1];
-                  enhancedEntry.memo = `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
-                } else {
-                  // Also check transaction meta for invoice number
-                  const invoiceRef = entry.transactions?.[0]?.meta?.invoiceNumber;
-                  if (invoiceRef) {
+              // Only attempt to find if it's a valid ObjectId
+              if (mongoose.Types.ObjectId.isValid(customerId)) {
+                const customer = await Customer.findById(customerId);
+                if (customer) {
+                  // Check if we have an invoice reference
+                  if (entry.memo.includes(' for Invoice ')) {
+                    const invoiceRef = entry.memo.split(' for Invoice ')[1];
                     enhancedEntry.memo = `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
                   } else {
-                    enhancedEntry.memo = `Payment Received from Customer ${customer.name}`;
+                    // Also check transaction meta for invoice number
+                    const invoiceRef = entry.transactions?.[0]?.meta?.invoiceNumber;
+                    if (invoiceRef) {
+                      enhancedEntry.memo = `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
+                    } else {
+                      enhancedEntry.memo = `Payment Received from Customer ${customer.name}`;
+                    }
                   }
                 }
               }
@@ -97,24 +108,35 @@ export async function GET(request) {
           // For payment sent to supplier
           else if (entry.memo.includes('Payment Sent to Supplier')) {
             // Extract supplier ID - handle both formats with and without bill reference
-            const supplierId = entry.memo.includes(' for Bill ')
-              ? entry.memo.split('Supplier ')[1].split(' for Bill ')[0]
-              : entry.memo.split('Supplier ')[1];
+            let supplierId;
+            if (entry.memo.includes(' for Bill ')) {
+              supplierId = entry.memo.split('Supplier ')[1].split(' for Bill ')[0];
+            } else {
+              supplierId = entry.memo.split('Supplier ')[1];
+            }
+            
+            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
+            if (supplierId && supplierId.includes('(')) {
+              supplierId = supplierId.split(' (')[0];
+            }
               
             try {
-              const supplier = await Supplier.findById(supplierId);
-              if (supplier) {
-                // Check if we have a bill reference
-                if (entry.memo.includes(' for Bill ')) {
-                  const billRef = entry.memo.split(' for Bill ')[1];
-                  enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
-                } else {
-                  // Also check transaction meta for bill number
-                  const billRef = entry.transactions?.[0]?.meta?.billNumber;
-                  if (billRef) {
+              // Only attempt to find if it's a valid ObjectId
+              if (mongoose.Types.ObjectId.isValid(supplierId)) {
+                const supplier = await Supplier.findById(supplierId);
+                if (supplier) {
+                  // Check if we have a bill reference
+                  if (entry.memo.includes(' for Bill ')) {
+                    const billRef = entry.memo.split(' for Bill ')[1];
                     enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
                   } else {
-                    enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name}`;
+                    // Also check transaction meta for bill number
+                    const billRef = entry.transactions?.[0]?.meta?.billNumber;
+                    if (billRef) {
+                      enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
+                    } else {
+                      enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name}`;
+                    }
                   }
                 }
               }
@@ -126,7 +148,12 @@ export async function GET(request) {
           // For sales orders
           else if (entry.memo.includes('Sales Order to Customer')) {
             // Extract the customer ID
-            const customerId = entry.memo.replace('Sales Order to Customer ', '');
+            let customerId = entry.memo.replace('Sales Order to Customer ', '');
+            
+            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
+            if (customerId && customerId.includes('(')) {
+              customerId = customerId.split(' (')[0].trim();
+            }
             
             // Only process if it looks like a MongoDB ID
             if (mongoose.Types.ObjectId.isValid(customerId.trim())) {
@@ -142,7 +169,7 @@ export async function GET(request) {
             // If no specific customer in the memo, check transaction meta
             else if (customerId.trim() === '' && entry.transactions && entry.transactions.length > 0) {
               const txnCustomerId = entry.transactions[0]?.meta?.customerId;
-              if (txnCustomerId) {
+              if (txnCustomerId && mongoose.Types.ObjectId.isValid(txnCustomerId)) {
                 try {
                   const customer = await Customer.findById(txnCustomerId);
                   if (customer) {
@@ -158,7 +185,12 @@ export async function GET(request) {
           // For purchase orders
           else if (entry.memo.includes('Purchase Order from Supplier')) {
             // Extract the supplier ID
-            const supplierId = entry.memo.replace('Purchase Order from Supplier ', '');
+            let supplierId = entry.memo.replace('Purchase Order from Supplier ', '');
+            
+            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
+            if (supplierId && supplierId.includes('(')) {
+              supplierId = supplierId.split(' (')[0].trim();
+            }
             
             // Only process if it looks like a MongoDB ID
             if (mongoose.Types.ObjectId.isValid(supplierId.trim())) {
@@ -174,7 +206,7 @@ export async function GET(request) {
             // If no specific supplier in the memo, check transaction meta
             else if (supplierId.trim() === '' && entry.transactions && entry.transactions.length > 0) {
               const txnSupplierId = entry.transactions[0]?.meta?.supplierId;
-              if (txnSupplierId) {
+              if (txnSupplierId && mongoose.Types.ObjectId.isValid(txnSupplierId)) {
                 try {
                   const supplier = await Supplier.findById(txnSupplierId);
                   if (supplier) {
@@ -202,7 +234,10 @@ export async function GET(request) {
       }
 
       return NextResponse.json({
-        journalEntries: enhancedEntries,
+        journalEntries: enhancedEntries.map(entry => ({
+          ...entry,
+          voucherNumber: entry.voucherNumber || entry.transactions?.[0]?.meta?.voucherNumber || 'N/A'
+        })),
         pagination: {
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
@@ -335,7 +370,10 @@ export async function POST(request) {
       
       return NextResponse.json({
         message: 'Journal entry created successfully',
-        journalEntry: result,
+        journalEntry: {
+          ...result.toObject(),
+          voucherNumber: result.voucherNumber
+        },
       });
     } catch (error) {
       console.error('Error creating journal entry:', error);

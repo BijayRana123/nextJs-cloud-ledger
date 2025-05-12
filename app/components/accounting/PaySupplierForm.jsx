@@ -21,7 +21,7 @@ export default function PaySupplierForm() {
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [loading, setLoading] = useState(true);
-  const [nextBillNumber, setNextBillNumber] = useState(2001);
+  const [nextBillNumber, setNextBillNumber] = useState('');
 
   const [formData, setFormData] = useState({
     supplierId: '',
@@ -31,10 +31,11 @@ export default function PaySupplierForm() {
     notes: '',
   });
 
-  // Fetch suppliers on component mount
+  // Fetch suppliers and next bill number on component mount
   useEffect(() => {
     if (organizationId) {
       fetchSuppliers();
+      fetchNextBillNumber();
     }
   }, [organizationId]);
 
@@ -58,6 +59,25 @@ export default function PaySupplierForm() {
     }
   };
 
+  const fetchNextBillNumber = async () => {
+    try {
+      const response = await fetch('/api/accounting/counters/next?type=bill', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNextBillNumber(data.nextNumber);
+      } else {
+        console.error("Failed to fetch next bill number");
+        setNextBillNumber('BILL-2001'); // Fallback
+      }
+    } catch (error) {
+      console.error("Error fetching next bill number:", error);
+      setNextBillNumber('BILL-2001'); // Fallback
+    }
+  };
+
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({
@@ -76,13 +96,11 @@ export default function PaySupplierForm() {
     if (id === 'supplierId') {
       setSelectedSupplier(value);
       if (value) {
-        // Auto-generate a bill number when a supplier is selected
+        // Set the bill number when a supplier is selected
         setFormData(prev => ({
           ...prev,
-          billNumber: `BILL-${nextBillNumber}`,
+          billNumber: nextBillNumber,
         }));
-        // Increment for next use
-        setNextBillNumber(prev => prev + 1);
       } else {
         // Reset fields when supplier is deselected
         setFormData(prev => ({
@@ -137,7 +155,7 @@ export default function PaySupplierForm() {
         description: "Payment has been successfully recorded with accounting entries.",
       });
 
-      // Clear form
+      // Clear form and fetch next bill number for future use
       setFormData({
         supplierId: '',
         billNumber: '',
@@ -146,6 +164,7 @@ export default function PaySupplierForm() {
         notes: '',
       });
       setSelectedSupplier('');
+      fetchNextBillNumber();
       
       // Redirect after a short delay
       setTimeout(() => {
@@ -190,10 +209,11 @@ export default function PaySupplierForm() {
               <Input 
                 id="billNumber" 
                 value={formData.billNumber} 
-                onChange={handleInputChange} 
                 placeholder="Auto-generated when supplier selected"
-                disabled={!formData.supplierId}
+                disabled={true}
+                className="bg-gray-50"
               />
+              <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
             </div>
             
             <div className="flex flex-col space-y-1.5">

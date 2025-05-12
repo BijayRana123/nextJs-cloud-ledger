@@ -21,7 +21,7 @@ export default function ReceivePaymentForm() {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [loading, setLoading] = useState(true);
-  const [nextInvoiceNumber, setNextInvoiceNumber] = useState(1001);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState('');
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -31,10 +31,11 @@ export default function ReceivePaymentForm() {
     notes: '',
   });
 
-  // Fetch customers on component mount
+  // Fetch customers and next invoice number on component mount
   useEffect(() => {
     if (organizationId) {
       fetchCustomers();
+      fetchNextInvoiceNumber();
     }
   }, [organizationId]);
 
@@ -58,6 +59,25 @@ export default function ReceivePaymentForm() {
     }
   };
 
+  const fetchNextInvoiceNumber = async () => {
+    try {
+      const response = await fetch('/api/accounting/counters/next?type=invoice', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNextInvoiceNumber(data.nextNumber);
+      } else {
+        console.error("Failed to fetch next invoice number");
+        setNextInvoiceNumber('INV-1001'); // Fallback
+      }
+    } catch (error) {
+      console.error("Error fetching next invoice number:", error);
+      setNextInvoiceNumber('INV-1001'); // Fallback
+    }
+  };
+
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({
@@ -76,13 +96,11 @@ export default function ReceivePaymentForm() {
     if (id === 'customerId') {
       setSelectedCustomer(value);
       if (value) {
-        // Auto-generate an invoice number when a customer is selected
+        // Set the invoice number when a customer is selected
         setFormData(prev => ({
           ...prev,
-          invoiceNumber: `INV-${nextInvoiceNumber}`,
+          invoiceNumber: nextInvoiceNumber,
         }));
-        // Increment for next use
-        setNextInvoiceNumber(prev => prev + 1);
       } else {
         // Reset fields when customer is deselected
         setFormData(prev => ({
@@ -137,7 +155,7 @@ export default function ReceivePaymentForm() {
         description: "Payment has been successfully recorded with accounting entries.",
       });
 
-      // Clear form
+      // Clear form and fetch next invoice number for future use
       setFormData({
         customerId: '',
         invoiceNumber: '',
@@ -146,6 +164,7 @@ export default function ReceivePaymentForm() {
         notes: '',
       });
       setSelectedCustomer('');
+      fetchNextInvoiceNumber();
       
       // Redirect after a short delay
       setTimeout(() => {
@@ -190,10 +209,11 @@ export default function ReceivePaymentForm() {
               <Input 
                 id="invoiceNumber" 
                 value={formData.invoiceNumber} 
-                onChange={handleInputChange} 
                 placeholder="Auto-generated when customer selected"
-                disabled={!formData.customerId}
+                disabled={true}
+                className="bg-gray-50"
               />
+              <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
             </div>
             
             <div className="flex flex-col space-y-1.5">

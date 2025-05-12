@@ -29,7 +29,10 @@ export default function JournalEntryDetailPage({ params }) {
   const [voidReason, setVoidReason] = useState("");
   const [voidingEntry, setVoidingEntry] = useState(false);
   const [error, setError] = useState(null);
-  const [debugMode, setDebugMode] = useState(false);
+  const [entityData, setEntityData] = useState({
+    customer: null,
+    supplier: null
+  });
 
   useEffect(() => {
     // Fetch journal entry details from the API
@@ -111,6 +114,52 @@ export default function JournalEntryDetailPage({ params }) {
       fetchJournalEntry();
     }
   }, [entryId]);
+
+  // Fetch customer/supplier data if present in transactions
+  useEffect(() => {
+    if (!journalEntry || !journalEntry.transactions || journalEntry.transactions.length === 0) return;
+    
+    const fetchEntityData = async () => {
+      try {
+        const firstTransaction = journalEntry.transactions[0];
+        const meta = firstTransaction.meta || {};
+        
+        // Check for customer ID in meta
+        if (meta.customerId && typeof meta.customerId === 'string') {
+          try {
+            const response = await fetch(`/api/organization/customers/${meta.customerId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.customer) {
+                setEntityData(prev => ({ ...prev, customer: data.customer }));
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching customer data:', error);
+          }
+        }
+        
+        // Check for supplier ID in meta
+        if (meta.supplierId && typeof meta.supplierId === 'string') {
+          try {
+            const response = await fetch(`/api/organization/suppliers/${meta.supplierId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.supplier) {
+                setEntityData(prev => ({ ...prev, supplier: data.supplier }));
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching supplier data:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching entity data:', error);
+      }
+    };
+    
+    fetchEntityData();
+  }, [journalEntry]);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -203,6 +252,87 @@ export default function JournalEntryDetailPage({ params }) {
 
   // Ensure transactions array exists
   const transactions = journalEntry.transactions || [];
+  
+  // Format memo text to display customer names instead of IDs
+  const formatMemo = (memo) => {
+    if (!memo) return "N/A";
+    
+    // Get entity data from state
+    const { customer, supplier } = entityData;
+    
+    // If we have customer data, use it in the memo
+    if (customer) {
+      if (memo.includes("Payment Received from Customer")) {
+        // Replace customer ID with name, keeping invoice reference if present
+        if (memo.includes(" for Invoice ")) {
+          const invoiceRef = memo.split(" for Invoice ")[1];
+          return `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
+        } else {
+          return `Payment Received from Customer ${customer.name}`;
+        }
+      }
+      
+      if (memo.includes("Sales Order to Customer")) {
+        return `Sales Order to Customer ${customer.name}`;
+      }
+    }
+    
+    // If we have supplier data, use it in the memo
+    if (supplier) {
+      if (memo.includes("Payment Sent to Supplier")) {
+        // Replace supplier ID with name, keeping bill reference if present
+        if (memo.includes(" for Bill ")) {
+          const billRef = memo.split(" for Bill ")[1];
+          return `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
+        } else {
+          return `Payment Sent to Supplier ${supplier.name}`;
+        }
+      }
+      
+      if (memo.includes("Purchase Order from Supplier")) {
+        return `Purchase Order from Supplier ${supplier.name}`;
+      }
+    }
+    
+    // For various transaction types where we couldn't fetch the entity data
+    if (memo.includes("Payment Received from Customer")) {
+      // If memo has MongoDB ObjectId, replace it with generic "Customer"
+      const match = memo.match(/Customer ([0-9a-f]{24})/);
+      if (match) {
+        if (memo.includes(" for Invoice ")) {
+          const invoiceRef = memo.split(" for Invoice ")[1];
+          return `Payment Received from Customer for Invoice ${invoiceRef}`;
+        } else {
+          return "Payment Received from Customer";
+        }
+      }
+    }
+    
+    if (memo.includes("Payment Sent to Supplier")) {
+      // If memo has MongoDB ObjectId, replace it with generic "Supplier"
+      const match = memo.match(/Supplier ([0-9a-f]{24})/);
+      if (match) {
+        if (memo.includes(" for Bill ")) {
+          const billRef = memo.split(" for Bill ")[1];
+          return `Payment Sent to Supplier for Bill ${billRef}`;
+        } else {
+          return "Payment Sent to Supplier";
+        }
+      }
+    }
+    
+    if (memo.includes("Sales Order to Customer")) {
+      // If memo has MongoDB ObjectId, replace it with generic "Customer"
+      return memo.replace(/Customer [0-9a-f]{24}/, "Customer");
+    }
+    
+    if (memo.includes("Purchase Order from Supplier")) {
+      // If memo has MongoDB ObjectId, replace it with generic "Supplier"
+      return memo.replace(/Supplier [0-9a-f]{24}/, "Supplier");
+    }
+    
+    return memo;
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -264,16 +394,16 @@ export default function JournalEntryDetailPage({ params }) {
           <CardContent>
             <dl className="space-y-2">
               <div className="flex justify-between">
-                <dt className="font-medium">ID:</dt>
-                <dd>{journalEntry._id || journalEntry.journal_id || journalEntry.id || "Unknown ID"}</dd>
-              </div>
+                <dt className="font-medium">Voucher Number:</dt>
+                <dd>{journalEntry.voucherNumber || journalEntry.transactions?.[0]?.meta?.voucherNumber || journalEntry.transactions?.[0]?.meta?.invoiceNumber || journalEntry.transactions?.[0]?.meta?.billNumber || "N/A"}</dd>
+                </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Date:</dt>
                 <dd>{formatDate(journalEntry.datetime)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Description:</dt>
-                <dd>{journalEntry.memo}</dd>
+                <dd>{formatMemo(journalEntry.memo)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Status:</dt>
@@ -383,57 +513,7 @@ export default function JournalEntryDetailPage({ params }) {
         </Card>
       )}
 
-      {/* Debug Panel */}
-      <div className="mt-8">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setDebugMode(!debugMode)}
-        >
-          {debugMode ? "Hide Debug Info" : "Show Debug Info"}
-        </Button>
-        
-        {debugMode && (
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Debug Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <h3 className="font-bold mb-2">Raw Transaction Data:</h3>
-              <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-xs mb-4">
-                {JSON.stringify(transactions, null, 2)}
-              </pre>
-              
-              <h3 className="font-bold mb-2">Transaction Amount Types:</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-gray-100 rounded">
-                  <thead>
-                    <tr>
-                      <th className="p-2 border">Index</th>
-                      <th className="p-2 border">Account</th>
-                      <th className="p-2 border">Amount</th>
-                      <th className="p-2 border">Amount Type</th>
-                      <th className="p-2 border">Debit/Credit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.map((t, idx) => (
-                      <tr key={idx}>
-                        <td className="p-2 border">{idx}</td>
-                        <td className="p-2 border">{Array.isArray(t.account_path) ? t.account_path.join(':') : 'Unknown'}</td>
-                        <td className="p-2 border">{t.amount}</td>
-                        <td className="p-2 border">{typeof t.amount}</td>
-                        <td className="p-2 border">{t.debit ? 'Debit' : 'Credit'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+   
       </div>
-    </div>
   );
 } 
