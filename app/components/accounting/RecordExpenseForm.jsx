@@ -8,10 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/lib/context/OrganizationContext';
+import { toast } from "@/components/ui/use-toast";
+import { getAuthHeaders } from '@/lib/utils/auth-helpers';
 
 export default function RecordExpenseForm() {
   const router = useRouter();
   const organizationId = useOrganization();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     expenseType: '', // e.g., 'Rent Expense', 'Utilities Expense'
@@ -37,10 +40,16 @@ export default function RecordExpenseForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!organizationId) {
       console.error("Organization ID is not available from context. Cannot submit.");
-      // TODO: Display an error message to the user
+      toast({
+        title: "Error",
+        description: "Organization ID is required. Please refresh and try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
       return;
     }
 
@@ -53,32 +62,49 @@ export default function RecordExpenseForm() {
     console.log("Submitting Expense:", dataToSend);
 
     try {
-      const response = await fetch('/api/organization/transactions/record-expense', {
+      // Use the organization API which already handles the accounting entries
+      const orgResponse = await fetch('/api/organization/transactions/record-expense', {
         method: 'POST',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(dataToSend),
       });
 
-      const result = await response.json();
+      const orgResult = await orgResponse.json();
 
-      if (response.ok) {
-        console.log("Expense recorded and accounting entry created successfully:", result);
-        // TODO: Redirect or show success message
-        setFormData({
-          expenseType: '',
-          amount: '',
-          paymentMethod: '',
-          description: '',
-        }); // Clear form
-      } else {
-        console.error("Error recording expense:", result.message);
-        // TODO: Display an error message to the user
+      if (!orgResponse.ok) {
+        throw new Error(orgResult.message || "Failed to record expense in organization");
       }
+
+      // Success
+      toast({
+        title: "Expense Recorded",
+        description: "Your expense has been successfully recorded with accounting entries.",
+      });
+
+      // Clear form
+      setFormData({
+        expenseType: '',
+        amount: '',
+        paymentMethod: '',
+        description: '',
+      });
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/dashboard/accounting/journal-entries");
+      }, 1500);
     } catch (error) {
       console.error("Error recording expense:", error);
-      // TODO: Display a generic error message to the user
+      toast({
+        title: "Error",
+        description: error.message || "Failed to record expense. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -107,7 +133,7 @@ export default function RecordExpenseForm() {
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="amount">Amount *</Label>
-              <Input id="amount" type="number" value={formData.amount} onChange={handleInputChange} required />
+              <Input id="amount" type="number" step="0.01" value={formData.amount} onChange={handleInputChange} required />
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="paymentMethod">Payment Method *</Label>
@@ -129,7 +155,9 @@ export default function RecordExpenseForm() {
             </div>
           </div>
           <div className="flex justify-end mt-6">
-            <Button type="submit" disabled={!organizationId}>Record Expense</Button>
+            <Button type="submit" disabled={isSubmitting || !organizationId}>
+              {isSubmitting ? "Recording..." : "Record Expense"}
+            </Button>
           </div>
         </form>
       </CardContent>

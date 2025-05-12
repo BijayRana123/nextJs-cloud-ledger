@@ -20,7 +20,7 @@ export async function POST(request) {
     const paymentDetails = await request.json();
 
     // Validate incoming data as needed
-    if (!paymentDetails.customerId || !paymentDetails.amount || !paymentDetails.paymentMethod || !paymentDetails.salesOrderId) {
+    if (!paymentDetails.customerId || !paymentDetails.amount || !paymentDetails.paymentMethod) {
         return NextResponse.json({ message: 'Missing required payment details.' }, { status: 400 });
     }
 

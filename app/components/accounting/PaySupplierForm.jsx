@@ -8,110 +8,165 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/lib/context/OrganizationContext';
-import { getAuthToken, getAuthHeaders } from '@/lib/utils/auth-helpers';
+import { toast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { getAuthHeaders } from '@/lib/utils/auth-helpers';
 
 export default function PaySupplierForm() {
   const router = useRouter();
   const organizationId = useOrganization();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // States for dynamic data
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [nextBillNumber, setNextBillNumber] = useState(2001);
 
   const [formData, setFormData] = useState({
     supplierId: '',
+    billNumber: '',
     amount: '',
-    paymentMethod: '', // e.g., 'Cash', 'Bank'
-    purchaseOrderId: '', // Optional: Link to a specific purchase order
-    description: '',
+    paymentMethod: '',
+    notes: '',
   });
 
-  const [suppliers, setSuppliers] = useState([]);
-
+  // Fetch suppliers on component mount
   useEffect(() => {
-    const fetchSuppliers = async () => {
-      if (!organizationId) return;
-      try {
-        const token = getAuthToken();
-        console.log('PaySupplierForm: Token from cookie:', token ? token.substring(0, 20) + '...' : 'undefined'); // Log the token
-        
-        const response = await fetch(`/api/organization/suppliers`, {
-          headers: getAuthHeaders(),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setSuppliers(data.suppliers);
-        } else {
-          console.error("Failed to fetch suppliers:", response.status);
-        }
-      } catch (error) {
-        console.error("Error fetching suppliers:", error);
-      }
-    };
-    fetchSuppliers();
+    if (organizationId) {
+      fetchSuppliers();
+    }
   }, [organizationId]);
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/organization/suppliers?organizationId=${organizationId}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSuppliers(data.suppliers || []);
+      } else {
+        console.error("Failed to fetch suppliers:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [id]: value,
     }));
   };
 
   const handleSelectChange = (id, value) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [id]: value,
     }));
+    
+    // If changing supplier, update the selected supplier
+    if (id === 'supplierId') {
+      setSelectedSupplier(value);
+      if (value) {
+        // Auto-generate a bill number when a supplier is selected
+        setFormData(prev => ({
+          ...prev,
+          billNumber: `BILL-${nextBillNumber}`,
+        }));
+        // Increment for next use
+        setNextBillNumber(prev => prev + 1);
+      } else {
+        // Reset fields when supplier is deselected
+        setFormData(prev => ({
+          ...prev,
+          billNumber: '',
+          amount: '',
+        }));
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!organizationId) {
-      console.error("Organization ID is not available from context. Cannot submit.");
-      // TODO: Display an error message to the user
+      toast({
+        title: "Error",
+        description: "Organization ID is required. Please refresh and try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
       return;
     }
 
     const dataToSend = {
       ...formData,
-      organizationId: organizationId, // Include organizationId in the data
-      amount: parseFloat(formData.amount) || 0, // Ensure amount is a number
+      organizationId,
+      amount: parseFloat(formData.amount) || 0,
     };
 
-    console.log("Submitting Payment Sent:", dataToSend);
-
     try {
-      const response = await fetch('/api/organization/transactions/pay-supplier', {
+      // Use the organization API which already handles the accounting entries
+      const orgResponse = await fetch('/api/organization/transactions/pay-supplier', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(dataToSend),
       });
 
-      const result = await response.json();
+      const orgResult = await orgResponse.json();
 
-      if (response.ok) {
-        console.log("Payment sent and accounting entry created successfully:", result);
-        // TODO: Redirect or show success message
-        setFormData({
-          supplierId: '',
-          amount: '',
-          paymentMethod: '',
-          purchaseOrderId: '',
-          description: '',
-        }); // Clear form
-      } else {
-        console.error("Error recording payment sent:", result.message);
-        // TODO: Display an error message to the user
+      if (!orgResponse.ok) {
+        throw new Error(orgResult.message || "Failed to record payment in organization");
       }
+
+      // Success
+      toast({
+        title: "Payment Sent",
+        description: "Payment has been successfully recorded with accounting entries.",
+      });
+
+      // Clear form
+      setFormData({
+        supplierId: '',
+        billNumber: '',
+        amount: '',
+        paymentMethod: '',
+        notes: '',
+      });
+      setSelectedSupplier('');
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/dashboard/accounting/journal-entries");
+      }, 1500);
     } catch (error) {
-      console.error("Error recording payment sent:", error);
-      // TODO: Display a generic error message to the user
+      console.error("Error recording payment:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to record payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Card className="mb-6">
       <CardContent>
-        <h2 className="text-xl font-semibold mb-4">Record Payment Sent to Supplier</h2>
+        <h2 className="text-xl font-semibold mb-4">Pay Supplier</h2>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1.5">
@@ -121,7 +176,7 @@ export default function PaySupplierForm() {
                   <SelectValue placeholder="Select supplier" />
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map((supplier) => (
+                  {suppliers.map(supplier => (
                     <SelectItem key={supplier._id} value={supplier._id}>
                       {supplier.name}
                     </SelectItem>
@@ -129,10 +184,23 @@ export default function PaySupplierForm() {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="billNumber">Bill Number</Label>
+              <Input 
+                id="billNumber" 
+                value={formData.billNumber} 
+                onChange={handleInputChange} 
+                placeholder="Auto-generated when supplier selected"
+                disabled={!formData.supplierId}
+              />
+            </div>
+            
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="amount">Amount *</Label>
-              <Input id="amount" type="number" value={formData.amount} onChange={handleInputChange} required />
+              <Input id="amount" type="number" step="0.01" value={formData.amount} onChange={handleInputChange} required />
             </div>
+            
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="paymentMethod">Payment Method *</Label>
               <Select id="paymentMethod" value={formData.paymentMethod} onValueChange={(value) => handleSelectChange('paymentMethod', value)} required>
@@ -141,23 +209,23 @@ export default function PaySupplierForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Bank">Bank</SelectItem>
-                  {/* Add other payment methods as needed */}
+                  <SelectItem value="Bank">Bank Transfer</SelectItem>
+                  <SelectItem value="Check">Check</SelectItem>
+                  <SelectItem value="CreditCard">Credit Card</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="purchaseOrderId">Purchase Order ID (Optional)</Label>
-              {/* TODO: Replace with a purchase order select/combobox */}
-              <Input id="purchaseOrderId" value={formData.purchaseOrderId} onChange={handleInputChange} />
-            </div>
-             <div className="flex flex-col space-y-1.5 md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Input id="description" value={formData.description} onChange={handleInputChange} />
+            
+            <div className="flex flex-col space-y-1.5 md:col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea id="notes" value={formData.notes} onChange={handleInputChange} placeholder="Optional payment notes" />
             </div>
           </div>
+          
           <div className="flex justify-end mt-6">
-            <Button type="submit" disabled={!organizationId}>Record Payment</Button>
+            <Button type="submit" disabled={isSubmitting || !organizationId || loading}>
+              {isSubmitting ? "Processing..." : "Record Payment"}
+            </Button>
           </div>
         </form>
       </CardContent>
