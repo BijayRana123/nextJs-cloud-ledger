@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request, { params }) {
-  const { id } = params; // Get the purchase order ID from the URL
+  // Correctly access the id param without destructuring
+  const id = params?.id;
 
   try {
     const { to, replyTo, subject, body } = await request.json();

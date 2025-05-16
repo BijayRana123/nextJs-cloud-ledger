@@ -12,7 +12,8 @@ export async function POST(request, { params }) {
       );
     }
 
-    const { id } = params;
+    // Correctly access the id param
+    const id = params?.id;
 
     if (!id) {
       return NextResponse.json(

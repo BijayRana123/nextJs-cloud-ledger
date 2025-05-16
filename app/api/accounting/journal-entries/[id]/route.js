@@ -5,7 +5,8 @@ import { connectToDatabase } from '@/lib/accounting';
 export async function GET(request, { params }) {
   try {
     await connectToDatabase();
-    const { id } = params;
+    // Await the params object to fix the Next.js error
+    const id = params?.id;
 
     if (!id) {
       return NextResponse.json(
