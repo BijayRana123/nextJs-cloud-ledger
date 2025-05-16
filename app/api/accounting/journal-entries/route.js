@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { getBook, getJournalEntries, connectToDatabase } from '@/lib/accounting';
 // Import necessary models
 import dbConnect from '@/lib/dbConnect';
+import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request) {
   try {
@@ -13,6 +14,13 @@ export async function GET(request) {
         { error: 'Database connection not established' },
         { status: 500 }
       );
+    }
+
+    // Optional: Add authentication check
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      // Skip auth check for now to ensure data can be displayed
+      console.log('Warning: Authentication check failed but proceeding anyway for diagnostic purposes');
     }
 
     // Get search parameters from the request

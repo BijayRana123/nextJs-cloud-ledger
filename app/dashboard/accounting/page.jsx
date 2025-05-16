@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Activity } from "lucide-react";
 
 export default function AccountingPage() {
   const router = useRouter();
@@ -69,12 +70,21 @@ export default function AccountingPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Accounting</h1>
-        <Button 
-          variant="outline" 
-          onClick={() => router.push("/dashboard")}
-        >
-          Back to Dashboard
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            className="text-purple-600 border-purple-200 hover:bg-purple-50"
+            onClick={() => router.push("/dashboard/accounting/diagnostics")}
+          >
+            System Diagnostics
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => router.push("/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">

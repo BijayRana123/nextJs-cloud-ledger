@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import { useCalendar } from "@/lib/context/CalendarContext"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { convertADtoBS } from "@/lib/utils/dateUtils"
+import { convertADtoBS, formatDateForInput } from "@/lib/utils/dateUtils"
 import { NepaliDatePicker } from "nepali-datepicker-reactjs"
 import "nepali-datepicker-reactjs/dist/index.css"
+import NepaliDate from "nepali-date-converter"
 
 export function ConditionalDatePicker({ 
   id, 
@@ -19,21 +20,21 @@ export function ConditionalDatePicker({
   className = "",
   labelClassName = ""
 }) {
-  const { isNepaliCalendar } = useCalendar()
+  const { isNepaliCalendar, nepaliLanguage } = useCalendar()
   const [nepaliDate, setNepaliDate] = useState("")
   
   // When AD date changes or calendar type changes, update Nepali date
   useEffect(() => {
     if (value && isNepaliCalendar) {
       try {
-        // Convert AD date to BS date for display
-        const bsDate = convertADtoBS(value)
-        setNepaliDate(bsDate.formatted)
+        // Format AD date as BS date using Nepali-Date library
+        const formattedBsDate = formatDateForInput(value, true, nepaliLanguage);
+        setNepaliDate(formattedBsDate);
       } catch (error) {
         console.error("Error converting date:", error)
       }
     }
-  }, [value, isNepaliCalendar])
+  }, [value, isNepaliCalendar, nepaliLanguage])
 
   // Handle Nepali date change
   const handleNepaliDateChange = (bsDate) => {
@@ -45,21 +46,18 @@ export function ConditionalDatePicker({
       // Parse the Nepali date
       const [bsYear, bsMonth, bsDay] = bsDate.split('-').map(num => parseInt(num, 10))
       
-      // Find the closest reference from our dateUtils reference points
-      // This is a simplified conversion - in a production app, use a proper library
-      // Approximate AD date based on reference
-      const adYear = bsYear === 2080 ? 2023 : 2024
-      const adMonth = ((bsMonth - 1 + 4) % 12) // Approximate mapping (0-indexed)
-      const adDay = bsDay // Approximate - not accurate for all dates
+      // Convert BS date to AD date using NepaliDate library
+      const nepaliDate = new NepaliDate(bsYear, bsMonth - 1, bsDay); // Month is 0-indexed in NepaliDate
+      const adDate = nepaliDate.toJsDate();
       
-      // Create AD date
-      const adDate = new Date(adYear, adMonth, adDay)
+      // Format AD date for input (YYYY-MM-DD)
+      const adDateStr = adDate.toISOString().split('T')[0];
       
       // Pass the AD date to the onChange handler
       onChange({ 
         target: { 
           name, 
-          value: adDate.toISOString().split('T')[0] 
+          value: adDateStr
         } 
       })
     } catch (error) {
@@ -81,7 +79,7 @@ export function ConditionalDatePicker({
           className="w-full"
           value={nepaliDate}
           onChange={handleNepaliDateChange}
-          options={{ calenderLocale: "ne", valueLocale: "en" }}
+          options={{ calenderLocale: nepaliLanguage === 'np' ? "ne" : "en", valueLocale: "en" }}
           readOnly={disabled}
         />
       ) : (

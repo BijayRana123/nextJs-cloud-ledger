@@ -150,8 +150,8 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
           </div>
           <Link href="/dashboard/sales/add-sales-bill" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2">
             <Rocket className="h-5 w-5 mr-2" />
-            ADD NEW
-          </Link>
+          ADD NEW
+        </Link>
         </div>
       </div>
 
@@ -192,8 +192,8 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
+        <Input
+          type="text"
             placeholder="Search by customer, order number, reference..."
             className="pl-10"
             value={searchQuery}

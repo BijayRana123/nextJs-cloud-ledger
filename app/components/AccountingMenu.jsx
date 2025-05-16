@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { DollarSign, ChevronDown, ChevronRight, Plus, Book, PlusCircle, List, Clock, FileText } from "lucide-react";
+import { DollarSign, ChevronDown, ChevronRight, Plus, Book, PlusCircle, List, Clock } from "lucide-react";
 
 export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept isExpanded prop from sidebar
   const [isMenuExpanded, setIsMenuExpanded] = useState(false); // State for this menu's expansion
@@ -30,10 +30,6 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
   const journalItems = [
     { label: "All Journal Entries", href: "/dashboard/accounting/journal-entries", icon: <List className="h-4 w-4" /> },
     { label: "New Journal Entry", href: "/dashboard/accounting/journal-entries/new", icon: <PlusCircle className="h-4 w-4" /> },
-  ];
-
-  const reportItems = [
-    // Ledger is moved to ReportsMenu
   ];
 
   return (
@@ -89,27 +85,6 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
                    ))}
                  </ul>
                )}
-             </li>
-             
-             {/* Reports section */}
-             <li key="reports" className="relative">
-               <div className="flex items-center gap-2 px-4 py-2 text-gray-700 font-medium">
-                 <FileText className="h-4 w-4" />
-                 <span>Reports</span>
-               </div>
-               <ul className="pl-6">
-                 {reportItems.map((item, index) => (
-                   <li key={index}>
-                     <Link
-                       href={item.href}
-                       className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                     >
-                       {item.icon}
-                       <span>{item.label}</span>
-                     </Link>
-                   </li>
-                 ))}
-               </ul>
              </li>
              
              {/* Transactions section */}

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { protect } from '@/lib/middleware/auth';
 import { createPaymentSentEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
+import mongoose from 'mongoose';
 
 export async function POST(request) {
   await dbConnect();
@@ -13,7 +14,9 @@ export async function POST(request) {
       return authResult;
     }
 
-    const organizationId = request.organizationId;
+    // Get organization ID from request headers (set by the auth middleware)
+    const organizationId = request.headers.get('x-organization-id') || request.organizationId;
+    
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
@@ -23,6 +26,12 @@ export async function POST(request) {
     // Validate incoming data as needed
     if (!paymentDetails.supplierId || !paymentDetails.amount || !paymentDetails.paymentMethod) {
       return NextResponse.json({ message: 'Missing required payment details.' }, { status: 400 });
+    }
+
+    // Ensure amount is a number
+    const amount = parseFloat(paymentDetails.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return NextResponse.json({ message: 'Invalid amount. Must be a positive number.' }, { status: 400 });
     }
 
     // Generate a new bill number if one doesn't exist
@@ -39,8 +48,19 @@ export async function POST(request) {
       }
     }
 
-    // Create the accounting entry
-    await createPaymentSentEntry(paymentDetails);
+    console.log('Recording supplier payment with details:', {
+      ...paymentDetails,
+      amount,
+      organizationId
+    });
+
+    // Create the accounting entry with validated data
+    await createPaymentSentEntry({
+      ...paymentDetails,
+      amount,
+      organizationId,
+      _id: new mongoose.Types.ObjectId() // Generate a new ID for this payment
+    });
 
     return NextResponse.json({ 
       message: "Payment sent and accounting entry created successfully",

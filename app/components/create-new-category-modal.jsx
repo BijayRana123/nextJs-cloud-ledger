@@ -14,14 +14,41 @@ export default function CreateNewCategoryModal({ isOpen, onClose, onCategoryCrea
     description: '',
   });
 
-  // State for combobox options (mock data for "Under Category")
-  const [parentCategoryOptions, setParentCategoryOptions] = useState([
-    { value: 'parent_cat_1', label: 'Root Category 1' },
-    { value: 'parent_cat_2', label: 'Root Category 2' },
-  ]);
+  // State for parent category options
+  const [parentCategoryOptions, setParentCategoryOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // TODO: Add state and effects to fetch real parent category options from APIs
+  // Fetch parent categories when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchParentCategories();
+    }
+  }, [isOpen]);
 
+  // Function to fetch parent categories from API
+  const fetchParentCategories = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/organization/categories');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform data to match combobox format
+        const formattedCategories = data.categories.map(cat => ({
+          value: cat._id,
+          label: cat.name
+        }));
+        setParentCategoryOptions(formattedCategories);
+      } else {
+        console.error("Failed to fetch parent categories");
+      }
+    } catch (error) {
+      console.error("Error fetching parent categories:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({
@@ -30,6 +57,7 @@ export default function CreateNewCategoryModal({ isOpen, onClose, onCategoryCrea
     }));
   };
 
+  // Handle select changes
   const handleSelectChange = (id, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -37,26 +65,44 @@ export default function CreateNewCategoryModal({ isOpen, onClose, onCategoryCrea
     }));
   };
 
-
-  const handleSubmit = (e) => {
+  // Submit form to create new category
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement API call to create new category
-    console.log("Submitting New Category:", formData);
-
-    // Mock category data to return
-    const newMockCategory = {
-      value: `cat_${Date.now()}`,
-      label: formData.name, // Using name as label for now
-      // Add other relevant category details based on formData
-    };
-
-    // Call the onCategoryCreated prop with the new category data
-    if (onCategoryCreated) {
-      onCategoryCreated(newMockCategory);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch('/api/organization/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const newCategory = {
+          value: data.category._id,
+          label: data.category.name,
+        };
+        
+        // Call the onCategoryCreated prop with the new category data
+        if (onCategoryCreated) {
+          onCategoryCreated(newCategory);
+        }
+        
+        // Close the modal
+        onClose();
+      } else {
+        console.error("Failed to create category");
+        // TODO: Show error message to user
+      }
+    } catch (error) {
+      console.error("Error creating category:", error);
+      // TODO: Show error message to user
+    } finally {
+      setIsLoading(false);
     }
-
-    // Close the modal
-    onClose();
   };
 
   // Reset form data when modal is opened
@@ -104,7 +150,7 @@ export default function CreateNewCategoryModal({ isOpen, onClose, onCategoryCrea
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" className="bg-green-500 hover:bg-green-600">Save</Button>
+            <Button type="submit" className="bg-green-500 hover:bg-green-600" disabled={isLoading}>Save</Button>
              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           </DialogFooter>
         </form>

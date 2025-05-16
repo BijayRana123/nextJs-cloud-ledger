@@ -24,24 +24,70 @@ export default function CreateNewProductModal({ isOpen, onClose, onProductCreate
     availableForSale: true, // Default to true
   });
 
-  // State for combobox options (mock data for now)
-  const [categoryOptions, setCategoryOptions] = useState([
-    { value: 'cat_1', label: 'Electronics' },
-    { value: 'cat_2', label: 'Clothing' },
-    { value: 'cat_3', label: 'Books' },
-  ]);
-  const [primaryUnitOptions, setPrimaryUnitOptions] = useState([
-    { value: 'unit_1', label: 'Pcs' },
-    { value: 'unit_2', label: 'Kg' },
-    { value: 'unit_3', label: 'Box' },
-  ]);
+  // State for combobox options
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [primaryUnitOptions, setPrimaryUnitOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // State to control visibility of nested modals
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isNewPrimaryUnitModalOpen, setIsNewPrimaryUnitModalOpen] = useState(false);
 
+  // Fetch categories and units data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Fetch categories
+      fetchCategories();
+      // Fetch units
+      fetchUnits();
+    }
+  }, [isOpen]);
 
-  // TODO: Add state and effects to fetch real category and primary unit options from APIs
+  // Function to fetch categories from API
+  const fetchCategories = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/organization/categories');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform data to match combobox format
+        const formattedCategories = data.categories.map(cat => ({
+          value: cat._id,
+          label: cat.name
+        }));
+        setCategoryOptions(formattedCategories);
+      } else {
+        console.error("Failed to fetch categories");
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to fetch units from API
+  const fetchUnits = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/organization/units');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform data to match combobox format
+        const formattedUnits = data.units.map(unit => ({
+          value: unit._id,
+          label: unit.name
+        }));
+        setPrimaryUnitOptions(formattedUnits);
+      } else {
+        console.error("Failed to fetch units");
+      }
+    } catch (error) {
+      console.error("Error fetching units:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { id, value, type, checked } = e.target;

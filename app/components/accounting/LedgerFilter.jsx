@@ -8,8 +8,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from 'next/navigation';
 import { NepaliDatePicker } from 'nepali-datepicker-reactjs';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Clock } from 'lucide-react';
 import { getCookie } from '@/lib/utils';
+import { useCalendar } from '@/lib/context/CalendarContext';
+import { formatDate as formatDateUtil } from '@/lib/utils/dateUtils';
+import { DateDisplay } from '@/app/components/DateDisplay';
+import { Switch } from "@/components/ui/switch";
 
 export default function LedgerFilter() {
   const [loading, setLoading] = useState(false);
@@ -21,6 +25,7 @@ export default function LedgerFilter() {
   const [selectedSupplier, setSelectedSupplier] = useState("all");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const router = useRouter();
+  const { isNepaliCalendar, toggleCalendarType } = useCalendar();
 
   // Fetch all journal entries
   useEffect(() => {
@@ -260,18 +265,13 @@ export default function LedgerFilter() {
     }).format(amount);
   };
 
-  // Format date using simple JavaScript
+  // Format date using the calendar context
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
       
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const month = months[date.getMonth()];
-      const day = date.getDate().toString().padStart(2, '0');
-      const year = date.getFullYear();
-      
-      return `${month} ${day}, ${year}`;
+      return formatDateUtil(date, isNepaliCalendar);
     } catch (error) {
       return dateString;
     }
@@ -281,26 +281,37 @@ export default function LedgerFilter() {
     <div className="container mx-auto py-6">
       <Card>
         <CardHeader>
-          <CardTitle>
-            Transaction Ledger
-            {currentTab === "customers" && selectedCustomer !== "all" && (
-              <span className="ml-2 text-sm bg-blue-100 text-blue-800 rounded-full px-3 py-1">
-                Filtered by customer: {selectedCustomer}
-              </span>
-            )}
-            {currentTab === "suppliers" && selectedSupplier !== "all" && (
-              <span className="ml-2 text-sm bg-green-100 text-green-800 rounded-full px-3 py-1">
-                Filtered by supplier: {selectedSupplier}
-              </span>
-            )}
-            {(dateRange.startDate || dateRange.endDate) && (
-              <span className="ml-2 text-sm bg-purple-100 text-purple-800 rounded-full px-3 py-1">
-                Date filter active: {dateRange.startDate && formatDate(dateRange.startDate)} 
-                {dateRange.startDate && dateRange.endDate && " - "} 
-                {dateRange.endDate && formatDate(dateRange.endDate)}
-              </span>
-            )}
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>
+              Transaction Ledger
+              {currentTab === "customers" && selectedCustomer !== "all" && (
+                <span className="ml-2 text-sm bg-blue-100 text-blue-800 rounded-full px-3 py-1">
+                  Filtered by customer: {selectedCustomer}
+                </span>
+              )}
+              {currentTab === "suppliers" && selectedSupplier !== "all" && (
+                <span className="ml-2 text-sm bg-green-100 text-green-800 rounded-full px-3 py-1">
+                  Filtered by supplier: {selectedSupplier}
+                </span>
+              )}
+              {(dateRange.startDate || dateRange.endDate) && (
+                <span className="ml-2 text-sm bg-purple-100 text-purple-800 rounded-full px-3 py-1">
+                  Date filter active: {dateRange.startDate && <DateDisplay date={dateRange.startDate} />} 
+                  {dateRange.startDate && dateRange.endDate && " - "} 
+                  {dateRange.endDate && <DateDisplay date={dateRange.endDate} />}
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">AD</span>
+              <Switch 
+                checked={isNepaliCalendar} 
+                onCheckedChange={toggleCalendarType} 
+                id="calendar-type-toggle"
+              />
+              <span className="text-sm font-medium">BS</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
@@ -371,30 +382,52 @@ export default function LedgerFilter() {
               {/* Date range filters - always visible */}
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="w-full md:w-1/2">
-                  <Label htmlFor="startDate">Start Date (BS)</Label>
+                  <Label htmlFor="startDate">Start Date ({isNepaliCalendar ? 'BS' : 'AD'})</Label>
                   <div className="flex items-center gap-2">
-                    <NepaliDatePicker
-                      className='w-full'
-                      inputClassName="w-full"
-                      value={dateRange.startDate}
-                      onChange={(value) => handleDateChange('startDate', value)}
-                      options={{ calenderLocale: "ne", valueLocale: "en" }}
-                      format="YYYY-MM-DD"
-                    />
+                    {isNepaliCalendar ? (
+                      <NepaliDatePicker
+                        className='w-full'
+                        inputClassName="w-full"
+                        value={dateRange.startDate}
+                        onChange={(value) => handleDateChange('startDate', value)}
+                        options={{ calenderLocale: "ne", valueLocale: "en" }}
+                        format="YYYY-MM-DD"
+                      />
+                    ) : (
+                      <Input
+                        id="startDate"
+                        name="startDate"
+                        type="date"
+                        className="w-full"
+                        value={dateRange.startDate}
+                        onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      />
+                    )}
                     <CalendarIcon className="h-5 w-5 text-gray-500" />
                   </div>
                 </div>
                 <div className="w-full md:w-1/2">
-                  <Label htmlFor="endDate">End Date (BS)</Label>
+                  <Label htmlFor="endDate">End Date ({isNepaliCalendar ? 'BS' : 'AD'})</Label>
                   <div className="flex items-center gap-2">
-                    <NepaliDatePicker
-                      className='w-full'
-                      inputClassName="w-full"
-                      value={dateRange.endDate}
-                      onChange={(value) => handleDateChange('endDate', value)}
-                      options={{ calenderLocale: "ne", valueLocale: "en" }}
-                      format="YYYY-MM-DD"
-                    />
+                    {isNepaliCalendar ? (
+                      <NepaliDatePicker
+                        className='w-full'
+                        inputClassName="w-full"
+                        value={dateRange.endDate}
+                        onChange={(value) => handleDateChange('endDate', value)}
+                        options={{ calenderLocale: "ne", valueLocale: "en" }}
+                        format="YYYY-MM-DD"
+                      />
+                    ) : (
+                      <Input
+                        id="endDate"
+                        name="endDate"
+                        type="date"
+                        className="w-full"
+                        value={dateRange.endDate}
+                        onChange={(e) => handleDateChange('endDate', e.target.value)}
+                      />
+                    )}
                     <CalendarIcon className="h-5 w-5 text-gray-500" />
                   </div>
                 </div>
@@ -447,7 +480,7 @@ export default function LedgerFilter() {
 
                         return (
                           <tr key={entry._id} className="border-b hover:bg-gray-50">
-                            <td className="py-2">{formatDate(entry.datetime)}</td>
+                            <td className="py-2"><DateDisplay date={entry.datetime} /></td>
                             <td className="py-2">{entry.voucherNumber || 'N/A'}</td>
                             <td className="py-2">{entry.memo}</td>
                             <td className="py-2 text-right">{formatAmount(totalAmount || 0)}</td>

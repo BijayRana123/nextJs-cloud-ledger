@@ -15,6 +15,7 @@ export default function RecordExpenseForm() {
   const router = useRouter();
   const organizationId = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [formData, setFormData] = useState({
     expenseType: '', // e.g., 'Rent Expense', 'Utilities Expense'
@@ -29,6 +30,8 @@ export default function RecordExpenseForm() {
       ...prev,
       [id]: value,
     }));
+    // Clear error message when user makes changes
+    setErrorMessage('');
   };
 
   const handleSelectChange = (id, value) => {
@@ -36,11 +39,44 @@ export default function RecordExpenseForm() {
       ...prev,
       [id]: value,
     }));
+    // Clear error message when user makes changes
+    setErrorMessage('');
+  };
+
+  const validateForm = () => {
+    if (!formData.expenseType) {
+      setErrorMessage('Please select an expense type');
+      return false;
+    }
+    
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      setErrorMessage('Please enter a valid amount (greater than zero)');
+      return false;
+    }
+    
+    if (!formData.paymentMethod) {
+      setErrorMessage('Please select a payment method');
+      return false;
+    }
+    
+    if (!formData.description) {
+      setErrorMessage('Please enter a description');
+      return false;
+    }
+    
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsSubmitting(true);
+    setErrorMessage('');
 
     if (!organizationId) {
       console.error("Organization ID is not available from context. Cannot submit.");
@@ -75,7 +111,7 @@ export default function RecordExpenseForm() {
       const orgResult = await orgResponse.json();
 
       if (!orgResponse.ok) {
-        throw new Error(orgResult.message || "Failed to record expense in organization");
+        throw new Error(orgResult.message || orgResult.error || "Failed to record expense in organization");
       }
 
       // Success
@@ -98,6 +134,7 @@ export default function RecordExpenseForm() {
       }, 1500);
     } catch (error) {
       console.error("Error recording expense:", error);
+      setErrorMessage(error.message || "Failed to record expense. Please try again.");
       toast({
         title: "Error",
         description: error.message || "Failed to record expense. Please try again.",
@@ -112,6 +149,13 @@ export default function RecordExpenseForm() {
     <Card className="mb-6">
       <CardContent>
         <h2 className="text-xl font-semibold mb-4">Record Expense</h2>
+        
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded mb-4">
+            {errorMessage}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1.5">
