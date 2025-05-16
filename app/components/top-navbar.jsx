@@ -2,6 +2,7 @@ import { Search, Headphones, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +15,12 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Cookies from 'js-cookie'; // Import js-cookie
 import { useOrganization } from "@/lib/context/OrganizationContext" // Import useOrganization
+import { useCalendar } from "@/lib/context/CalendarContext" // Import useCalendar
 
 export function TopNavbar({ children }) {
   const router = useRouter()
-  const { currentOrganization, loading } = useOrganization() // Use the hook
+  const { currentOrganization, loading } = useOrganization() // Use the organization hook
+  const { isNepaliCalendar, toggleCalendarType } = useCalendar() // Use the calendar hook
 
   const handleLogout = async () => {
     // Clear the authentication cookie
@@ -64,6 +67,15 @@ export function TopNavbar({ children }) {
           <Calendar className="h-5 w-5 mr-2" />
           <span>This Fiscal Year to Date</span>
         </Button>
+        <div className="flex items-center gap-2 bg-[#3a3f5a] p-2 rounded-md">
+          <span className="text-white text-sm">AD</span>
+          <Switch 
+            id="calendar-toggle" 
+            checked={isNepaliCalendar} 
+            onCheckedChange={toggleCalendarType}
+          />
+          <span className="text-white text-sm">BS</span>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar>

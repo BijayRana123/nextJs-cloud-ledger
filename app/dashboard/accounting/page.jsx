@@ -32,7 +32,15 @@ export default function AccountingPage() {
       color: "bg-amber-50 hover:bg-amber-100",
       textColor: "text-amber-700",
       icon: "📓"
-    }
+    },
+    // {
+    //   title: "Ledger",
+    //   description: "View and manage all transactions",
+    //   path: "/dashboard/accounting/ledger",
+    //   color: "bg-purple-50 hover:bg-purple-100",
+    //   textColor: "text-purple-700",
+    //   icon: "📅"
+    // }
   ];
 
   // Financial reports

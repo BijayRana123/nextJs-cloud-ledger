@@ -21,6 +21,7 @@ import { CreateNewModal } from "./create-new-modal";
 import { SalesMenu } from "./SalesMenu";
 import { PurchaseMenu } from "./PurchaseMenu";
 import { AccountingMenu } from "./AccountingMenu";
+import { ReportsMenu } from "./ReportsMenu";
 
 
 export function Sidebar() {
@@ -55,14 +56,11 @@ export function Sidebar() {
     { component: <PurchaseMenu key="purchase" isExpanded={isExpanded} /> },
     // Replace Accounting menu with AccountingMenu component, pass isExpanded prop
     { component: <AccountingMenu key="accounting" isExpanded={isExpanded} /> },
+    // Replace Reports menu with ReportsMenu component, pass isExpanded prop
+    { component: <ReportsMenu key="reports" isExpanded={isExpanded} /> },
     {
       icon: <Package className="h-5 w-5" />,
       label: "Inventory",
-      href: "#",
-    },
-    {
-      icon: <BarChart2 className="h-5 w-5" />,
-      label: "Reports",
       href: "#",
     },
     {

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { accounts } from "@/lib/accountingClient";
+import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
 
 export default function NewJournalEntryPage() {
   const router = useRouter();
@@ -309,9 +310,12 @@ export default function NewJournalEntryPage() {
               </div>
               <div>
                 <Label>Date</Label>
-                <Input
-                  type="date"
-                  defaultValue={new Date().toISOString().substring(0, 10)}
+                <ConditionalDatePicker
+                  id="entryDate"
+                  name="entryDate"
+                  label="Date"
+                  value={new Date().toISOString().substring(0, 10)}
+                  onChange={() => {}}
                   disabled
                 />
                 <p className="text-sm text-gray-500 mt-1">Journal entries use the current date and time</p>

@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
+import { useCalendar } from "@/lib/context/CalendarContext";
+import { formatDate } from "@/lib/utils/dateUtils";
 
 export default function JournalEntriesPage() {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function JournalEntriesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [error, setError] = useState(null);
+  const { isNepaliCalendar } = useCalendar();
 
   useEffect(() => {
     // Fetch journal entries from the API
@@ -78,11 +81,11 @@ export default function JournalEntriesPage() {
       })
     : [];
 
-  // Format date for display
-  const formatDate = (dateString) => {
+  // Format date for display based on calendar type
+  const formatDateDisplay = (dateString) => {
     if (!dateString) return "N/A";
     try {
-      return new Date(dateString).toLocaleDateString();
+      return formatDate(new Date(dateString), isNepaliCalendar);
     } catch (e) {
       console.error("Error formatting date:", e);
       return "Invalid Date";
@@ -119,12 +122,20 @@ export default function JournalEntriesPage() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Journal Entries</CardTitle>
-            <Input
-              placeholder="Search journal entries..."
-              className="max-w-xs"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="flex gap-4 items-center">
+              <div className="text-sm text-gray-500">
+                <span className="font-medium">Calendar:</span>{" "}
+                <span className="bg-gray-100 px-2 py-1 rounded">
+                  {isNepaliCalendar ? "Nepali (BS)" : "English (AD)"}
+                </span>
+              </div>
+              <Input
+                placeholder="Search journal entries..."
+                className="max-w-xs"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -163,7 +174,7 @@ export default function JournalEntriesPage() {
                   <TableBody>
                     {filteredEntries.map((entry) => (
                       <CustomTableRow key={entry._id}>
-                        <CustomTableCell>{formatDate(entry.datetime)}</CustomTableCell>
+                        <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
                         <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
                         <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
                         <CustomTableCell>

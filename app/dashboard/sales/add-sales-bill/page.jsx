@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { NepaliDatePicker } from 'nepali-datepicker-reactjs';
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
 
 // Import the purchase-related components
 import CustomerSection from "@/app/components/sales/customer-section";
@@ -26,7 +26,7 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
     customerName: '', // This should likely hold the customer ID
     referenceNo: '',
     billNumber: '',
-    billDate: '',
+    billDate: new Date().toISOString().split('T')[0], // Initialize with today's date
     dueDate: '',
     customerInvoiceReferenceNo: '',
     currency: 'Nepalese Rupee',
@@ -214,32 +214,31 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="billDate">Bill Date (BS) *</Label>
-               <div className="flex items-center gap-7">
-                 <NepaliDatePicker
-                   className='w-full'
-                   inputClassName="w-full"
-                   value={formData.billDate}
-                   onChange={(value) => handleSelectChange('billDate', value)}
-                   options={{  calenderLocale: "ne", valueLocale: "en" }}
-                   format="YYYY-MM-DD"
-                 />
-                 <CalendarIcon className="h-5 w-5 text-gray-500" />
-               </div>
+              <Label htmlFor="billDate">Bill Date</Label>
+              <div className="flex items-center gap-2">
+                <ConditionalDatePicker
+                  id="billDate"
+                  name="billDate"
+                  value={formData.billDate}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full"
+                />
+                <CalendarIcon className="h-5 w-5 text-gray-500" />
+              </div>
             </div>
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="dueDate">Due Date (BS) *</Label>
-               <div className="flex items-center gap-2">
-                 <NepaliDatePicker
-                   className='w-full'
-                   inputClassName="w-full"
-                   value={formData.dueDate}
-                   onChange={(value) => handleSelectChange('dueDate', value)}
-                   options={{ calenderCssClassName: 'custom-calendar-class',calenderLocale: "ne", valueLocale: "en" }}
-                   format="YYYY-MM-DD"
-                 />
-                 <CalendarIcon className="h-5 w-5 text-gray-500" />
-               </div>
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="dueDate">Due Date</Label>
+              <div className="flex items-center gap-2">
+                <ConditionalDatePicker
+                  id="dueDate"
+                  name="dueDate"
+                  value={formData.dueDate}
+                  onChange={handleInputChange}
+                  className="w-full"
+                />
+                <CalendarIcon className="h-5 w-5 text-gray-500" />
+              </div>
             </div>
           </div>
         </CardContent>

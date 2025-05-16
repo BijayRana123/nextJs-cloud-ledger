@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QuickLinkCard } from "../components/quick-link-card"
+import { DateDisplay } from "../components/DateDisplay"
+import { useCalendar } from "@/lib/context/CalendarContext"
+import { getCurrentDate } from "@/lib/utils/dateUtils"
 // Sidebar and TopNavbar are now handled in the layout.jsx
 // import { Sidebar } from "../components/sidebar"
 // import { TopNavbar } from "../components/top-navbar"
@@ -14,6 +17,7 @@ import { MobileSidebar } from "../components/mobile-sidebar" // Assuming MobileS
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("sales")
+  const { isNepaliCalendar } = useCalendar()
 
   const quickLinks = [
     { title: "Tasks", category: "", icon: <List className="h-4 w-4" /> },
@@ -54,7 +58,19 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div>
+              <h3 className="text-lg font-medium">Today's Date</h3>
+              <p className="text-gray-600">
+                <DateDisplay date={new Date()} className="font-semibold" />
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium">Current Calendar Type</h3>
+              <p className="text-gray-600 font-semibold">
+                {isNepaliCalendar ? 'Nepali Calendar (BS)' : 'English Calendar (AD)'}
+              </p>
+            </div>
             <Button variant="outline" className="gap-2">
               <Calendar className="h-4 w-4" />
               Today
@@ -74,8 +90,17 @@ export default function Dashboard() {
                   <CardTitle>Sales Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Placeholder for Sales content - replace with actual components/data */}
-                  <p>Your sales dashboard content will appear here.</p>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-medium">Last Sale Date:</span>
+                      <DateDisplay date="2023-10-15" className="text-blue-600 font-medium" />
+                    </div>
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-medium">Next Delivery Date:</span>
+                      <DateDisplay date="2023-10-25" className="text-green-600 font-medium" />
+                    </div>
+                    <p>Your sales dashboard content will appear here.</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -85,8 +110,17 @@ export default function Dashboard() {
                   <CardTitle>Purchase Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                   {/* Placeholder for Purchase content - replace with actual components/data */}
-                  <p>Your purchase dashboard content will appear here.</p>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-medium">Last Purchase Date:</span>
+                      <DateDisplay date="2023-10-12" className="text-purple-600 font-medium" />
+                    </div>
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-medium">Next Order Date:</span>
+                      <DateDisplay date="2023-10-20" className="text-orange-600 font-medium" />
+                    </div>
+                    <p>Your purchase dashboard content will appear here.</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

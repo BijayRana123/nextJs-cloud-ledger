@@ -15,6 +15,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
 
 export default function ExpenseVoucherPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function ExpenseVoucherPage() {
     paymentMethod: "Cash",
     amount: "",
     description: "",
+    date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
   });
 
   // Handle form field changes
@@ -68,6 +70,9 @@ export default function ExpenseVoucherPage() {
       if (!formData.description) {
         throw new Error("Description is required");
       }
+      if (!formData.date) {
+        throw new Error("Date is required");
+      }
 
       // Submit the expense voucher
       const response = await fetch("/api/accounting/vouchers/expense", {
@@ -90,6 +95,7 @@ export default function ExpenseVoucherPage() {
         paymentMethod: "Cash",
         amount: "",
         description: "",
+        date: new Date().toISOString().split('T')[0],
       });
       setSuccess(true);
       
@@ -154,6 +160,15 @@ export default function ExpenseVoucherPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <ConditionalDatePicker
+                id="date"
+                name="date"
+                label="Voucher Date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="paymentMethod">Payment Method</Label>

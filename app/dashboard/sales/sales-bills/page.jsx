@@ -8,11 +8,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable"; // Import custom table components
 import { Plus, ChevronLeft, ChevronRight, Menu, Rocket } from "lucide-react"; // Icons for buttons and pagination
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"; // Import shadcn/ui select components
+import { useCalendar } from "@/lib/context/CalendarContext";
+import { formatDate } from "@/lib/utils/dateUtils";
 
 export default function SalesBillsPage() { // Keep the component name as SalesBillsPage
   const [salesOrders, setSalesOrders] = useState([]); // State to hold sales orders
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isNepaliCalendar } = useCalendar();
 
   const fetchSalesOrders = async () => { // Function to fetch sales orders
     setIsLoading(true);
@@ -39,6 +42,17 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
     fetchSalesOrders(); // Fetch sales orders on component mount
   }, []);
 
+  // Format date based on the selected calendar type
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return formatDate(new Date(dateString), isNepaliCalendar);
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return "Invalid Date";
+    }
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading sales orders...</div>;
   }
@@ -52,10 +66,18 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sales Bills (Displaying Sales Orders)</h1> {/* Updated title */}
         {/* Apply button styling directly to the Link */}
-        <Link href="/dashboard/sales/add-sales-bill" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2"> {/* Updated link to sales bills */}
-          <Rocket className="h-5 w-5 mr-2" /> {/* Changed icon to Rocket */}
-          ADD NEW
-        </Link>
+        <div className="flex gap-4 items-center">
+          <div className="text-sm text-gray-500">
+            <span className="font-medium">Calendar:</span>{" "}
+            <span className="bg-gray-100 px-2 py-1 rounded">
+              {isNepaliCalendar ? "Nepali (BS)" : "English (AD)"}
+            </span>
+          </div>
+          <Link href="/dashboard/sales/add-sales-bill" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2"> {/* Updated link to sales bills */}
+            <Rocket className="h-5 w-5 mr-2" /> {/* Changed icon to Rocket */}
+            ADD NEW
+          </Link>
+        </div>
       </div>
 
       <Tabs defaultValue="approved" className="w-full">
@@ -120,7 +142,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                     <CustomTableCell>{order.customer?.name || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.salesOrderNumber || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
-                    <CustomTableCell>{order.date ? new Date(order.date).toLocaleDateString('en-GB') : 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{formatDateDisplay(order.date)}</CustomTableCell>
                     <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
                     <CustomTableCell>{order.status || 'N/A'}</CustomTableCell>
                   </CustomTableRow>
