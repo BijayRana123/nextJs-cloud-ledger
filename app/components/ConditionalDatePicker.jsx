@@ -46,6 +46,13 @@ export function ConditionalDatePicker({
       // Parse the Nepali date
       const [bsYear, bsMonth, bsDay] = bsDate.split('-').map(num => parseInt(num, 10))
       
+      // Validate BS date range (2000-2090 BS / 1944-2033 AD)
+      if (bsYear < 2000 || bsYear > 2090) {
+        console.warn('Date outside valid NepaliDate range:', bsYear);
+        // Handle the error gracefully
+        return;
+      }
+      
       // Convert BS date to AD date using NepaliDate library
       const nepaliDate = new NepaliDate(bsYear, bsMonth - 1, bsDay); // Month is 0-indexed in NepaliDate
       const adDate = nepaliDate.toJsDate();
