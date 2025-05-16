@@ -42,6 +42,22 @@ export default function VouchersPage() {
       icon: "📈"
     },
     {
+      title: "Sales Voucher",
+      description: "Record sales transactions",
+      path: "/dashboard/accounting/vouchers/sales",
+      color: "bg-sky-50 hover:bg-sky-100",
+      textColor: "text-sky-700",
+      icon: "🛒"
+    },
+    {
+      title: "Purchase Voucher",
+      description: "Record purchase transactions",
+      path: "/dashboard/accounting/vouchers/purchase",
+      color: "bg-indigo-50 hover:bg-indigo-100",
+      textColor: "text-indigo-700",
+      icon: "🛍️"
+    },
+    {
       title: "Owner Investment",
       description: "Record owner's contributions to the business",
       path: "/dashboard/accounting/vouchers/owner-investment",
