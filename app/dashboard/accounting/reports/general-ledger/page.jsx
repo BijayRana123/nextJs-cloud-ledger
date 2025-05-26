@@ -11,6 +11,8 @@ import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 import { Printer, Download, RefreshCw, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { getCookie } from '@/lib/utils';
+import { toast } from "@/components/ui/use-toast";
 
 export default function GeneralLedgerPage() {
   const router = useRouter();
@@ -23,6 +25,13 @@ export default function GeneralLedgerPage() {
   const [selectedAccount, setSelectedAccount] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedAccounts, setExpandedAccounts] = useState({});
+  // New states for Class and Subclass dropdowns
+  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedSubclass, setSelectedSubclass] = useState("all");
+  const [subclassOptions, setSubclassOptions] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [cashAccounts, setCashAccounts] = useState([]);
 
   // List of accounts for the select dropdown
   const accounts = [
@@ -32,6 +41,19 @@ export default function GeneralLedgerPage() {
     { id: "equity", name: "Equity" },
     { id: "revenue", name: "Revenue" },
     { id: "expenses", name: "Expenses" },
+  ];
+
+  // List of account classes for the class dropdown
+  const accountClasses = [
+    { id: "all", name: "All Classes" },
+    { id: "accounts-receivable", name: "Accounts Receivable" },
+    { id: "accounts-payable", name: "Accounts Payable" },
+    { id: "cash-bank", name: "Cash and Bank" },
+    { id: "assets", name: "Assets" },
+    { id: "liabilities", name: "Liabilities" },
+    { id: "income", name: "Income" },
+    { id: "expenses", name: "Expenses" },
+    { id: "others", name: "Others" },
   ];
 
   // Toggle account expansion
@@ -65,21 +87,153 @@ export default function GeneralLedgerPage() {
     }
   };
 
+  // Fetch customers and suppliers
+  useEffect(() => {
+    const fetchCustomersAndSuppliers = async () => {
+      try {
+        // Get auth token from cookie
+        const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+        
+        if (!authToken) {
+          console.error("Authentication token not found in cookie.");
+          return;
+        }
+
+        // Fetch customers
+        const customersResponse = await fetch('/api/organization/customers', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (customersResponse.ok) {
+          const customersData = await customersResponse.json();
+          if (customersData.customers && Array.isArray(customersData.customers)) {
+            setCustomers(customersData.customers);
+          } else {
+            console.error("Unexpected customers data structure:", customersData);
+          }
+        } else {
+          console.error("Failed to fetch customers:", customersResponse.status);
+        }
+
+        // Fetch suppliers
+        const suppliersResponse = await fetch('/api/organization/suppliers', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (suppliersResponse.ok) {
+          const suppliersData = await suppliersResponse.json();
+          if (suppliersData.suppliers && Array.isArray(suppliersData.suppliers)) {
+            setSuppliers(suppliersData.suppliers);
+          } else {
+            console.error("Unexpected suppliers data structure:", suppliersData);
+          }
+        } else {
+          console.error("Failed to fetch suppliers:", suppliersResponse.status);
+        }
+
+        // For now, we'll mock cash accounts until we have a proper endpoint
+        // In a real implementation, you would fetch these from your chart of accounts
+        setCashAccounts([
+          { _id: 'bank-main', name: 'Bank - Main Account' },
+          { _id: 'bank-savings', name: 'Bank - Savings Account' },
+        ]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchCustomersAndSuppliers();
+  }, []);
+
+  // Update subclass options when class changes
+  useEffect(() => {
+    if (selectedClass === 'accounts-receivable') {
+      setSubclassOptions(customers.map(customer => ({
+        id: customer._id,
+        name: customer.name || customer.displayName || 'Unnamed Customer'
+      })));
+    } else if (selectedClass === 'accounts-payable') {
+      setSubclassOptions(suppliers.map(supplier => ({
+        id: supplier._id,
+        name: supplier.name || supplier.displayName || 'Unnamed Supplier'
+      })));
+    } else if (selectedClass === 'cash-bank') {
+      setSubclassOptions(cashAccounts.map(account => ({
+        id: account._id,
+        name: account.name
+      })));
+    } else {
+      setSubclassOptions([]);
+    }
+    
+    // Reset subclass selection when class changes
+    setSelectedSubclass('all');
+  }, [selectedClass, customers, suppliers, cashAccounts]);
+
   // Generate ledger report
   const generateReport = async () => {
     setIsLoading(true);
     try {
+      // Build report query parameters
+      const reportParams = {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        account: selectedAccount !== 'all' ? selectedAccount : null,
+      };
+
+      // Add class and subclass filters if selected
+      if (selectedClass !== 'all') {
+        reportParams.class = selectedClass;
+        
+        // For cash and bank accounts, we need to filter by the path
+        if (selectedClass === 'cash-bank') {
+          reportParams.accountPath = 'Assets:Current Assets:Cash and Bank';
+          
+          if (selectedSubclass !== 'all') {
+            // If a specific cash account is selected
+            const selectedAccount = cashAccounts.find(acc => acc._id === selectedSubclass);
+            if (selectedAccount) {
+              reportParams.accountName = selectedAccount.name;
+            }
+          }
+        } else if (selectedClass === 'accounts-receivable') {
+          reportParams.accountPath = 'Assets:Current Assets:Accounts Receivable';
+          
+          if (selectedSubclass !== 'all') {
+            // If a specific customer is selected
+            const selectedCustomer = customers.find(cust => cust._id === selectedSubclass);
+            if (selectedCustomer) {
+              reportParams.entityName = selectedCustomer.name || selectedCustomer.displayName;
+              reportParams.entityType = 'customer';
+            }
+          }
+        } else if (selectedClass === 'accounts-payable') {
+          reportParams.accountPath = 'Liabilities:Current Liabilities:Accounts Payable';
+          
+          if (selectedSubclass !== 'all') {
+            // If a specific supplier is selected
+            const selectedSupplier = suppliers.find(supp => supp._id === selectedSubclass);
+            if (selectedSupplier) {
+              reportParams.entityName = selectedSupplier.name || selectedSupplier.displayName;
+              reportParams.entityType = 'supplier';
+            }
+          }
+        }
+      }
+      
       // Fetch data from API
       const response = await fetch('/api/accounting/reports/general-ledger', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          account: selectedAccount !== 'all' ? selectedAccount : null,
-        }),
+        body: JSON.stringify(reportParams),
       });
       
       if (!response.ok) {
@@ -147,7 +301,7 @@ export default function GeneralLedgerPage() {
   // Generate report on mount or when parameters change
   useEffect(() => {
     generateReport();
-  }, [startDate, endDate, selectedAccount]);
+  }, [startDate, endDate, selectedAccount, selectedClass, selectedSubclass]);
 
   // Add this helper function
   const formatDateForInput = (date) => {
@@ -157,6 +311,47 @@ export default function GeneralLedgerPage() {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  // Handle class change
+  const handleClassChange = (value) => {
+    setSelectedClass(value);
+    
+    // Show toast notification
+    if (value !== 'all') {
+      const className = accountClasses.find(c => c.id === value)?.name || value;
+      toast({
+        title: "Filter Applied",
+        description: `Filtering ledger by ${className}`,
+      });
+    }
+  };
+
+  // Handle subclass change
+  const handleSubclassChange = (value) => {
+    setSelectedSubclass(value);
+    
+    // Show toast notification
+    if (value !== 'all' && selectedClass !== 'all') {
+      const className = accountClasses.find(c => c.id === selectedClass)?.name || selectedClass;
+      const subclassName = subclassOptions.find(s => s.id === value)?.name || value;
+      toast({
+        title: "Filter Applied",
+        description: `Filtering ledger by ${className} > ${subclassName}`,
+      });
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedAccount("all");
+    setSelectedClass("all");
+    setSelectedSubclass("all");
+    // Reset dates to default values
+    const now = new Date();
+    setStartDate(new Date(now.getFullYear(), now.getMonth(), 1)); // First day of current month
+    setEndDate(now);
+    setSelectedPeriod("month");
   };
 
   return (
@@ -225,6 +420,42 @@ export default function GeneralLedgerPage() {
             </div>
           </div>
 
+          {/* New filter section for Class and Subclass */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Class</label>
+              <Select value={selectedClass} onValueChange={handleClassChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accountClasses.map(acClass => (
+                    <SelectItem key={acClass.id} value={acClass.id}>{acClass.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedClass !== 'all' && selectedClass !== 'assets' && 
+             selectedClass !== 'liabilities' && selectedClass !== 'income' && 
+             selectedClass !== 'expenses' && selectedClass !== 'others' && (
+              <div>
+                <label className="text-sm font-medium mb-1 block">Subclass</label>
+                <Select value={selectedSubclass} onValueChange={handleSubclassChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Subclass" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {subclassOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedPeriod === "custom" && (
               <>
@@ -251,6 +482,19 @@ export default function GeneralLedgerPage() {
               </>
             )}
           </div>
+          
+          {/* Clear filters button */}
+          {(selectedAccount !== "all" || selectedClass !== "all" || selectedSubclass !== "all") && (
+            <div className="flex justify-end mt-4">
+              <Button 
+                variant="outline" 
+                onClick={clearFilters}
+                className="flex items-center gap-2"
+              >
+                <span>Clear All Filters</span>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -262,6 +506,14 @@ export default function GeneralLedgerPage() {
               <p className="text-sm text-gray-500">
                 Period: {formatDisplayDate(new Date(reportData.period.startDate))} to {formatDisplayDate(new Date(reportData.period.endDate))}
               </p>
+              {selectedClass !== 'all' && (
+                <p className="text-sm text-blue-600">
+                  Filtered by: {accountClasses.find(c => c.id === selectedClass)?.name}
+                  {selectedSubclass !== 'all' && subclassOptions.length > 0 && (
+                    <> &gt; {subclassOptions.find(s => s.id === selectedSubclass)?.name}</>
+                  )}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">

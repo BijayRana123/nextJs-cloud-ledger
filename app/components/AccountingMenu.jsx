@@ -23,13 +23,17 @@ export function AccountingMenu({ isExpanded: isSidebarExpanded }) { // Accept is
     { label: "Receipt Voucher", href: "/dashboard/accounting/transactions/receive-payment", icon: <Plus className="h-4 w-4" /> },
     { label: "Expense Voucher", href: "/dashboard/accounting/transactions/record-expense", icon: <Plus className="h-4 w-4" /> },
     { label: "Income Voucher", href: "/dashboard/accounting/transactions/record-other-income", icon: <Plus className="h-4 w-4" /> },
-    { label: "Owner Investment", href: "/dashboard/accounting/transactions/record-owner-investment", icon: <Plus className="h-4 w-4" /> },
-    { label: "Owner Drawings", href: "/dashboard/accounting/transactions/record-owner-drawings", icon: <Plus className="h-4 w-4" /> },
+    { label: "Contra Voucher", href: "/dashboard/accounting/transactions/contra-voucher", icon: <span className="h-4 w-4">🔄</span> },
   ];
 
   const journalItems = [
     { label: "All Journal Entries", href: "/dashboard/accounting/journal-entries", icon: <List className="h-4 w-4" /> },
     { label: "New Journal Entry", href: "/dashboard/accounting/journal-entries/new", icon: <PlusCircle className="h-4 w-4" /> },
+  ];
+
+  const salesItems = [
+    // Remove 'Add Sales' and 'Add Sales Return' from this array
+    // ... keep only list, report, and other relevant links ...
   ];
 
   return (

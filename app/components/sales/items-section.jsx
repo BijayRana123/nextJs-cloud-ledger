@@ -116,7 +116,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
     if (!selectedOption) return;
 
     const newItem = {
-      item: selectedItemId,
+      item: selectedId,
       itemName: selectedOption.label,
       quantity: parseFloat(itemDetails.quantity) || 1,
       price: parseFloat(itemDetails.price) || 0,
@@ -337,7 +337,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
                       className="w-24"
                     />
                   </CustomTableCell>
-                  <CustomTableCell>{item.amount.toFixed(2)}</CustomTableCell>
+                  <CustomTableCell>{Number(item.amount || 0).toFixed(2)}</CustomTableCell>
                   <CustomTableCell>
                     <Button
                       variant="ghost"

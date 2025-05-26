@@ -56,6 +56,14 @@ export default function TransactionsPage() {
       color: "bg-red-50 hover:bg-red-100",
       textColor: "text-red-700",
       icon: "🧾"
+    },
+    {
+      title: "Contra Voucher",
+      description: "Record transfers between asset accounts",
+      path: "/dashboard/accounting/transactions/contra-voucher",
+      color: "bg-yellow-50 hover:bg-yellow-100",
+      textColor: "text-yellow-700",
+      icon: "🔄"
     }
   ];
 

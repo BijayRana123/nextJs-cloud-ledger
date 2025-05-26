@@ -136,15 +136,6 @@ async function createTestAccountingEntry() {
     const timestamp = new Date().toISOString();
     const journal = await book.entry(`Test Transaction ${timestamp}`);
     
-    // Simple expense transaction: Debit expense, credit cash
-    // Use standardized account names with proper capitalization
-    journal.debit(standardizeAccountName('Expenses:Test Expense'), testAmount, { 
-      description: 'Test transaction created from diagnostics' 
-    });
-    journal.credit(standardizeAccountName('Assets:Cash'), testAmount, { 
-      description: 'Test transaction created from diagnostics' 
-    });
-    
     // Commit the journal entry
     const result = await journal.commit();
     

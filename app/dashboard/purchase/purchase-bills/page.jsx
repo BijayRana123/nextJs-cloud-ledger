@@ -12,6 +12,7 @@ import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 import { Switch } from "@/components/ui/switch"; // Import Switch component
 import { toast } from "@/components/ui/use-toast"; // Import toast for notifications
+import { useRouter } from "next/navigation";
 
 export default function PurchaseBillsPage() {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -20,6 +21,7 @@ export default function PurchaseBillsPage() {
   const [activeTab, setActiveTab] = useState("approved");
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
+  const router = useRouter();
 
   const fetchPurchaseOrders = async () => {
     setIsLoading(true);
@@ -254,6 +256,9 @@ export default function PurchaseBillsPage() {
                         <span className="text-xs text-gray-500">
                           {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
                         </span>
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/purchase/purchase-bills/${order._id}`)}>
+                          View
+                        </Button>
                       </div>
                     </CustomTableCell>
                   </CustomTableRow>
@@ -313,6 +318,9 @@ export default function PurchaseBillsPage() {
                         <span className="text-xs text-gray-500">
                           {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
                         </span>
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/purchase/purchase-bills/${order._id}`)}>
+                          View
+                        </Button>
                       </div>
                     </CustomTableCell>
                   </CustomTableRow>

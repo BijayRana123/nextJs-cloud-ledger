@@ -45,11 +45,6 @@ export function Sidebar() {
       label: "Home",
       href: "/dashboard",
     },
-    {
-      icon: <Users className="h-5 w-5" />,
-      label: "CRM",
-      href: "#",
-    },
     // Replace Sales menu with SalesMenu component, pass isExpanded prop
     { component: <SalesMenu key="sales" isExpanded={isExpanded} /> },
     // Replace Purchase menu with PurchaseMenu component, pass isExpanded prop

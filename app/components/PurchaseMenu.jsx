@@ -13,7 +13,7 @@ export function PurchaseMenu({ isExpanded: isSidebarExpanded }) { // Accept isEx
 
   const submenuItems = [
     { label: "Purchase Voucher", href: "/dashboard/purchase/purchase-bills", icon: <Plus className="h-4 w-4" /> }, // Updated href
-    { label: "Purchase Return Voucher", href: "#", icon: <Plus className="h-4 w-4" /> },
+    { label: "Purchase Return Voucher", href: "/dashboard/purchase/purchase-return-vouchers", icon: <Plus className="h-4 w-4" /> },
   ];
 
   return (

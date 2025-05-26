@@ -58,20 +58,12 @@ export default function VouchersPage() {
       icon: "🛍️"
     },
     {
-      title: "Owner Investment",
-      description: "Record owner's contributions to the business",
-      path: "/dashboard/accounting/vouchers/owner-investment",
-      color: "bg-purple-50 hover:bg-purple-100",
-      textColor: "text-purple-700",
-      icon: "🏦"
-    },
-    {
-      title: "Owner Drawings",
-      description: "Record owner's withdrawals from the business",
-      path: "/dashboard/accounting/vouchers/owner-drawings",
-      color: "bg-red-50 hover:bg-red-100",
-      textColor: "text-red-700",
-      icon: "🧾"
+      title: "Contra Voucher",
+      description: "Record transfers between asset accounts (cash/bank)",
+      path: "/dashboard/accounting/vouchers/contra",
+      color: "bg-yellow-50 hover:bg-yellow-100",
+      textColor: "text-yellow-700",
+      icon: "🔄"
     }
   ];
 

@@ -13,7 +13,7 @@ export function SalesMenu({ isExpanded: isSidebarExpanded }) { // Accept isExpan
 
   const submenuItems = [
     { label: "Sales Bills", href: "/dashboard/sales/sales-bills", icon: <Plus className="h-4 w-4" /> },
-    { label: "Add Sales Bill", href: "/dashboard/sales/add-sales-bill", icon: <Plus className="h-4 w-4" /> },
+    { label: "Sales Return Vouchers", href: "/dashboard/sales/sales-return-vouchers", icon: <Plus className="h-4 w-4" /> },
   ];
 
   return (

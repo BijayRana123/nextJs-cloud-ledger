@@ -12,6 +12,7 @@ import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 import { Switch } from "@/components/ui/switch"; // Import Switch component
 import { toast } from "@/components/ui/use-toast"; // Import toast for notifications
+import { useRouter } from "next/navigation";
 
 export default function SalesBillsPage() { // Keep the component name as SalesBillsPage
   const [salesOrders, setSalesOrders] = useState([]); // State to hold sales orders
@@ -20,6 +21,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
   const [activeTab, setActiveTab] = useState("approved");
   const [searchQuery, setSearchQuery] = useState(""); // Added search query state
   const { isNepaliCalendar } = useCalendar();
+  const router = useRouter();
 
   const fetchSalesOrders = async () => { // Function to fetch sales orders
     setIsLoading(true);
@@ -254,6 +256,9 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                         <span className="text-xs text-gray-500">
                           {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
                         </span>
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/sales/sales-bills/${order._id}`)}>
+                          View
+                        </Button>
                       </div>
                     </CustomTableCell>
                   </CustomTableRow>
@@ -313,6 +318,9 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                         <span className="text-xs text-gray-500">
                           {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
                         </span>
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/sales/sales-bills/${order._id}`)}>
+                          View
+                        </Button>
                       </div>
                     </CustomTableCell>
                   </CustomTableRow>

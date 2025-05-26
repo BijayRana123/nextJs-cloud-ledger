@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
-const CalculationSection = ({ formData, setFormData, totals }) => {
+const CalculationSection = ({ formData = {}, setFormData = () => {}, totals = {subtotal:0,totalDiscount:0,totalTax:0,grandTotal:0} }) => {
   const [isExport, setIsExport] = useState(formData.isExport || false);
   const [currency, setCurrency] = useState(formData.currency || 'NPR');
   const [exchangeRate, setExchangeRate] = useState(formData.exchangeRateToNPR || 1);

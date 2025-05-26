@@ -47,9 +47,9 @@ export async function POST(request) {
     const equity = [];
     
     // Get all asset accounts balance
-    // Current Assets: Cash, Bank, Accounts Receivable, Inventory
+    // Current Assets: Bank, Accounts Receivable, Inventory
     const currentAssetAccounts = [
-      'Assets:Cash', 
+      'Assets:Cash',
       'Assets:Bank', 
       'Assets:Accounts Receivable', 
       'Assets:Inventory',
