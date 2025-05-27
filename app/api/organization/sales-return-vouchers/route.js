@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { SalesReturnVoucher, User } from '@/lib/models'; // Import User and new SalesReturnVoucher model
 import { protect } from '@/lib/middleware/auth';
 import { createSalesReturnEntry } from '@/lib/accounting';
+import Counter from '@/lib/models/Counter';
 
 export async function POST(request) {
   await dbConnect();
@@ -18,7 +19,14 @@ export async function POST(request) {
     }
     const salesReturnData = await request.json();
     if (!salesReturnData.referenceNo) {
-      salesReturnData.referenceNo = `SR-${Date.now()}`;
+      try {
+        salesReturnData.referenceNo = await Counter.getNextSequence('sales_return_voucher', {
+          prefix: 'SR-',
+          paddingSize: 4
+        });
+      } catch (err) {
+        salesReturnData.referenceNo = `SR-${Date.now()}`;
+      }
     }
     const newSalesReturn = new SalesReturnVoucher({
       ...salesReturnData,

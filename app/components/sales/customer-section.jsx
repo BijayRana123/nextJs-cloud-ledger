@@ -171,13 +171,14 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerCreated }) => {
   );
 };
 
-const CustomerSection = ({ formData, setFormData }) => {
+const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerDetails, setCustomerDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [nextSalesRefNo, setNextSalesRefNo] = useState('');
   const router = useRouter();
 
   // Fetch all customers when the component mounts
@@ -191,6 +192,21 @@ const CustomerSection = ({ formData, setFormData }) => {
       fetchCustomerDetails(formData.customerName);
     }
   }, [formData.customerName]);
+
+  // Fetch next sales reference number on mount
+  useEffect(() => {
+    fetchNextSalesRefNo();
+  }, [counterType]);
+
+  // Fetch next sales reference number when customer changes (optional, or only on mount)
+  useEffect(() => {
+    if (formData.customerName && nextSalesRefNo) {
+      setFormData(prev => ({
+        ...prev,
+        referenceNo: nextSalesRefNo
+      }));
+    }
+  }, [formData.customerName, nextSalesRefNo, setFormData]);
 
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -311,6 +327,27 @@ const CustomerSection = ({ formData, setFormData }) => {
     return filteredOptions.slice(0, 4);
   }, [filteredOptions]);
 
+  const fetchNextSalesRefNo = async () => {
+    try {
+      // Retrieve the JWT from the cookie (if needed for auth)
+      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+      const response = await fetch(`/api/accounting/counters/next?type=${counterType}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNextSalesRefNo(data.nextNumber);
+      } else {
+        setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SO-1001'); // fallback
+      }
+    } catch (err) {
+      setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SO-1001'); // fallback
+    }
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -384,10 +421,12 @@ const CustomerSection = ({ formData, setFormData }) => {
             <Label htmlFor="referenceNo">Reference No.</Label>
             <Input
               id="referenceNo"
-              value={formData.referenceNo || ''}
-              onChange={(e) => setFormData({ ...formData, referenceNo: e.target.value })}
-              placeholder="Enter reference number"
+              value={formData.referenceNo || nextSalesRefNo || ''}
+              placeholder="Auto-generated when customer selected"
+              disabled={true}
+              className="bg-gray-50"
             />
+            <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
           </div>
 
           {customerDetails && (

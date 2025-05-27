@@ -208,7 +208,7 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
       </div>
 
       {/* Supplier Section Component */}
-      <CustomerSection formData={formData} setFormData={setFormData} />
+      <CustomerSection formData={formData} setFormData={setFormData} counterType="sales" />
 
       <Card className="mb-6">
         <CardContent>

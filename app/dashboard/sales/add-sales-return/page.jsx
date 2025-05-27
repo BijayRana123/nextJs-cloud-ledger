@@ -31,6 +31,7 @@ export default function AddSalesReturnPage() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [nextSalesReturnRefNo, setNextSalesReturnRefNo] = useState('');
 
   useEffect(() => {
     const salesReturnId = searchParams.get('id');
@@ -74,6 +75,21 @@ export default function AddSalesReturnPage() {
       };
       fetchSalesReturn();
     } else {
+      // Fetch next sales return reference number for new voucher (for preview only)
+      const fetchNextSalesReturnRefNo = async () => {
+        try {
+          const response = await fetch('/api/accounting/counters/next?type=salesreturn');
+          if (response.ok) {
+            const data = await response.json();
+            setNextSalesReturnRefNo(data.nextNumber);
+          } else {
+            setNextSalesReturnRefNo('SR-1001');
+          }
+        } catch (err) {
+          setNextSalesReturnRefNo('SR-1001');
+        }
+      };
+      fetchNextSalesReturnRefNo();
       if (formData.items.length === 0) {
         setFormData((prev) => ({
           ...prev,
@@ -121,7 +137,8 @@ export default function AddSalesReturnPage() {
       customer: formData.customerName,
       items: validSalesReturnItems,
       totalAmount: totalAmount,
-      referenceNo: formData.referenceNo,
+      // Only include referenceNo if editing
+      ...(isEditing ? { referenceNo: formData.referenceNo } : {}),
       returnNumber: formData.billNumber,
       dueDate: formData.dueDate,
       customerInvoiceReferenceNo: formData.customerInvoiceReferenceNo,
@@ -167,11 +184,12 @@ export default function AddSalesReturnPage() {
       </div>
 
       {/* Customer Section */}
-      <CustomerSection formData={formData} setFormData={setFormData} />
+      <CustomerSection formData={formData} setFormData={setFormData} counterType="salesreturn" />
 
       <Card className="mb-6">
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+       
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="billDate">Bill Date</Label>
               <div className="flex items-center gap-2">

@@ -54,6 +54,10 @@ export async function GET(request) {
         counterConfig.name = 'purchase_order';
         counterConfig.prefix = 'PO-';
         break;
+      case 'salesreturn':
+        counterConfig.name = 'sales_return_voucher';
+        counterConfig.prefix = 'SR-';
+        break;
       default:
         return NextResponse.json(
           { error: 'Invalid counter type' },

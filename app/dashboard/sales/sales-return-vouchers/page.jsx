@@ -6,13 +6,24 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable";
-import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search, MoreVertical } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export default function SalesReturnVouchersPage() {
   const [salesReturns, setSalesReturns] = useState([]);
@@ -22,6 +33,8 @@ export default function SalesReturnVouchersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
   const router = useRouter();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchSalesReturns = async () => {
     setIsLoading(true);
@@ -121,6 +134,34 @@ export default function SalesReturnVouchersPage() {
     }
   };
 
+  const handleDelete = (id) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      const response = await fetch(`/api/organization/sales-return-vouchers/${deletingId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setSalesReturns(prev => prev.filter(v => v._id !== deletingId));
+        setDeleteDialogOpen(false);
+        setDeletingId(null);
+        toast({ title: 'Deleted', description: 'Sales return voucher deleted successfully', variant: 'success' });
+      } else {
+        toast({ title: 'Delete Failed', description: 'Failed to delete sales return voucher', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'An error occurred while deleting', variant: 'destructive' });
+    }
+  };
+
+  const handlePrint = (id) => {
+    window.open(`/dashboard/sales/sales-return-vouchers/${id}/print`, '_blank');
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading sales return vouchers...</div>;
   }
@@ -207,19 +248,24 @@ export default function SalesReturnVouchersPage() {
                   <CustomTableCell>{voucher.totalAmount}</CustomTableCell>
                   <CustomTableCell>{voucher.status}</CustomTableCell>
                   <CustomTableCell>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={voucher.status === 'APPROVED'}
-                        onCheckedChange={() => handleStatusToggle(voucher._id, voucher.status)}
-                        aria-label="Toggle status"
-                      />
-                      <span className="text-xs text-gray-500">
-                        {voucher.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/sales/sales-return-vouchers/${voucher._id}`)}>
-                        View
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/sales/add-sales-return?id=${voucher._id}`)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(voucher._id)}>
+                          Delete
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePrint(voucher._id)}>
+                          Print
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </CustomTableCell>
                 </CustomTableRow>
               ))}
@@ -230,6 +276,23 @@ export default function SalesReturnVouchersPage() {
           {/* Optionally filter for draft status only */}
         </TabsContent>
       </Tabs>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Sales Return Voucher</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this sales return voucher? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDelete}>Yes, Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

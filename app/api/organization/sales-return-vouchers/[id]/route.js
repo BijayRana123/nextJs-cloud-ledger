@@ -28,4 +28,30 @@ export async function GET(request, context) {
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
+}
+
+export async function DELETE(request, context) {
+  await dbConnect();
+  try {
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      return authResult;
+    }
+    const organizationId = request.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
+    }
+    const params = context.params;
+    const id = params.id;
+    const deleted = await SalesReturnVoucher.findOneAndDelete({
+      _id: id,
+      organization: organizationId
+    });
+    if (!deleted) {
+      return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
+    }
+    return NextResponse.json({ message: 'Sales return voucher deleted successfully' }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
+  }
 } 
