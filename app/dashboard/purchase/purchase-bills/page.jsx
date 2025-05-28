@@ -13,6 +13,18 @@ import { formatDate } from "@/lib/utils/dateUtils";
 import { Switch } from "@/components/ui/switch"; // Import Switch component
 import { toast } from "@/components/ui/use-toast"; // Import toast for notifications
 import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export default function PurchaseBillsPage() {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -22,6 +34,8 @@ export default function PurchaseBillsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
   const router = useRouter();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchPurchaseOrders = async () => {
     setIsLoading(true);
@@ -131,6 +145,34 @@ export default function PurchaseBillsPage() {
     return statusMatches && searchMatches;
   });
 
+  const handleDelete = (id) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      const response = await fetch(`/api/organization/purchase-orders/${deletingId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setPurchaseOrders(prev => prev.filter(v => v._id !== deletingId));
+        setDeleteDialogOpen(false);
+        setDeletingId(null);
+        toast({ title: 'Deleted', description: 'Purchase bill deleted successfully', variant: 'success' });
+      } else {
+        toast({ title: 'Delete Failed', description: 'Failed to delete purchase bill', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'An error occurred while deleting', variant: 'destructive' });
+    }
+  };
+
+  const handlePrint = (id) => {
+    window.open(`/dashboard/purchase/purchase-bills/${id}/print`, '_blank');
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading purchase orders...</div>;
   }
@@ -218,7 +260,6 @@ export default function PurchaseBillsPage() {
             <CustomTable>
               <CustomTableHeader>
                 <CustomTableRow className="bg-gray-100">
-                  <CustomTableHead><input type="checkbox" /></CustomTableHead>
                   <CustomTableHead>SUPPLIER</CustomTableHead>
                   <CustomTableHead>ORDER NO</CustomTableHead>
                   <CustomTableHead>REFERENCE NO</CustomTableHead>
@@ -229,9 +270,19 @@ export default function PurchaseBillsPage() {
                 </CustomTableRow>
               </CustomTableHeader>
               <CustomTableBody>
-                {filteredOrders.map((order) => (
-                  <CustomTableRow key={order._id} className={order.highlighted ? "bg-green-50" : ""}>
-                    <CustomTableCell><input type="checkbox" /></CustomTableCell>
+                {filteredOrders.filter(order => order.status === 'APPROVED').map((order) => (
+                  <CustomTableRow
+                    key={order._id}
+                    className={(order.highlighted ? "bg-green-50 " : "") + " cursor-pointer"}
+                    onClick={e => {
+                      if (
+                        e.target.closest('button') ||
+                        e.target.closest('input[type=checkbox]') ||
+                        e.target.closest('.switch')
+                      ) return;
+                      router.push(`/dashboard/purchase/purchase-bills/${order._id}`);
+                    }}
+                  >
                     <CustomTableCell>{order.supplier?.name || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.purchaseOrderNumber || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
@@ -247,26 +298,38 @@ export default function PurchaseBillsPage() {
                       </span>
                     </CustomTableCell>
                     <CustomTableCell>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          checked={order.status === 'APPROVED'}
-                          onCheckedChange={() => handleStatusToggle(order._id, order.status)}
-                          aria-label="Toggle status"
-                        />
-                        <span className="text-xs text-gray-500">
-                          {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/purchase/purchase-bills/${order._id}`)}>
-                          View
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                            <MoreVertical className="h-4 w-4" />
                         </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-bill?id=${order._id}`); }}>
+                            Edit
+                          </DropdownMenuItem>
+                          {order.status !== 'DRAFT' && (
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(order._id, order.status); }}>
+                              Switch to Draft
+                            </DropdownMenuItem>
+                          )}
+                          {order.status === 'DRAFT' && (
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(order._id); }}>
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(order._id); }}>
+                            Print
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </CustomTableCell>
                   </CustomTableRow>
                 ))}
-                {filteredOrders.length === 0 && (
+                {filteredOrders.filter(order => order.status === 'APPROVED').length === 0 && (
                   <CustomTableRow>
                     <CustomTableCell colSpan={8} className="text-center py-4">
-                      {searchQuery ? "No matching purchase orders found." : "No approved purchase orders found."}
+                      {searchQuery ? "No matching purchase bills found." : "No approved purchase bills found."}
                     </CustomTableCell>
                   </CustomTableRow>
                 )}
@@ -280,7 +343,6 @@ export default function PurchaseBillsPage() {
             <CustomTable>
               <CustomTableHeader>
                 <CustomTableRow className="bg-gray-100">
-                  <CustomTableHead><input type="checkbox" /></CustomTableHead>
                   <CustomTableHead>SUPPLIER</CustomTableHead>
                   <CustomTableHead>ORDER NO</CustomTableHead>
                   <CustomTableHead>REFERENCE NO</CustomTableHead>
@@ -291,9 +353,19 @@ export default function PurchaseBillsPage() {
                 </CustomTableRow>
               </CustomTableHeader>
               <CustomTableBody>
-                {filteredOrders.map((order) => (
-                  <CustomTableRow key={order._id} className={order.highlighted ? "bg-green-50" : ""}>
-                    <CustomTableCell><input type="checkbox" /></CustomTableCell>
+                {filteredOrders.filter(order => order.status === 'DRAFT').map((order) => (
+                  <CustomTableRow
+                    key={order._id}
+                    className={(order.highlighted ? "bg-green-50 " : "") + " cursor-pointer"}
+                    onClick={e => {
+                      if (
+                        e.target.closest('button') ||
+                        e.target.closest('input[type=checkbox]') ||
+                        e.target.closest('.switch')
+                      ) return;
+                      router.push(`/dashboard/purchase/purchase-bills/${order._id}`);
+                    }}
+                  >
                     <CustomTableCell>{order.supplier?.name || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.purchaseOrderNumber || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
@@ -309,26 +381,38 @@ export default function PurchaseBillsPage() {
                       </span>
                     </CustomTableCell>
                     <CustomTableCell>
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          checked={order.status === 'APPROVED'}
-                          onCheckedChange={() => handleStatusToggle(order._id, order.status)}
-                          aria-label="Toggle status"
-                        />
-                        <span className="text-xs text-gray-500">
-                          {order.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
-                        </span>
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/purchase/purchase-bills/${order._id}`)}>
-                          View
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                            <MoreVertical className="h-4 w-4" />
                         </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-bill?id=${order._id}`); }}>
+                            Edit
+                          </DropdownMenuItem>
+                          {order.status !== 'DRAFT' && (
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(order._id, order.status); }}>
+                              Switch to Draft
+                            </DropdownMenuItem>
+                          )}
+                          {order.status === 'DRAFT' && (
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(order._id); }}>
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(order._id); }}>
+                            Print
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </CustomTableCell>
                   </CustomTableRow>
                 ))}
-                {filteredOrders.length === 0 && (
+                {filteredOrders.filter(order => order.status === 'DRAFT').length === 0 && (
                   <CustomTableRow>
                     <CustomTableCell colSpan={8} className="text-center py-4">
-                      {searchQuery ? "No matching purchase orders found." : "No draft purchase orders found."}
+                      {searchQuery ? "No matching purchase bills found." : "No draft purchase bills found."}
                     </CustomTableCell>
                   </CustomTableRow>
                 )}
@@ -337,6 +421,22 @@ export default function PurchaseBillsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Purchase Bill</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this purchase bill? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDelete}>Yes, Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { PurchaseReturnVoucher } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 import { createPurchaseReturnEntry } from '@/lib/accounting';
+import Counter from '@/lib/models/Counter';
 
 export async function POST(request) {
   await dbConnect();
@@ -16,11 +17,37 @@ export async function POST(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
     const purchaseReturnData = await request.json();
-    if (!purchaseReturnData.referenceNo) {
-      purchaseReturnData.referenceNo = `PR-${Date.now()}`;
+
+    // Explicitly remove referenceNo from incoming data to ensure backend generates it
+    delete purchaseReturnData.referenceNo;
+    
+    const maxRetries = 5;
+    let retryCount = 0;
+    let generatedReferenceNo = null;
+
+    while (retryCount < maxRetries && generatedReferenceNo === null) {
+      try {
+        generatedReferenceNo = await Counter.getNextSequence('purchase_return_voucher', {
+          prefix: 'PR-',
+          paddingSize: 4
+        });
+      } catch (err) {
+        console.error(`Failed to get next sequence for purchase_return_voucher (Attempt ${retryCount + 1}/${maxRetries}):`, err);
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms before retrying
+        }
+      }
     }
+
+    if (generatedReferenceNo === null) {
+      // If counter fails after retries, throw an error
+      throw new Error('Failed to generate unique reference number after multiple retries.');
+    }
+    
     const newPurchaseReturn = new PurchaseReturnVoucher({
       ...purchaseReturnData,
+      referenceNo: generatedReferenceNo, // Use the generated reference number
       organization: organizationId,
       createdAt: new Date(),
       status: 'DRAFT',
@@ -84,4 +111,4 @@ export async function PUT(request) {
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
-} 
+}

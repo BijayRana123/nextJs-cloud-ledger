@@ -20,12 +20,8 @@ export default function AddPurchaseReturnPage() {
   const [formData, setFormData] = useState({
     supplierName: '',
     referenceNo: '',
-    billNumber: '',
     billDate: new Date().toISOString().split('T')[0],
     dueDate: '',
-    supplierInvoiceReferenceNo: '',
-    currency: 'Nepalese Rupee',
-    exchangeRateToNPR: '1',
     isExport: false,
     items: [],
   });
@@ -47,12 +43,8 @@ export default function AddPurchaseReturnPage() {
             setFormData({
               supplierName: pr.supplier?._id || '',
               referenceNo: pr.referenceNo || '',
-              billNumber: pr.returnNumber || '',
               billDate: pr.date ? new Date(pr.date).toISOString().split('T')[0] : '',
               dueDate: pr.dueDate ? new Date(pr.dueDate).toISOString().split('T')[0] : '',
-              supplierInvoiceReferenceNo: pr.supplierInvoiceReferenceNo || '',
-              currency: pr.currency || 'Nepalese Rupee',
-              exchangeRateToNPR: pr.exchangeRateToNPR?.toString() || '1',
               isExport: pr.isExport || false,
               items: pr.items?.map(item => ({
                 product: item.item?._id || '',
@@ -74,6 +66,14 @@ export default function AddPurchaseReturnPage() {
       };
       fetchPurchaseReturn();
     } else {
+      // Fetch the next purchase return reference number (now uses 'purchasereturn' for PR- prefix)
+      fetch('/api/accounting/counters/next?type=purchasereturn')
+        .then(res => res.json())
+        .then(data => {
+          if (data.nextNumber) {
+            setFormData(prev => ({ ...prev, referenceNo: data.nextNumber }));
+          }
+        });
       if (formData.items.length === 0) {
         setFormData((prev) => ({
           ...prev,
@@ -122,11 +122,7 @@ export default function AddPurchaseReturnPage() {
       items: validPurchaseReturnItems,
       totalAmount: totalAmount,
       referenceNo: formData.referenceNo,
-      returnNumber: formData.billNumber,
       dueDate: formData.dueDate,
-      supplierInvoiceReferenceNo: formData.supplierInvoiceReferenceNo,
-      currency: formData.currency,
-      exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
       isExport: formData.isExport,
     };
     const method = isEditing ? 'PUT' : 'POST';

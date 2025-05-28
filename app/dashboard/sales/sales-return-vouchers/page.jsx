@@ -230,38 +230,64 @@ export default function SalesReturnVouchersPage() {
         <TabsContent value="approved">
           <CustomTable>
             <CustomTableHeader>
-              <CustomTableRow>
-                <CustomTableHead>Customer</CustomTableHead>
-                <CustomTableHead>Reference No</CustomTableHead>
-                <CustomTableHead>Date</CustomTableHead>
-                <CustomTableHead>Total Amount</CustomTableHead>
-                <CustomTableHead>Status</CustomTableHead>
-                <CustomTableHead>Action</CustomTableHead>
+              <CustomTableRow className="bg-gray-100">
+                <CustomTableHead>CUSTOMER</CustomTableHead>
+                <CustomTableHead>REFERENCE NO</CustomTableHead>
+                <CustomTableHead>DATE</CustomTableHead>
+                <CustomTableHead>AMOUNT</CustomTableHead>
+                <CustomTableHead>STATUS</CustomTableHead>
+                <CustomTableHead>ACTIONS</CustomTableHead>
               </CustomTableRow>
             </CustomTableHeader>
             <CustomTableBody>
-              {filteredReturns.map((voucher, idx) => (
-                <CustomTableRow key={voucher._id || idx}>
+              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').map((voucher) => (
+                <CustomTableRow
+                  key={voucher._id}
+                  className={"cursor-pointer"}
+                  onClick={e => {
+                    if (
+                      e.target.closest('button') ||
+                      e.target.closest('input[type=checkbox]') ||
+                      e.target.closest('.switch')
+                    ) return;
+                    router.push(`/dashboard/sales/sales-return-vouchers/${voucher._id}`);
+                  }}
+                >
                   <CustomTableCell>{voucher.customer?.name || 'N/A'}</CustomTableCell>
                   <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
                   <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
-                  <CustomTableCell>{voucher.totalAmount}</CustomTableCell>
-                  <CustomTableCell>{voucher.status}</CustomTableCell>
+                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
+                  <CustomTableCell>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {voucher.status || 'N/A'}
+                    </span>
+                  </CustomTableCell>
                   <CustomTableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => router.push(`/dashboard/sales/add-sales-return?id=${voucher._id}`)}>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/sales/add-sales-return?id=${voucher._id}`); }}>
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(voucher._id)}>
-                          Delete
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handlePrint(voucher._id)}>
+                        {voucher.status !== 'DRAFT' && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(voucher._id, voucher.status); }}>
+                            Switch to Draft
+                          </DropdownMenuItem>
+                        )}
+                        {voucher.status === 'DRAFT' && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(voucher._id); }}>
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
                           Print
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -269,11 +295,93 @@ export default function SalesReturnVouchersPage() {
                   </CustomTableCell>
                 </CustomTableRow>
               ))}
+              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').length === 0 && (
+                <CustomTableRow>
+                  <CustomTableCell colSpan={8} className="text-center py-4">
+                    {searchQuery ? "No matching sales return vouchers found." : "No approved sales return vouchers found."}
+                  </CustomTableCell>
+                </CustomTableRow>
+              )}
             </CustomTableBody>
           </CustomTable>
         </TabsContent>
         <TabsContent value="draft">
-          {/* Optionally filter for draft status only */}
+          <CustomTable>
+            <CustomTableHeader>
+              <CustomTableRow className="bg-gray-100">
+                <CustomTableHead>CUSTOMER</CustomTableHead>
+                <CustomTableHead>REFERENCE NO</CustomTableHead>
+                <CustomTableHead>DATE</CustomTableHead>
+                <CustomTableHead>AMOUNT</CustomTableHead>
+                <CustomTableHead>STATUS</CustomTableHead>
+                <CustomTableHead>ACTIONS</CustomTableHead>
+              </CustomTableRow>
+            </CustomTableHeader>
+            <CustomTableBody>
+              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').map((voucher) => (
+                <CustomTableRow
+                  key={voucher._id}
+                  className={"cursor-pointer"}
+                  onClick={e => {
+                    if (
+                      e.target.closest('button') ||
+                      e.target.closest('input[type=checkbox]') ||
+                      e.target.closest('.switch')
+                    ) return;
+                    router.push(`/dashboard/sales/sales-return-vouchers/${voucher._id}`);
+                  }}
+                >
+                  <CustomTableCell>{voucher.customer?.name || 'N/A'}</CustomTableCell>
+                  <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
+                  <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
+                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
+                  <CustomTableCell>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {voucher.status || 'N/A'}
+                    </span>
+                  </CustomTableCell>
+                  <CustomTableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/sales/add-sales-return?id=${voucher._id}`); }}>
+                          Edit
+                        </DropdownMenuItem>
+                        {voucher.status !== 'DRAFT' && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(voucher._id, voucher.status); }}>
+                            Switch to Draft
+                          </DropdownMenuItem>
+                        )}
+                        {voucher.status === 'DRAFT' && (
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(voucher._id); }}>
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
+                          Print
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CustomTableCell>
+                </CustomTableRow>
+              ))}
+              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').length === 0 && (
+                <CustomTableRow>
+                  <CustomTableCell colSpan={8} className="text-center py-4">
+                    {searchQuery ? "No matching sales return vouchers found." : "No draft sales return vouchers found."}
+                  </CustomTableCell>
+                </CustomTableRow>
+              )}
+            </CustomTableBody>
+          </CustomTable>
         </TabsContent>
       </Tabs>
       {/* Delete Confirmation Dialog */}

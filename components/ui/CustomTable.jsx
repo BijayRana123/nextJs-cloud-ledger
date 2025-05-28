@@ -28,13 +28,20 @@ export function CustomTableBody({ children , className }) {
   );
 }
 
-export function CustomTableRow({ children, className }) {
+export function CustomTableRow({ children, className, onClick }) {
   // Ensure children is an array and filter out any text nodes that are just whitespace
   const filteredChildren = React.Children.toArray(children).filter(child => 
     typeof child !== 'string' || child.trim() !== ''
   );
   
-  return (<tr className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted ${className || ''}`}>{filteredChildren}</tr>);
+  return (
+    <tr
+      className={`border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted ${className || ''}`}
+      onClick={onClick}
+    >
+      {filteredChildren}
+    </tr>
+  );
 }
 
 export function CustomTableHead({ children, className }) {

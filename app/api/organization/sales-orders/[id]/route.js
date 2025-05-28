@@ -89,3 +89,32 @@ export async function DELETE(request, context) {
     return NextResponse.json({ message: "Internal Server Error", error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request, context) {
+  await dbConnect();
+  try {
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      return authResult;
+    }
+    const organizationId = request.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
+    }
+    const params = await context.params;
+    const id = params.id;
+    const { status } = await request.json();
+    if (!status) {
+      return NextResponse.json({ message: 'Status is required.' }, { status: 400 });
+    }
+    const salesOrder = await SalesOrder.findOne({ _id: id, organization: organizationId });
+    if (!salesOrder) {
+      return NextResponse.json({ message: 'Sales order not found' }, { status: 404 });
+    }
+    salesOrder.status = status;
+    await salesOrder.save();
+    return NextResponse.json({ message: 'Sales order status updated', salesOrder }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
+  }
+}

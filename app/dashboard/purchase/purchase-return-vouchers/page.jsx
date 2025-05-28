@@ -13,6 +13,18 @@ import { formatDate } from "@/lib/utils/dateUtils";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export default function PurchaseReturnVouchersPage() {
   const [purchaseReturns, setPurchaseReturns] = useState([]);
@@ -22,6 +34,8 @@ export default function PurchaseReturnVouchersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
   const router = useRouter();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchPurchaseReturns = async () => {
     setIsLoading(true);
@@ -120,6 +134,34 @@ export default function PurchaseReturnVouchersPage() {
     }
   };
 
+  const handleDelete = (id) => {
+    setDeletingId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      const response = await fetch(`/api/organization/purchase-return-vouchers/${deletingId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setPurchaseReturns(prev => prev.filter(v => v._id !== deletingId));
+        setDeleteDialogOpen(false);
+        setDeletingId(null);
+        toast({ title: 'Deleted', description: 'Purchase return voucher deleted successfully', variant: 'success' });
+      } else {
+        toast({ title: 'Delete Failed', description: 'Failed to delete purchase return voucher', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'An error occurred while deleting', variant: 'destructive' });
+    }
+  };
+
+  const handlePrint = (id) => {
+    window.open(`/dashboard/purchase/purchase-return-vouchers/${id}/print`, '_blank');
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading purchase return vouchers...</div>;
   }
@@ -182,47 +224,162 @@ export default function PurchaseReturnVouchersPage() {
         <TabsContent value="approved">
           <CustomTable>
             <CustomTableHeader>
-              <CustomTableRow>
-                <CustomTableHead>Supplier</CustomTableHead>
-                <CustomTableHead>Reference No</CustomTableHead>
-                <CustomTableHead>Date</CustomTableHead>
-                <CustomTableHead>Total Amount</CustomTableHead>
-                <CustomTableHead>Status</CustomTableHead>
-                <CustomTableHead>Action</CustomTableHead>
+              <CustomTableRow className="bg-gray-100">
+                <CustomTableHead>SUPPLIER</CustomTableHead>
+                <CustomTableHead>REFERENCE NO</CustomTableHead>
+                <CustomTableHead>DATE</CustomTableHead>
+                <CustomTableHead>AMOUNT</CustomTableHead>
+                <CustomTableHead>STATUS</CustomTableHead>
+                <CustomTableHead>ACTIONS</CustomTableHead>
               </CustomTableRow>
             </CustomTableHeader>
             <CustomTableBody>
-              {filteredReturns.map((voucher, idx) => (
-                <CustomTableRow key={voucher._id || idx}>
+              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').map((voucher) => (
+                <CustomTableRow
+                  key={voucher._id}
+                  className={"cursor-pointer"}
+                  onClick={e => {
+                    if (
+                      e.target.closest('button') ||
+                      e.target.closest('input[type=checkbox]') ||
+                      e.target.closest('.switch')
+                    ) return;
+                    router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`);
+                  }}
+                >
                   <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
                   <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
                   <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
-                  <CustomTableCell>{voucher.totalAmount}</CustomTableCell>
-                  <CustomTableCell>{voucher.status}</CustomTableCell>
+                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
                   <CustomTableCell>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={voucher.status === 'APPROVED'}
-                        onCheckedChange={() => handleStatusToggle(voucher._id, voucher.status)}
-                        aria-label="Toggle status"
-                      />
-                      <span className="text-xs text-gray-500">
-                        {voucher.status === 'APPROVED' ? 'Set to Draft' : 'Set to Approved'}
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {voucher.status || 'N/A'}
                       </span>
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`)}>
-                        View
+                  </CustomTableCell>
+                  <CustomTableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
                       </Button>
-                    </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-return?id=${voucher._id}`); }}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(voucher._id, voucher.status); }}>
+                          Switch to Draft
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
+                          Print
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </CustomTableCell>
                 </CustomTableRow>
               ))}
+              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').length === 0 && (
+                <CustomTableRow>
+                  <CustomTableCell colSpan={8} className="text-center py-4">
+                    {searchQuery ? "No matching purchase return vouchers found." : "No approved purchase return vouchers found."}
+                  </CustomTableCell>
+                </CustomTableRow>
+              )}
             </CustomTableBody>
           </CustomTable>
         </TabsContent>
         <TabsContent value="draft">
-          {/* Optionally filter for draft status only */}
+          <CustomTable>
+            <CustomTableHeader>
+              <CustomTableRow className="bg-gray-100">
+                <CustomTableHead>SUPPLIER</CustomTableHead>
+                <CustomTableHead>REFERENCE NO</CustomTableHead>
+                <CustomTableHead>DATE</CustomTableHead>
+                <CustomTableHead>AMOUNT</CustomTableHead>
+                <CustomTableHead>STATUS</CustomTableHead>
+                <CustomTableHead>ACTIONS</CustomTableHead>
+              </CustomTableRow>
+            </CustomTableHeader>
+            <CustomTableBody>
+              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').map((voucher) => (
+                <CustomTableRow
+                  key={voucher._id}
+                  className={"cursor-pointer"}
+                  onClick={e => {
+                    if (
+                      e.target.closest('button') ||
+                      e.target.closest('input[type=checkbox]') ||
+                      e.target.closest('.switch')
+                    ) return;
+                    router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`);
+                  }}
+                >
+                  <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
+                  <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
+                  <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
+                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
+                  <CustomTableCell>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {voucher.status || 'N/A'}
+                    </span>
+                  </CustomTableCell>
+                  <CustomTableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-return?id=${voucher._id}`); }}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(voucher._id); }}>
+                          Delete
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
+                          Print
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CustomTableCell>
+                </CustomTableRow>
+              ))}
+              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').length === 0 && (
+                <CustomTableRow>
+                  <CustomTableCell colSpan={8} className="text-center py-4">
+                    {searchQuery ? "No matching purchase return vouchers found." : "No draft purchase return vouchers found."}
+                  </CustomTableCell>
+                </CustomTableRow>
+              )}
+            </CustomTableBody>
+          </CustomTable>
         </TabsContent>
       </Tabs>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Purchase Return Voucher</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this purchase return voucher? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDelete}>Yes, Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

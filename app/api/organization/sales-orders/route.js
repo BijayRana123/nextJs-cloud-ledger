@@ -5,6 +5,7 @@ import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 import { createSalesEntry } from '@/lib/accounting'; // Import accounting function
 
 export async function POST(request) {
+  
   await dbConnect();
 
   try {
@@ -23,7 +24,7 @@ export async function POST(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-
+    
     const salesOrderData = await request.json();
     
     // Ensure salesOrderNumber is set

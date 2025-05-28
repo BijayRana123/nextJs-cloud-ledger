@@ -24,16 +24,14 @@ export default function AddPurchaseBillPage() {
   const organizationId = useOrganization(); // Get organizationId from context
 
   const [formData, setFormData] = useState({
-    supplierName: '', // This should likely hold the supplier ID
+    supplierName: '',
     referenceNo: '',
-    billNumber: '',
-    billDate: new Date().toISOString().split('T')[0], // Initialize with today's date
+    billDate: new Date().toISOString().split('T')[0],
     dueDate: '',
-    supplierInvoiceReferenceNo: '',
     currency: 'Nepalese Rupee',
     exchangeRateToNPR: '1',
     isImport: false,
-    items: [], // Array to hold product/service items
+    items: [],
   });
 
   const [isEditing, setIsEditing] = useState(false); // State to indicate if we are in edit mode
@@ -62,10 +60,8 @@ export default function AddPurchaseBillPage() {
             setFormData({
               supplierName: po.supplier?._id || '', // Assuming supplierName in formData should be the ID
               referenceNo: po.referenceNo || '',
-              billNumber: po.billNumber || '',
               billDate: po.date ? new Date(po.date).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
               dueDate: po.dueDate ? new Date(po.dueDate).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
-              supplierInvoiceReferenceNo: po.supplierInvoiceReferenceNo || '',
               currency: po.currency || 'Nepalese Rupee',
               exchangeRateToNPR: po.exchangeRateToNPR?.toString() || '1',
               isImport: po.isImport || false,
@@ -92,13 +88,20 @@ export default function AddPurchaseBillPage() {
 
       fetchPurchaseOrder();
     } else {
-       // If no ID, initialize with an empty item for new purchase order
-       if (formData.items.length === 0) {
-         setFormData((prev) => ({
-           ...prev,
-           items: [...prev.items, { product: '', productName: '', productCode: '', qty: '', rate: '', discount: '', tax: '', amount: '' }],
-         }));
-       }
+      // If not editing, fetch the next reference number
+      fetch('/api/accounting/counters/next?type=purchase')
+        .then(res => res.json())
+        .then(data => {
+          if (data.nextNumber) {
+            setFormData(prev => ({ ...prev, referenceNo: data.nextNumber }));
+          }
+        });
+      if (formData.items.length === 0) {
+        setFormData((prev) => ({
+          ...prev,
+          items: [...prev.items, { product: '', productName: '', productCode: '', qty: '', rate: '', discount: '', tax: '', amount: '' }],
+        }));
+      }
     }
 
   }, [searchParams]); // Add searchParams as a dependency
@@ -151,17 +154,13 @@ export default function AddPurchaseBillPage() {
 
     // Construct the data object to send to the API
     const dataToSend = {
-      organization: organizationId, // Use the organization ID from context
-      // purchaseOrderNumber: `PO-${Date.now()}`, // Simple mock PO number, consider a proper sequence generator - Keep existing PO number if editing
-      date: formData.billDate, // Mapping billDate to date
-      supplier: formData.supplierName, // Using the selected supplier ID (should also be ObjectId if backend expects it)
-      items: validPurchaseOrderItems, // Use the filtered items
-      totalAmount: totalAmount, // Note: totalAmount might need recalculation based on valid items
-      // Include other relevant fields from formData if they exist in the schema
+      organization: organizationId,
+      date: formData.billDate,
+      supplier: formData.supplierName,
+      items: validPurchaseOrderItems,
+      totalAmount: totalAmount,
       referenceNo: formData.referenceNo,
-      billNumber: formData.billNumber,
       dueDate: formData.dueDate,
-      supplierInvoiceReferenceNo: formData.supplierInvoiceReferenceNo,
       currency: formData.currency,
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
       isImport: formData.isImport,

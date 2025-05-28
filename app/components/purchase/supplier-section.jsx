@@ -322,38 +322,8 @@ export default function SupplierSection({ formData, setFormData }) {
              <div className="flex flex-col space-y-1.5">
               <Label htmlFor="referenceNo">Reference No</Label>
               <div className="flex items-center gap-2">
-                 <Input id="referenceNo" placeholder="Reference" value={formData.referenceNo} onChange={handleInputChange} />
-                 <SearchIcon className="h-5 w-5 text-gray-500" />
+                 <Input id="referenceNo" placeholder="Reference" value={formData.referenceNo} readOnly />
               </div>
-            </div>
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="billNumber">Bill Number</Label>
-              <Input id="billNumber" placeholder="Bill Number" value={formData.billNumber} onChange={handleInputChange} />
-            </div>
-            {/* Bill Date and Due Date will remain in the main page component */}
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="supplierInvoiceReferenceNo">Supplier Invoice Reference No</Label>
-              <Input id="supplierInvoiceReferenceNo" placeholder="Reference" value={formData.supplierInvoiceReferenceNo} onChange={handleInputChange} />
-            </div>
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="currency">Currency</Label>
-              <Select id="currency" value={formData.currency} onValueChange={(value) => handleSelectChange('currency', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Nepalese Rupee">Nepalese Rupee</SelectItem>
-                  {/* Add other currency options as needed */}
-                </SelectContent>
-              </Select>
-            </div>
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="exchangeRateToNPR">Exchange Rate To NPR</Label>
-              <Input id="exchangeRateToNPR" type="number" value={formData.exchangeRateToNPR} onChange={handleInputChange} />
-            </div>
-             <div className="flex items-center space-x-2">
-              <input type="checkbox" id="isImport" checked={formData.isImport} onChange={handleInputChange} />
-              <Label htmlFor="isImport">Is Import</Label>
             </div>
           </div>
         </CardContent>

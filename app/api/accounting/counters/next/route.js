@@ -58,6 +58,10 @@ export async function GET(request) {
         counterConfig.name = 'sales_return_voucher';
         counterConfig.prefix = 'SR-';
         break;
+      case 'purchasereturn':
+        counterConfig.name = 'purchase_return_voucher';
+        counterConfig.prefix = 'PR-';
+        break;
       default:
         return NextResponse.json(
           { error: 'Invalid counter type' },
