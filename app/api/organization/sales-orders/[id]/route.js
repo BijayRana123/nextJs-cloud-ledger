@@ -31,7 +31,10 @@ export async function GET(request, context) {
     const salesOrder = await SalesOrder.findOne({ 
       _id: id, 
       organization: organizationId 
-    }).populate('customer').populate('items.item');
+    })
+      .populate({ path: 'customer', select: '_id name' })
+      .populate({ path: 'items.item', select: '_id name' })
+      .lean();
 
     if (!salesOrder) {
       return NextResponse.json({ message: "Sales order not found" }, { status: 404 });

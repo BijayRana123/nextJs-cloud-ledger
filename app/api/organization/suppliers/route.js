@@ -21,8 +21,8 @@ export async function GET(req) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    // Find all suppliers for the organization
-    const suppliers = await Supplier.find({ organization: organizationId });
+    // Fetch suppliers for the authenticated user's organization
+    const suppliers = await Supplier.find({ organization: organizationId }).lean();
 
     // Return the list of suppliers
     return NextResponse.json({ suppliers }, { status: 200 });

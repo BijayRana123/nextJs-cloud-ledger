@@ -14,10 +14,19 @@ import { useCalendar } from '@/lib/context/CalendarContext';
 import { formatDate as formatDateUtil } from '@/lib/utils/dateUtils';
 import { DateDisplay } from '@/app/components/DateDisplay';
 import { Switch } from "@/components/ui/switch";
+import useSWR from 'swr';
+import useSWRInfinite from 'swr/infinite';
+
+const PAGE_SIZE = 50;
+
+const fetcher = (url, token) => fetch(url, {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+}).then(res => res.json());
 
 export default function LedgerFilter() {
-  const [loading, setLoading] = useState(false);
-  const [journalEntries, setJournalEntries] = useState([]);
   const [currentTab, setCurrentTab] = useState("all");
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -27,94 +36,53 @@ export default function LedgerFilter() {
   const router = useRouter();
   const { isNepaliCalendar, toggleCalendarType } = useCalendar();
 
-  // Fetch all journal entries
+  // Only get auth token on client
+  const [authToken, setAuthToken] = useState(null);
   useEffect(() => {
-    const fetchJournalEntries = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('/api/accounting/journal-entries?limit=100');
-        if (!response.ok) {
-          throw new Error('Failed to fetch journal entries');
-        }
-        const data = await response.json();
-        setJournalEntries(data.journalEntries);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+    if (typeof window !== 'undefined') {
+      setAuthToken(getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token'));
       }
-    };
-
-    fetchJournalEntries();
   }, []);
 
-  // Fetch customers and suppliers
+  // Infinite loading for journal entries
+  const getKey = (pageIndex, previousPageData) => {
+    if (!authToken) return null;
+    if (previousPageData && previousPageData.journalEntries && previousPageData.journalEntries.length === 0) return null; // reached end
+    return [`/api/accounting/journal-entries?limit=${PAGE_SIZE}&page=${pageIndex + 1}`, authToken];
+  };
+  const {
+    data: journalPages,
+    size,
+    setSize,
+    isLoading: journalLoading,
+    isValidating: journalValidating,
+    error: journalError
+  } = useSWRInfinite(
+    getKey,
+    ([url, token]) => fetcher(url, token)
+  );
+
+  // Combine all pages
+  const allJournalEntries = (journalPages || []).flatMap(page => page?.journalEntries || []);
+
+  // Fetch customers and suppliers using SWR
+  const { data: customersData } = useSWR(
+    authToken ? ['/api/organization/customers', authToken] : null,
+    ([url, token]) => fetcher(url, token)
+  );
+  const { data: suppliersData } = useSWR(
+    authToken ? ['/api/organization/suppliers', authToken] : null,
+    ([url, token]) => fetcher(url, token)
+  );
+
   useEffect(() => {
-    const fetchCustomersAndSuppliers = async () => {
-      try {
-        // Get auth token from cookie
-        const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-        
-        if (!authToken) {
-          console.error("Authentication token not found in cookie.");
-          return;
-        }
-
-        // Fetch customers
-        const customersResponse = await fetch('/api/organization/customers', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (customersResponse.ok) {
-          const customersData = await customersResponse.json();
-          console.log("Fetched customers data:", customersData);
-          if (customersData.customers && Array.isArray(customersData.customers)) {
+    if (customersData && Array.isArray(customersData.customers)) {
             setCustomers(customersData.customers);
-          } else {
-            console.error("Unexpected customers data structure:", customersData);
-          }
-        } else {
-          console.error("Failed to fetch customers:", customersResponse.status);
-        }
-
-        // Fetch suppliers
-        const suppliersResponse = await fetch('/api/organization/suppliers', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (suppliersResponse.ok) {
-          const suppliersData = await suppliersResponse.json();
-          console.log("Fetched suppliers data:", suppliersData);
-          if (suppliersData.suppliers && Array.isArray(suppliersData.suppliers)) {
+    }
+    if (suppliersData && Array.isArray(suppliersData.suppliers)) {
             setSuppliers(suppliersData.suppliers);
-          } else {
-            console.error("Unexpected suppliers data structure:", suppliersData);
-          }
-        } else {
-          console.error("Failed to fetch suppliers:", suppliersResponse.status);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch customers and suppliers. Please ensure you're logged in.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    fetchCustomersAndSuppliers();
-  }, []);
+    }
+  }, [customersData, suppliersData]);
 
   // Helper function to check if a transaction is related to a specific customer
   const isCustomerTransaction = (entry, customerName) => {
@@ -161,7 +129,7 @@ export default function LedgerFilter() {
   // Add a debug function to log date information
   const logDateInfo = () => {
     console.log("Date Range:", dateRange);
-    console.log("First few journal entries:", journalEntries.slice(0, 3).map(e => ({
+    console.log("First few journal entries:", allJournalEntries.slice(0, 3).map(e => ({
       id: e._id,
       date: e.datetime,
       memo: e.memo
@@ -180,10 +148,10 @@ export default function LedgerFilter() {
     if (dateRange.startDate || dateRange.endDate) {
       logDateInfo();
     }
-  }, [dateRange, journalEntries]);
+  }, [dateRange, allJournalEntries]);
 
   // First apply tab-specific filters (customers, suppliers, etc.)
-  const tabFilteredEntries = journalEntries.filter(entry => {
+  const tabFilteredEntries = allJournalEntries.filter(entry => {
     // Filter by tab type
     if (currentTab === "all") return true;
     
@@ -276,6 +244,11 @@ export default function LedgerFilter() {
       return dateString;
     }
   };
+
+  // Wait for authToken before rendering to avoid hydration errors
+  if (!authToken) {
+    return <div className="text-center py-10">Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -432,7 +405,6 @@ export default function LedgerFilter() {
                   </div>
                 </div>
               </div>
-              
               {/* Clear filters button */}
               {(selectedCustomer !== "all" || selectedSupplier !== "all" || dateRange.startDate || dateRange.endDate) && (
                 <div className="flex justify-end mt-4">
@@ -449,7 +421,7 @@ export default function LedgerFilter() {
 
             {/* Transaction results */}
             <TabsContent value={currentTab} className="mt-0">
-              {loading ? (
+              {journalLoading && size === 1 ? (
                 <div className="text-center py-10">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
                   <p className="mt-2">Loading transactions...</p>
@@ -459,6 +431,7 @@ export default function LedgerFilter() {
                   <p>No transactions found matching the selected filters.</p>
                 </div>
               ) : (
+                <>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -499,6 +472,19 @@ export default function LedgerFilter() {
                     </tbody>
                   </table>
                 </div>
+                  {/* Load More button for infinite scroll */}
+                  <div className="flex justify-center mt-4">
+                    {journalPages && journalPages[journalPages.length - 1]?.journalEntries?.length === PAGE_SIZE && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSize(size + 1)}
+                        disabled={journalValidating}
+                      >
+                        {journalValidating ? 'Loading...' : 'Load More'}
+                      </Button>
+                    )}
+                  </div>
+                </>
               )}
             </TabsContent>
           </Tabs>

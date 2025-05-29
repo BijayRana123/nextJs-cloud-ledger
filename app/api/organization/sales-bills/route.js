@@ -91,7 +91,7 @@ export async function GET(request) {
     }
 
     // Fetch sales bills for the authenticated user's organization and populate the customer details
-    const salesBills = await SalesBill.find({ organization: organizationId }).populate('customer');
+    const salesBills = await SalesBill.find({ organization: organizationId }).populate({ path: 'customer', select: '_id name' }).lean();
 
     return NextResponse.json({ salesBills }, { status: 200 });
   } catch (error) {

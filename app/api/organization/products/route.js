@@ -23,7 +23,9 @@ export async function GET(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const products = await Item.find({ organization: organizationId });
+    const products = await Item.find({ organization: organizationId })
+      .select('_id name code defaultQty defaultRate defaultDiscount defaultTax availableForSale')
+      .lean();
 
     return NextResponse.json({ products }, { status: 200 });
   } catch (error) {

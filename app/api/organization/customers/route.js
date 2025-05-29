@@ -102,7 +102,7 @@ export async function GET(request) {
     }
 
     // Fetch customers for the authenticated user's organization
-    const customers = await Customer.find({ organization: organizationId }).populate('relatedSupplier');
+    const customers = await Customer.find({ organization: organizationId }).populate('relatedSupplier').lean();
 
     return NextResponse.json({ customers }, { status: 200 });
   } catch (error) {

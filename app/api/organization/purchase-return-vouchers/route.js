@@ -79,7 +79,7 @@ export async function GET(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const purchaseReturnVouchers = await PurchaseReturnVoucher.find({ organization: organizationId }).populate('supplier');
+    const purchaseReturnVouchers = await PurchaseReturnVoucher.find({ organization: organizationId }).populate('supplier').lean();
     return NextResponse.json({ purchaseReturnVouchers }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });

@@ -1,52 +1,73 @@
 "use client";
 
-import RecordExpenseForm from '@/app/components/accounting/RecordExpenseForm';
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from '@/components/ui/CustomTable';
+import { Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function RecordExpensePage() {
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
+export default function ExpenseVoucherListPage() {
   const router = useRouter();
-  
+  const { data, error, isLoading } = useSWR('/api/accounting/journal-entries?limit=50&searchTerm=^Expense:', fetcher, { refreshInterval: 10000 });
+  const vouchers = data?.journalEntries || [];
+
   return (
-    <div className="container mx-auto py-6">
+    <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Record Expense</h1>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push("/dashboard/accounting/journal-entries")}
-          >
-            View Journal Entries
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => router.push("/dashboard/accounting/transactions")}
-          >
-            Back to Transactions
-          </Button>
-        </div>
+        <h1 className="text-2xl font-bold">Expense Vouchers</h1>
+        <Link href="/dashboard/accounting/transactions/record-expense/new" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2">
+          <Rocket className="h-5 w-5 mr-2" />
+          ADD NEW
+        </Link>
       </div>
-      
-      <div className="grid grid-cols-1 gap-6">
-        <RecordExpenseForm />
-        
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-          <h3 className="text-lg font-medium text-blue-800 mb-2">Double Entry Journal Impact</h3>
-          <p className="text-blue-700 mb-2">When you record an expense, the following accounts are affected:</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-3 rounded shadow-sm">
-              <p className="font-semibold">Debit</p>
-              <p>Expense Account (Selected Expense Type)</p>
-              <p className="text-sm text-gray-500">Increases the expense</p>
-            </div>
-            <div className="bg-white p-3 rounded shadow-sm">
-              <p className="font-semibold">Credit</p>
-              <p>Assets (Cash/Bank) or Liabilities (Accounts Payable)</p>
-              <p className="text-sm text-gray-500">Decreases assets or increases liabilities</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {isLoading ? (
+        <div>Loading expense vouchers...</div>
+      ) : error ? (
+        <div className="text-red-600">Error: {error.message || 'Failed to fetch expense vouchers'}</div>
+      ) : (
+        <CustomTable>
+          <CustomTableHeader>
+            <CustomTableRow>
+              <CustomTableHead>Date</CustomTableHead>
+              <CustomTableHead>Account</CustomTableHead>
+              <CustomTableHead>Amount</CustomTableHead>
+              <CustomTableHead>Payment Method</CustomTableHead>
+              <CustomTableHead>Memo</CustomTableHead>
+              <CustomTableHead>Actions</CustomTableHead>
+            </CustomTableRow>
+          </CustomTableHeader>
+          <CustomTableBody>
+            {vouchers.length === 0 ? (
+              <CustomTableRow>
+                <CustomTableCell colSpan={6} className="text-center">No expense vouchers found.</CustomTableCell>
+              </CustomTableRow>
+            ) : (
+              vouchers.map((voucher) => {
+                // Extract account and payment method from transactions/meta
+                const account = voucher.transactions?.find(t => t.meta?.expenseAccountName)?.meta?.expenseAccountName || voucher.transactions?.[0]?.accountName || 'N/A';
+                const paymentMethod = voucher.transactions?.find(t => t.meta?.paymentMethod)?.meta?.paymentMethod || 'N/A';
+                return (
+                  <CustomTableRow key={voucher._id}>
+                    <CustomTableCell>{voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{account}</CustomTableCell>
+                    <CustomTableCell>{voucher.amount || voucher.transactions?.[0]?.amount || 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{paymentMethod}</CustomTableCell>
+                    <CustomTableCell>{voucher.memo || ''}</CustomTableCell>
+                    <CustomTableCell>
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/accounting/transactions/record-expense/${voucher._id}`)}>View</Button>
+                      <Button variant="ghost" size="sm" onClick={() => window.open(`/dashboard/accounting/transactions/record-expense/${voucher._id}/print`, '_blank')}>Print</Button>
+                    </CustomTableCell>
+                  </CustomTableRow>
+                );
+              })
+            )}
+          </CustomTableBody>
+        </CustomTable>
+      )}
     </div>
   );
 }

@@ -96,7 +96,7 @@ export async function GET(request) {
     }
 
     // Fetch sales orders for the authenticated user's organization and populate the customer details
-    const salesOrders = await SalesOrder.find({ organization: organizationId }).populate('customer');
+    const salesOrders = await SalesOrder.find({ organization: organizationId }).populate('customer').lean();
 
     return NextResponse.json({ salesOrders }, { status: 200 });
   } catch (error) {

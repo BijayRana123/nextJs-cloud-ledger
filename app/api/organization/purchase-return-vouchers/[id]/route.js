@@ -20,7 +20,7 @@ export async function GET(request, context) {
     const purchaseReturn = await PurchaseReturnVoucher.findOne({
       _id: id,
       organization: organizationId
-    }).populate('supplier').populate('items.item');
+    }).populate('supplier').populate('items.item').lean();
     if (!purchaseReturn) {
       return NextResponse.json({ message: 'Purchase return voucher not found' }, { status: 404 });
     }

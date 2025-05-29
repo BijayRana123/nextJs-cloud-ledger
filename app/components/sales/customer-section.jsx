@@ -11,6 +11,7 @@ import { Check, ChevronsUpDown, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from 'next/navigation';
 import { getCookie } from '@/lib/utils';
+import useSWR from 'swr';
 
 // Modal for adding a new customer
 const AddCustomerModal = ({ isOpen, onClose, onCustomerCreated }) => {
@@ -181,10 +182,23 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
   const [nextSalesRefNo, setNextSalesRefNo] = useState('');
   const router = useRouter();
 
-  // Fetch all customers when the component mounts
+  // Use SWR for fetching customers
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data: customersData, isLoading: isLoadingCustomers } = useSWR(
+    '/api/organization/customers',
+    fetcher
+  );
+
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    if (customersData && Array.isArray(customersData.customers)) {
+      const formattedOptions = customersData.customers.map(customer => ({
+        value: customer._id,
+        label: customer.name + (customer.address ? ` - ${customer.address}` : ''),
+        customerData: customer
+      }));
+      setOptions(formattedOptions);
+    }
+  }, [customersData]);
 
   // Fetch customer details when a customer is selected
   useEffect(() => {
@@ -207,42 +221,6 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
       }));
     }
   }, [formData.customerName, nextSalesRefNo, setFormData]);
-
-  const fetchCustomers = async () => {
-    setIsLoading(true);
-    try {
-      // Retrieve the JWT from the cookie
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      
-      // Make the API call with the authentication token
-      const response = await fetch('/api/organization/customers', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Fetched customers:", result.customers);
-        
-        // Format customers for the combobox
-        const formattedOptions = result.customers.map(customer => ({
-          value: customer._id,
-          label: customer.name + (customer.address ? ` - ${customer.address}` : ''),
-          customerData: customer
-        }));
-        
-        setOptions(formattedOptions);
-      } else {
-        console.error("Failed to fetch customers:", response.status);
-      }
-    } catch (err) {
-      console.error("Error fetching customers:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchCustomerDetails = async (customerId) => {
     if (!customerId) return;

@@ -20,7 +20,7 @@ export async function GET(request, context) {
     const salesReturn = await SalesReturnVoucher.findOne({
       _id: id,
       organization: organizationId
-    }).populate('customer').populate('items.item');
+    }).populate('customer').populate('items.item').lean();
     if (!salesReturn) {
       return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
     }

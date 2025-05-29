@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { getAuthHeaders } from '@/lib/utils/auth-helpers';
 
-export default function PaySupplierForm() {
+export default function PaySupplierForm({ onSuccess }) {
   const router = useRouter();
   const organizationId = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,10 +166,14 @@ export default function PaySupplierForm() {
       setSelectedSupplier('');
       fetchNextBillNumber();
       
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push("/dashboard/accounting/journal-entries");
-      }, 1500);
+      // Call onSuccess if provided, otherwise redirect to journal-entries
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        setTimeout(() => {
+          router.push("/dashboard/accounting/journal-entries");
+        }, 1500);
+      }
     } catch (error) {
       console.error("Error recording payment:", error);
       toast({

@@ -10,8 +10,10 @@ export async function POST(req) {
   try {
     const { email, password } = await req.json();
 
-    // Find user by email and populate organizations (plural)
-    const user = await User.findOne({ email }).populate('organizations'); // Populate the 'organizations' array
+    // Find user by email and populate organizations (only _id and name)
+    const user = await User.findOne({ email })
+      .populate({ path: 'organizations', select: '_id name' })
+      .lean();
     if (!user) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }

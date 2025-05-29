@@ -64,7 +64,7 @@ export async function GET(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const salesReturnVouchers = await SalesReturnVoucher.find({ organization: organizationId }).populate('customer');
+    const salesReturnVouchers = await SalesReturnVoucher.find({ organization: organizationId }).populate('customer').lean();
     return NextResponse.json({ salesReturnVouchers }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });

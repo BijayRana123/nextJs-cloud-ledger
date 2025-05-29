@@ -8,14 +8,12 @@ import { XIcon, PlusCircleIcon } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import CreateNewProductModal from "@/app/components/create-new-product-modal"; // Import the new product modal
-
 import ProductDetailsModal from "@/app/components/product-details-modal";
+import useSWR from 'swr';
 
 export default function ItemsSection({ formData, setFormData }) {
   // State to manage product combobox options
   const [productOptions, setProductOptions] = useState([]);
-  // State to track if products are loading
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   // State to store details of the selected product for the modal
   const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   // State to control the product details modal visibility
@@ -23,42 +21,29 @@ export default function ItemsSection({ formData, setFormData }) {
   // State to control the new product modal visibility
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
 
-
   // Using dynamic import with next/dynamic for client-side only rendering
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Fetch all products when component mounts
+  // Use SWR for fetching products
+  const fetcher = url => fetch(url).then(res => res.json());
+  const { data: productsData, isLoading: isLoadingProducts } = useSWR(
+    mounted ? '/api/organization/products' : null,
+    fetcher
+  );
+
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!mounted) return;
-
-      setIsLoadingProducts(true);
-      try {
-        const response = await fetch('/api/organization/products'); // Assuming this endpoint exists
-        const result = await response.json();
-
-        if (response.ok) {
-          const formattedOptions = result.products.map(product => ({
-            value: product._id, // Or product.code, depending on how you identify products
-            label: product.name,
-            productData: product // Store the full product object
-          }));
-          setProductOptions(formattedOptions);
-        } else {
-          console.error("Error fetching products:", result.message);
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    };
-
-    fetchProducts();
-  }, [mounted]);
+    if (productsData && Array.isArray(productsData.products)) {
+      const formattedOptions = productsData.products.map(product => ({
+        value: product._id,
+        label: product.name,
+        productData: product
+      }));
+      setProductOptions(formattedOptions);
+    }
+  }, [productsData]);
 
   const handleAddItem = () => {
     // Add a new empty item with structure to hold product data

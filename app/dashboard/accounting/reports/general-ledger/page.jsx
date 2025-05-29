@@ -99,14 +99,23 @@ export default function GeneralLedgerPage() {
           return;
         }
 
-        // Fetch customers
-        const customersResponse = await fetch('/api/organization/customers', {
+        // Fetch customers and suppliers in parallel
+        const [customersResponse, suppliersResponse] = await Promise.all([
+          fetch('/api/organization/customers', {
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch('/api/organization/suppliers', {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
           },
-        });
+          })
+        ]);
 
+        // Handle customers
         if (customersResponse.ok) {
           const customersData = await customersResponse.json();
           if (customersData.customers && Array.isArray(customersData.customers)) {
@@ -118,14 +127,7 @@ export default function GeneralLedgerPage() {
           console.error("Failed to fetch customers:", customersResponse.status);
         }
 
-        // Fetch suppliers
-        const suppliersResponse = await fetch('/api/organization/suppliers', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
+        // Handle suppliers
         if (suppliersResponse.ok) {
           const suppliersData = await suppliersResponse.json();
           if (suppliersData.suppliers && Array.isArray(suppliersData.suppliers)) {
@@ -138,7 +140,6 @@ export default function GeneralLedgerPage() {
         }
 
         // For now, we'll mock cash accounts until we have a proper endpoint
-        // In a real implementation, you would fetch these from your chart of accounts
         setCashAccounts([
           { _id: 'bank-main', name: 'Bank - Main Account' },
           { _id: 'bank-savings', name: 'Bank - Savings Account' },

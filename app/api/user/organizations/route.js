@@ -15,7 +15,7 @@ export async function GET(request) {
     if (!userId) {
       return NextResponse.json({ message: 'User not authenticated' }, { status: 401 });
     }
-    const user = await User.findById(userId).populate('organizations');
+    const user = await User.findById(userId).populate({ path: 'organizations', select: '_id name' }).lean();
     if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }

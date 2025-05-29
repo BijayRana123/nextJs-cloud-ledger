@@ -49,7 +49,7 @@ export async function GET(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const vouchers = await ContraVoucher.find({ organization: organizationId }).sort({ date: -1 });
+    const vouchers = await ContraVoucher.find({ organization: organizationId }).lean().sort({ date: -1 });
     return NextResponse.json({ contraVouchers: vouchers }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch contra vouchers', error: error.message }, { status: 500 });

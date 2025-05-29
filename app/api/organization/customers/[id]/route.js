@@ -31,7 +31,7 @@ export async function GET(request, context) {
     const customer = await Customer.findOne({ 
       _id: id, 
       organization: organizationId 
-    }).populate('relatedSupplier');
+    }).populate('relatedSupplier').lean();
 
     if (!customer) {
       return NextResponse.json({ message: "Customer not found" }, { status: 404 });

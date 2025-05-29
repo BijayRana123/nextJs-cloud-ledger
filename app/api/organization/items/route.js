@@ -14,7 +14,7 @@ export async function GET(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const items = await Item.find({ organization: organizationId });
+    const items = await Item.find({ organization: organizationId }).lean();
     return NextResponse.json({ items }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch items', error: error.message }, { status: 500 });
