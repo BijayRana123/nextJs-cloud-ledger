@@ -48,7 +48,7 @@ export async function GET(request) {
         break;
       case 'sales':
         counterConfig.name = 'sales_order';
-        counterConfig.prefix = 'SO-';
+        counterConfig.prefix = 'SV-';
         break;
       case 'purchase':
         counterConfig.name = 'purchase_order';
@@ -56,7 +56,7 @@ export async function GET(request) {
         break;
       case 'salesreturn':
         counterConfig.name = 'sales_return_voucher';
-        counterConfig.prefix = 'SR-';
+        counterConfig.prefix = 'SRV-';
         break;
       case 'purchasereturn':
         counterConfig.name = 'purchase_return_voucher';
@@ -92,4 +92,4 @@ export async function GET(request) {
       { status: 500 }
     );
   }
-} 
+}

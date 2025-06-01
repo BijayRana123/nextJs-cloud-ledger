@@ -15,6 +15,7 @@ import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomT
 import SupplierSection from "@/app/components/purchase/supplier-section";
 import ItemsSection from "@/app/components/purchase/items-section";
 import CalculationSection from "@/app/components/purchase/calculation-section";
+import { useCalendar } from "@/app/contexts/CalendarContext";
 
 
 export default function PurchaseOrderDetailPage() {
@@ -30,8 +31,8 @@ export default function PurchaseOrderDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [approveError, setApproveError] = useState(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const { isNepaliCalendar } = useCalendar();
 
   const fetchPurchaseOrder = async () => {
     setIsLoading(true);
@@ -72,50 +73,8 @@ export default function PurchaseOrderDetailPage() {
     console.log("Purchase Order state updated:", purchaseOrder);
   }, [purchaseOrder]);
 
-  const handleApprove = async () => {
-    setIsApproving(true);
-    setApproveError(null);
-    setApproveSuccess(false);
-    try {
-      const response = await fetch(`/api/organization/purchase-orders/${id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setApproveSuccess(true);
-        // Optionally refetch the purchase order to update its status
-        fetchPurchaseOrder(); // Refetch to show updated status
-      } else {
-        let errorData = {};
-        try {
-          // Attempt to parse the error response as JSON
-          errorData = await response.json();
-          console.error("API Error Response (JSON):", errorData);
-        } catch (jsonError) {
-          // If JSON parsing fails, read as text
-          const errorText = await response.text();
-          console.error("API Error Response (Text):", errorText);
-          errorData.message = errorText; // Use the text as the message
-        }
-
-        // Use the error message from the backend if available, otherwise use status text
-        const errorMessage = errorData.error || errorData.message || response.statusText || 'No error message provided';
-        setApproveError(`Failed to approve purchase order: ${response.status} - ${errorMessage}`);
-      }
-    } catch (err) {
-      console.error("Error approving purchase order:", err);
-      setApproveError(`An error occurred while approving the purchase order: ${err.message}`);
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
   const handleDelete = () => {
-    setShowDeleteDialog(true); // Show delete confirmation dialog
+    setShowDeleteDialog(true);
   };
 
   const confirmDelete = async () => {
@@ -225,21 +184,6 @@ export default function PurchaseOrderDetailPage() {
            {/* Conditionally render buttons based on purchase order status and loading state */}
            {!isLoading && purchaseOrder && (
              <>
-               {purchaseOrder.status === 'DRAFT' && (
-                 <>
-                   <Button variant="outline" onClick={() => router.push(`/dashboard/purchase/add-purchase-bill?id=${id}`)}>Edit</Button>
-                   <Button
-                     className="bg-green-500 hover:bg-green-600"
-                     onClick={handleApprove}
-                     disabled={isApproving}
-                   >
-                     {isApproving ? 'Approving...' : 'Approve'}
-                   </Button>
-                   <Button variant="ghost" size="icon" onClick={handleDelete} disabled={isDeleting}>
-                     {isDeleting ? 'Deleting...' : <XIcon className="h-5 w-5" />}
-                   </Button> {/* Close button */}
-                 </>
-               )}
                {purchaseOrder.status === 'APPROVED' && (
                  <>
                    <Button variant="outline" onClick={() => setIsEmailModalOpen(true)}>Send Email</Button>

@@ -18,7 +18,6 @@ export default function PurchaseReturnVoucherDetailPage() {
   const [error, setError] = useState(null);
   const [approveError, setApproveError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -45,35 +44,6 @@ export default function PurchaseReturnVoucherDetailPage() {
       setError("An error occurred while fetching the purchase return voucher.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    setIsApproving(true);
-    setApproveError(null);
-    try {
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      const response = await fetch(`/api/organization/purchase-return-vouchers/${id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await response.json();
-      if (response.ok) {
-        fetchPurchaseReturn();
-      } else {
-        let errorMessage = result.message || "Failed to approve purchase return voucher";
-        if (result.error) {
-          errorMessage += `: ${result.error}`;
-        }
-        setApproveError(`Failed to approve purchase return voucher: ${response.status} - ${errorMessage}`);
-      }
-    } catch (err) {
-      setApproveError(`An error occurred while approving the purchase return voucher: ${err.message}`);
-    } finally {
-      setIsApproving(false);
     }
   };
 
@@ -161,19 +131,6 @@ export default function PurchaseReturnVoucherDetailPage() {
       <div className="flex space-x-2 mb-4">
         {!isLoading && purchaseReturn && (
           <>
-            {status === 'DRAFT' && (
-              <>
-                <Button variant="outline" onClick={() => router.push(`/dashboard/purchase/add-purchase-return?id=${id}`)}>Edit</Button>
-                <Button onClick={handleApprove} disabled={isApproving}>
-                  {isApproving ? 'Approving...' : 'Approve'}
-                  <CheckCircle className="ml-2 h-4 w-4" />
-                </Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? 'Deleting...' : 'Delete'}
-                  <Trash2 className="ml-2 h-4 w-4" />
-                </Button>
-              </>
-            )}
             <Button variant="outline" onClick={handlePrint}>
               Print
               <Printer className="ml-2 h-4 w-4" />

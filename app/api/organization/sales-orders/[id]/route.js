@@ -32,7 +32,7 @@ export async function GET(request, context) {
       _id: id, 
       organization: organizationId 
     })
-      .populate({ path: 'customer', select: '_id name' })
+      .populate({ path: 'customer', select: '_id name address pan phoneNumber email' })
       .populate({ path: 'items.item', select: '_id name' })
       .lean();
 

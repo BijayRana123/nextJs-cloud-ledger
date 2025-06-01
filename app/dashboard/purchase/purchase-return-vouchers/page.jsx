@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable";
-import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search, FileEdit, Trash2, Printer } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
@@ -30,12 +30,12 @@ export default function PurchaseReturnVouchersPage() {
   const [purchaseReturns, setPurchaseReturns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("approved");
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchPurchaseReturns = async () => {
     setIsLoading(true);
@@ -73,66 +73,13 @@ export default function PurchaseReturnVouchersPage() {
   };
 
   const filteredReturns = purchaseReturns.filter(voucher => {
-    const statusMatches =
-      activeTab === "approved" ? voucher.status === "APPROVED" :
-      activeTab === "draft" ? voucher.status === "DRAFT" :
-      true;
+    const statusMatches = voucher.status === "APPROVED";
     const searchMatches = searchQuery === "" ||
       (voucher.supplier?.name && voucher.supplier.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (voucher.referenceNo && voucher.referenceNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (voucher.totalAmount && voucher.totalAmount.toString().includes(searchQuery.toLowerCase()));
     return statusMatches && searchMatches;
   });
-
-  const handleStatusToggle = async (voucherId, currentStatus) => {
-    try {
-      let response, result;
-      if (currentStatus === 'APPROVED') {
-        // Set to DRAFT via PUT
-        response = await fetch(`/api/organization/purchase-return-vouchers`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id: voucherId, status: 'DRAFT' }),
-        });
-        result = await response.json();
-      } else {
-        // Set to APPROVED via approve API
-        response = await fetch(`/api/organization/purchase-return-vouchers/${voucherId}/approve`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        result = await response.json();
-      }
-      if (response.ok) {
-        setPurchaseReturns(prevReturns =>
-          prevReturns.map(voucher =>
-            voucher._id === voucherId ? { ...voucher, status: currentStatus === 'APPROVED' ? 'DRAFT' : 'APPROVED' } : voucher
-          )
-        );
-        toast({
-          title: 'Status Updated',
-          description: `Purchase return voucher status changed to ${currentStatus === 'APPROVED' ? 'DRAFT' : 'APPROVED'}`,
-          variant: 'success',
-        });
-      } else {
-        toast({
-          title: 'Update Failed',
-          description: result.message || 'Failed to update status',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'An error occurred while updating the status',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleDelete = (id) => {
     setDeletingId(id);
@@ -181,189 +128,87 @@ export default function PurchaseReturnVouchersPage() {
           </Link>
         </div>
       </div>
-      <Tabs defaultValue="approved" className="w-full" onValueChange={setActiveTab}>
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="draft">Draft</TabsTrigger>
-          </TabsList>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <span>Rows Count</span>
-              <Select defaultValue="20">
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
-              <span className="text-sm text-gray-700">1 - {filteredReturns.length} / {filteredReturns.length}</span>
-              <Button variant="outline" size="icon"><ChevronRight className="h-4 w-4" /></Button>
-            </div>
-            <Button variant="outline">
-              <Menu className="h-4 w-4 mr-2" />
-              OPTIONS
-            </Button>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <span>Rows Count</span>
+            <Select defaultValue="20">
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon"><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-sm text-gray-700">1 - {filteredReturns.length} / {filteredReturns.length}</span>
+            <Button variant="outline" size="icon"><ChevronRight className="h-4 w-4" /></Button>
           </div>
+          <Button variant="outline">
+            <Menu className="h-4 w-4 mr-2" />
+            OPTIONS
+          </Button>
         </div>
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search by supplier, reference number, ..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={handleSearchChange}
-          />
-        </div>
-        <TabsContent value="approved">
-          <CustomTable>
-            <CustomTableHeader>
-              <CustomTableRow className="bg-gray-100">
-                <CustomTableHead>SUPPLIER</CustomTableHead>
-                <CustomTableHead>REFERENCE NO</CustomTableHead>
-                <CustomTableHead>DATE</CustomTableHead>
-                <CustomTableHead>AMOUNT</CustomTableHead>
-                <CustomTableHead>STATUS</CustomTableHead>
-                <CustomTableHead>ACTIONS</CustomTableHead>
-              </CustomTableRow>
-            </CustomTableHeader>
-            <CustomTableBody>
-              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').map((voucher) => (
-                <CustomTableRow
-                  key={voucher._id}
-                  className={"cursor-pointer"}
-                  onClick={e => {
-                    if (
-                      e.target.closest('button') ||
-                      e.target.closest('input[type=checkbox]') ||
-                      e.target.closest('.switch')
-                    ) return;
-                    router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`);
-                  }}
-                >
-                  <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
-                  <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
-                  <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
-                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
-                  <CustomTableCell>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {voucher.status || 'N/A'}
-                      </span>
-                  </CustomTableCell>
-                  <CustomTableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
-                          <MoreVertical className="h-4 w-4" />
-                      </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-return?id=${voucher._id}`); }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(voucher._id, voucher.status); }}>
-                          Switch to Draft
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
-                          Print
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CustomTableCell>
-                </CustomTableRow>
-              ))}
-              {filteredReturns.filter(voucher => voucher.status === 'APPROVED').length === 0 && (
-                <CustomTableRow>
-                  <CustomTableCell colSpan={8} className="text-center py-4">
-                    {searchQuery ? "No matching purchase return vouchers found." : "No approved purchase return vouchers found."}
-                  </CustomTableCell>
-                </CustomTableRow>
-              )}
-            </CustomTableBody>
-          </CustomTable>
-        </TabsContent>
-        <TabsContent value="draft">
-          <CustomTable>
-            <CustomTableHeader>
-              <CustomTableRow className="bg-gray-100">
-                <CustomTableHead>SUPPLIER</CustomTableHead>
-                <CustomTableHead>REFERENCE NO</CustomTableHead>
-                <CustomTableHead>DATE</CustomTableHead>
-                <CustomTableHead>AMOUNT</CustomTableHead>
-                <CustomTableHead>STATUS</CustomTableHead>
-                <CustomTableHead>ACTIONS</CustomTableHead>
-              </CustomTableRow>
-            </CustomTableHeader>
-            <CustomTableBody>
-              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').map((voucher) => (
-                <CustomTableRow
-                  key={voucher._id}
-                  className={"cursor-pointer"}
-                  onClick={e => {
-                    if (
-                      e.target.closest('button') ||
-                      e.target.closest('input[type=checkbox]') ||
-                      e.target.closest('.switch')
-                    ) return;
-                    router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`);
-                  }}
-                >
-                  <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
-                  <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
-                  <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
-                  <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
-                  <CustomTableCell>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      voucher.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      voucher.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {voucher.status || 'N/A'}
-                    </span>
-                  </CustomTableCell>
-                  <CustomTableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/purchase/add-purchase-return?id=${voucher._id}`); }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(voucher._id); }}>
-                          Delete
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }}>
-                          Print
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CustomTableCell>
-                </CustomTableRow>
-              ))}
-              {filteredReturns.filter(voucher => voucher.status === 'DRAFT').length === 0 && (
-                <CustomTableRow>
-                  <CustomTableCell colSpan={8} className="text-center py-4">
-                    {searchQuery ? "No matching purchase return vouchers found." : "No draft purchase return vouchers found."}
-                  </CustomTableCell>
-                </CustomTableRow>
-              )}
-            </CustomTableBody>
-          </CustomTable>
-        </TabsContent>
-      </Tabs>
+      </div>
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Search by supplier, reference number, ..."
+          className="pl-10"
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
+      </div>
+      <CustomTable>
+        <CustomTableHeader>
+          <CustomTableRow className="bg-gray-100">
+            <CustomTableHead>CUSTOMER</CustomTableHead>
+            <CustomTableHead>REFERENCE NO</CustomTableHead>
+            <CustomTableHead>DATE</CustomTableHead>
+            <CustomTableHead>AMOUNT</CustomTableHead>
+            <CustomTableHead>ACTIONS</CustomTableHead>
+          </CustomTableRow>
+        </CustomTableHeader>
+        <CustomTableBody>
+          {filteredReturns.map((voucher) => (
+            <CustomTableRow
+              key={voucher._id}
+              className={"cursor-pointer"}
+              onClick={e => {
+                if (
+                  e.target.closest('button') ||
+                  e.target.closest('input[type=checkbox]') ||
+                  e.target.closest('.switch')
+                ) return;
+                router.push(`/dashboard/purchase/purchase-return-vouchers/${voucher._id}`);
+              }}
+            >
+              <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
+              <CustomTableCell>{voucher.referenceNo}</CustomTableCell>
+              <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
+              <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
+              <CustomTableCell>
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); router.push(`/dashboard/sales/add-sales-return?id=${voucher._id}`); }} title="Edit"><FileEdit className="h-4 w-4" /></Button>
+                  <Button variant="destructive" size="icon" onClick={e => { e.stopPropagation(); handleDelete(voucher._id); }} disabled={isDeleting} title="Delete"><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); handlePrint(voucher._id); }} title="Print"><Printer className="h-4 w-4" /></Button>
+                </div>
+              </CustomTableCell>
+            </CustomTableRow>
+          ))}
+          {filteredReturns.length === 0 && (
+            <CustomTableRow>
+              <CustomTableCell colSpan={8} className="text-center py-4">
+                {searchQuery ? "No matching purchase return vouchers found." : "No purchase return vouchers found."}
+              </CustomTableCell>
+            </CustomTableRow>
+          )}
+        </CustomTableBody>
+      </CustomTable>
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>

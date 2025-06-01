@@ -15,7 +15,7 @@ export default function SalesReturnPrintPage() {
     setLoading(true);
     fetch(`/api/organization/sales-return-vouchers/${id}`)
       .then(res => res.json())
-      .then(data => setVoucher(data.salesReturn))
+      .then(data => setVoucher(data.salesReturnVoucher))
       .catch(() => setError("Failed to fetch sales return voucher"))
       .finally(() => setLoading(false));
   }, [id]);
@@ -30,7 +30,7 @@ export default function SalesReturnPrintPage() {
   if (error) return <div className="p-4 text-red-600">{error}</div>;
   if (!voucher) return <div className="p-4 text-red-600">Sales return voucher not found</div>;
 
-  const { customer, returnNumber, date, referenceNo, currency, items: voucherItems, totalAmount, status } = voucher;
+  const { customer, referenceNo: salesReturnNumber, date, dueDate, currency, items: voucherItems, totalAmount, status } = voucher;
   const items = voucherItems?.map(item => ({
     productName: item.item?.name || 'Unknown Product',
     productCode: item.item?._id || 'N/A',
@@ -82,7 +82,7 @@ export default function SalesReturnPrintPage() {
           <table style={{ fontSize: 14, marginTop: 8 }}>
             <tbody>
               <tr><td style={{ paddingRight: 8 }}>DATE</td><td>{date ? new Date(date).toLocaleDateString() : 'N/A'}</td></tr>
-              <tr><td>RETURN #</td><td>{returnNumber || 'N/A'}</td></tr>
+              <tr><td>RETURN #</td><td>{salesReturnNumber || 'N/A'}</td></tr>
               <tr><td>CUSTOMER ID</td><td>{customer?._id || 'N/A'}</td></tr>
             </tbody>
           </table>
@@ -115,7 +115,7 @@ export default function SalesReturnPrintPage() {
           <tr style={{ background: '#223a5e', color: '#fff' }}>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>SALESPERSON</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>P.O. #</th>
-            <th style={{ padding: 6, border: '1px solid #223a5e' }}>RETURN DATE</th>
+            <th style={{ padding: 6, border: '1px solid #223a5e' }}>DUE DATE</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>SHIP VIA</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>F.O.B.</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>TERMS</th>
@@ -125,7 +125,7 @@ export default function SalesReturnPrintPage() {
           <tr>
             <td style={{ border: '1px solid #223a5e', height: 28 }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>
-            <td style={{ border: '1px solid #223a5e' }}></td>
+            <td style={{ border: '1px solid #223a5e' }}>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</td>
             <td style={{ border: '1px solid #223a5e' }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>
@@ -204,4 +204,4 @@ export default function SalesReturnPrintPage() {
       </div>
     </div>
   );
-} 
+}

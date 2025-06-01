@@ -16,7 +16,7 @@ export default function SalesBillPrintPage() {
     fetch(`/api/organization/sales-orders/${id}`)
       .then(res => res.json())
       .then(data => setBill(data.salesOrder))
-      .catch(() => setError("Failed to fetch sales bill"))
+      .catch(() => setError("Failed to fetch sales voucher"))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -28,7 +28,7 @@ export default function SalesBillPrintPage() {
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
-  if (!bill) return <div className="p-4 text-red-600">Sales bill not found</div>;
+  if (!bill) return <div className="p-4 text-red-600">Sales voucher not found</div>;
 
   const { customer, salesOrderNumber, date, dueDate, referenceNo, currency, items: billItems, totalAmount, status } = bill;
   const items = billItems?.map(item => ({

@@ -30,8 +30,6 @@ export default function NewJournalEntryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [accountOptions, setAccountOptions] = useState([]);
-  const [debugMode, setDebugMode] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
 
   // Process account structure for dropdown options
   useEffect(() => {
@@ -294,38 +292,6 @@ export default function NewJournalEntryPage() {
       <form onSubmit={handleSubmit}>
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>General Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="memo">Description/Memo</Label>
-                <Textarea
-                  id="memo"
-                  placeholder="Enter a description for this journal entry"
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label>Date</Label>
-                <ConditionalDatePicker
-                  id="entryDate"
-                  name="entryDate"
-                  label="Date"
-                  value={new Date().toISOString().substring(0, 10)}
-                  onChange={() => {}}
-                  disabled
-                />
-                <p className="text-sm text-gray-500 mt-1">Journal entries use the current date and time</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-6">
-          <CardHeader>
             <CardTitle>Transactions</CardTitle>
           </CardHeader>
           <CardContent>
@@ -445,6 +411,38 @@ export default function NewJournalEntryPage() {
           </CardContent>
         </Card>
 
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>General Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="memo">Description/Memo</Label>
+                <Textarea
+                  id="memo"
+                  placeholder="Enter a description for this journal entry"
+                  value={memo}
+                  onChange={(e) => setMemo(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Date</Label>
+                <ConditionalDatePicker
+                  id="entryDate"
+                  name="entryDate"
+                  label="Date"
+                  value={new Date().toISOString().substring(0, 10)}
+                  onChange={() => {}}
+                  disabled
+                />
+                <p className="text-sm text-gray-500 mt-1">Journal entries use the current date and time</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex justify-end space-x-4">
           <Button
             type="button"
@@ -461,43 +459,6 @@ export default function NewJournalEntryPage() {
           </Button>
         </div>
       </form>
-
-      {/* Debug Panel */}
-      <div className="mt-8">
-        <div className="flex justify-between items-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setDebugMode(!debugMode)}
-          >
-            {debugMode ? "Hide Debug Info" : "Show Debug Info"}
-          </Button>
-          {debugMode && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={checkApiStatus}
-            >
-              Check API Status
-            </Button>
-          )}
-        </div>
-        
-        {debugMode && debugInfo && (
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Debug Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-xs">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-      </div>
     </div>
   );
 } 

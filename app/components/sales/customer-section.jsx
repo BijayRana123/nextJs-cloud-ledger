@@ -319,10 +319,10 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
         const data = await response.json();
         setNextSalesRefNo(data.nextNumber);
       } else {
-        setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SO-1001'); // fallback
+        setNextSalesRefNo(counterType === 'salesreturn' ? 'SRV-1001' : 'SV-1001'); // fallback
       }
     } catch (err) {
-      setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SO-1001'); // fallback
+      setNextSalesRefNo(counterType === 'salesreturn' ? 'SRV-1001' : 'SV-1001'); // fallback
     }
   };
 
@@ -396,15 +396,18 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
           </div>
 
           <div>
-            <Label htmlFor="referenceNo">Reference No.</Label>
+            <Label htmlFor="referenceNo">{counterType === 'salesreturn' ? 'Sales Return Voucher No.' : 'Sales Voucher No.'}</Label>
             <Input
               id="referenceNo"
               value={formData.referenceNo || nextSalesRefNo || ''}
               placeholder="Auto-generated when customer selected"
-              disabled={true}
+              disabled={counterType === 'sales' && nextSalesRefNo !== ''}
+              readOnly
               className="bg-gray-50"
             />
-            <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
+            {counterType === 'sales' && nextSalesRefNo !== '' && (
+              <p className="text-sm text-gray-500">Generated: {nextSalesRefNo}</p>
+            )}
           </div>
 
           {customerDetails && (

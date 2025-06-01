@@ -4,38 +4,31 @@ import React, { useEffect, useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable"; // Import custom table components
-import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search } from "lucide-react"; // Added Check, X, and Search icons
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"; // Import shadcn/ui select components
+import { Plus, ChevronLeft, ChevronRight, Menu, Rocket, Check, X, Search, FileEdit, Trash2, Printer, Mail, FileSpreadsheet, FileText } from "lucide-react"; // Added Mail, FileSpreadsheet, FileText
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
-import { Switch } from "@/components/ui/switch"; // Import Switch component
 import { toast } from "@/components/ui/use-toast"; // Import toast for notifications
 import { useRouter } from "next/navigation";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreVertical } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import EmailModal from "@/app/components/email-modal";
 
 export default function SalesBillsPage() { // Keep the component name as SalesBillsPage
   const [salesOrders, setSalesOrders] = useState([]); // State to hold sales orders
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("approved");
   const [searchQuery, setSearchQuery] = useState(""); // Added search query state
   const { isNepaliCalendar } = useCalendar();
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailOrder, setEmailOrder] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
 
   const fetchSalesOrders = async () => { // Function to fetch sales orders
     setIsLoading(true);
@@ -48,11 +41,11 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
       if (response.ok) {
         setSalesOrders(result.salesOrders); // Updated to setSalesOrders
       } else {
-        setError(result.message || "Failed to fetch sales orders");
+        setError(result.message || "Failed to fetch sales vouchers");
       }
     } catch (err) {
-      console.error("Error fetching sales orders:", err);
-      setError("An error occurred while fetching the sales orders.");
+      console.error("Error fetching sales vouchers:", err);
+      setError("An error occurred while fetching the sales vouchers.");
     } finally {
       setIsLoading(false);
     }
@@ -73,76 +66,28 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
     }
   };
 
-  // Handle status toggle
-  const handleStatusToggle = async (orderId, currentStatus) => {
-    try {
-      // Determine the new status
-      const newStatus = currentStatus === 'APPROVED' ? 'DRAFT' : 'APPROVED';
-      
-      // Call the API to update the status
-      const response = await fetch(`/api/organization/sales-orders/${orderId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        // Update the local state
-        setSalesOrders(prevOrders => 
-          prevOrders.map(order => 
-            order._id === orderId ? { ...order, status: newStatus } : order
-          )
-        );
-        
-        // Show success message
-        toast({
-          title: "Status Updated",
-          description: `Sales order status changed to ${newStatus}`,
-          variant: "success",
-        });
-      } else {
-        // Show error message
-        toast({
-          title: "Update Failed",
-          description: result.message || "Failed to update status",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error updating status:", error);
-      toast({
-        title: "Error",
-        description: "An error occurred while updating the status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle search input change
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  // Filter orders based on active tab and search query
-  const filteredOrders = salesOrders.filter(order => {
-    // Status filter
-    const statusMatches = 
-      activeTab === "approved" ? order.status === "APPROVED" :
-      activeTab === "draft" ? order.status === "DRAFT" : 
-      true;
-    
-    // Search filter - check if search query exists in various fields
+  // Filter and sort orders based on search query and Sales Voucher No (referenceNo)
+  const filteredOrders = salesOrders
+    .filter(order => {
     const searchMatches = searchQuery === "" || 
       (order.customer?.name && order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (order.salesOrderNumber && order.salesOrderNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (order.referenceNo && order.referenceNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (order.totalAmount && order.totalAmount.toString().includes(searchQuery.toLowerCase()));
-    
-    return statusMatches && searchMatches;
+      return searchMatches;
+    })
+    .sort((a, b) => {
+      // Extract numeric part from referenceNo (e.g., SV-0001 -> 1)
+      const getNum = ref => {
+        if (!ref) return 0;
+        const match = ref.match(/\d+/g);
+        return match ? parseInt(match.join(''), 10) : 0;
+      };
+      return getNum(b.referenceNo) - getNum(a.referenceNo);
   });
 
   const handleDelete = (id) => {
@@ -160,9 +105,9 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
         setSalesOrders(prev => prev.filter(v => v._id !== deletingId));
         setDeleteDialogOpen(false);
         setDeletingId(null);
-        toast({ title: 'Deleted', description: 'Sales bill deleted successfully', variant: 'success' });
+        toast({ title: 'Deleted', description: 'Sales voucher deleted successfully', variant: 'success' });
       } else {
-        toast({ title: 'Delete Failed', description: 'Failed to delete sales bill', variant: 'destructive' });
+        toast({ title: 'Delete Failed', description: 'Failed to delete sales voucher', variant: 'destructive' });
       }
     } catch (err) {
       toast({ title: 'Error', description: 'An error occurred while deleting', variant: 'destructive' });
@@ -173,8 +118,108 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
     window.open(`/dashboard/sales/sales-bills/${id}/print`, '_blank');
   };
 
+  // Helper to generate PDF as base64 for preview/attachment
+  const generatePdfBase64 = async (order) => {
+    const jsPDFModule = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+    const doc = new jsPDFModule.jsPDF('p', 'pt');
+    // Company Info (placeholder)
+    doc.setFontSize(18);
+    doc.text('[Company Name]', 40, 40);
+    doc.setFontSize(10);
+    doc.text('[Street Address]', 40, 60);
+    doc.text('[City, ST ZIP]', 40, 75);
+    doc.text('Phone: [000-000-0000]', 40, 90);
+    doc.text('Fax: [000-000-0000]', 40, 105);
+    // Invoice Title
+    doc.setFontSize(24);
+    doc.setTextColor('#3a5da8');
+    doc.text('INVOICE', 420, 50, { align: 'right' });
+    doc.setTextColor('#222');
+    doc.setFontSize(12);
+    // Invoice Info Table
+    autoTable(doc, {
+      startY: 120,
+      head: [['DATE', 'SALES VOUCHER NO', 'CUSTOMER ID']],
+      body: [[
+        formatDateDisplay(order.date),
+        order.referenceNo || 'N/A',
+        order.customer?._id || 'N/A',
+      ]],
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 58, 94] },
+    });
+    // Customer Info
+    let y = doc.lastAutoTable.finalY + 20;
+    doc.setFontSize(12);
+    doc.setFillColor(34, 58, 94);
+    doc.setTextColor('#fff');
+    doc.rect(40, y, 220, 20, 'F');
+    doc.text('BILL TO:', 45, y + 14);
+    doc.rect(300, y, 220, 20, 'F');
+    doc.text('SHIP TO:', 305, y + 14);
+    doc.setTextColor('#222');
+    doc.setFontSize(10);
+    doc.text('[Name]', 45, y + 34);
+    doc.text('[Company Name]', 45, y + 48);
+    doc.text('[Street Address]', 45, y + 62);
+    doc.text('[City, ST ZIP]', 45, y + 76);
+    doc.text('[Phone]', 45, y + 90);
+    doc.text('[Name]', 305, y + 34);
+    doc.text('[Company Name]', 305, y + 48);
+    doc.text('[Street Address]', 305, y + 62);
+    doc.text('[City, ST ZIP]', 305, y + 76);
+    doc.text('[Phone]', 305, y + 90);
+    // Items Table
+    const items = (order.items || []).map(item => [
+      item.item?._id || 'N/A',
+      item.item?.name || 'Unknown Product',
+      item.quantity || 0,
+      (item.price || 0).toFixed(2),
+      ((item.quantity || 0) * (item.price || 0)).toFixed(2),
+    ]);
+    autoTable(doc, {
+      startY: y + 110,
+      head: [['ITEM #', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL']],
+      body: items,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 58, 94] },
+    });
+    // Totals
+    let y2 = doc.lastAutoTable.finalY + 20;
+    doc.setFontSize(12);
+    doc.text('SUBTOTAL', 400, y2);
+    doc.text((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0).toFixed(2), 520, y2, { align: 'right' });
+    doc.text('TAX RATE', 400, y2 + 16);
+    doc.text('6.750%', 520, y2 + 16, { align: 'right' });
+    doc.text('TAX', 400, y2 + 32);
+    doc.text(((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0) * 0.0675).toFixed(2), 520, y2 + 32, { align: 'right' });
+    doc.text('TOTAL', 400, y2 + 48);
+    doc.setFontSize(14);
+    doc.setTextColor('#3a5da8');
+    doc.text(((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0) * 1.0675).toFixed(2), 520, y2 + 48, { align: 'right' });
+    doc.setTextColor('#222');
+    // Comments
+    doc.setFontSize(10);
+    doc.text('Other Comments or Special Instructions:', 40, y2 + 80);
+    doc.text('- Total payment due in 30 days', 60, y2 + 96);
+    doc.text('- Please include the invoice number on your check', 60, y2 + 110);
+    // Footer
+    doc.setFontSize(12);
+    doc.setTextColor('#3a5da8');
+    doc.text('Thank You For Your Business!', 40, y2 + 140);
+    doc.setTextColor('#888');
+    doc.setFontSize(10);
+    doc.text('If you have any questions about this invoice, please contact', 40, y2 + 160);
+    doc.text('[Name, Phone #, E-mail]', 40, y2 + 172);
+    // Return as base64 string
+    return doc.output('datauristring');
+  };
+
   if (isLoading) {
-    return <div className="p-4">Loading sales orders...</div>;
+    return <div className="p-4">Loading sales vouchers...</div>;
   }
 
   if (error) {
@@ -184,7 +229,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Sales Bills</h1>
+        <h1 className="text-2xl font-bold">Sales Vouchers</h1>
         <div className="flex gap-4 items-center">
           <div className="text-sm text-gray-500">
             <span className="font-medium">Calendar:</span>{" "}
@@ -199,16 +244,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
         </div>
       </div>
 
-      <Tabs 
-        defaultValue="approved" 
-        className="w-full"
-        onValueChange={(value) => setActiveTab(value)}
-      >
         <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="draft">Draft</TabsTrigger>
-          </TabsList>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <span>Rows Count</span>
@@ -227,10 +263,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
               <span className="text-sm text-gray-700">1 - {filteredOrders.length} / {filteredOrders.length}</span>
               <Button variant="outline" size="icon"><ChevronRight className="h-4 w-4" /></Button>
             </div>
-            <Button variant="outline">
-              <Menu className="h-4 w-4 mr-2" />
-              OPTIONS
-            </Button>
+          
           </div>
         </div>
 
@@ -238,7 +271,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           type="text"
-            placeholder="Search by customer, order number, reference..."
+          placeholder="Search by customer, sales voucher no..."
             className="pl-10"
             value={searchQuery}
             onChange={handleSearchChange}
@@ -255,17 +288,14 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
           )}
         </div>
 
-        <TabsContent value="approved">
           <div className="border rounded-md">
             <CustomTable>
               <CustomTableHeader>
                 <CustomTableRow className="bg-gray-100">
                   <CustomTableHead>CUSTOMER</CustomTableHead>
-                  <CustomTableHead>ORDER NO</CustomTableHead>
-                  <CustomTableHead>REFERENCE NO</CustomTableHead>
+                  <CustomTableHead>SALES VOUCHER NO</CustomTableHead>
                   <CustomTableHead>DATE</CustomTableHead>
                   <CustomTableHead>AMOUNT</CustomTableHead>
-                  <CustomTableHead>STATUS</CustomTableHead>
                   <CustomTableHead>ACTIONS</CustomTableHead>
                 </CustomTableRow>
               </CustomTableHeader>
@@ -284,150 +314,161 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                     }}
                   >
                     <CustomTableCell>{order.customer?.name || 'N/A'}</CustomTableCell>
-                    <CustomTableCell>{order.salesOrderNumber || 'N/A'}</CustomTableCell>
-                    <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
+                <CustomTableCell>{order.referenceNo || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{formatDateDisplay(order.date)}</CustomTableCell>
                     <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
                     <CustomTableCell>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        order.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-                        order.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status || 'N/A'}
-                      </span>
-                    </CustomTableCell>
-                    <CustomTableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/sales/add-sales-bill?id=${order._id}`); }}>
-                            Edit
-                          </DropdownMenuItem>
-                          {order.status !== 'DRAFT' && (
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(order._id, order.status); }}>
-                              Switch to Draft
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(order._id); }}>
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(order._id); }}>
-                            Print
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  <div className="flex space-x-2">
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); handlePrint(order._id); }} title="Print"><Printer className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={async e => {
+                      e.stopPropagation();
+                      setEmailOrder(order);
+                      setEmailDialogOpen(true);
+                      // Generate PDF preview for the modal
+                      const pdfUrl = await generatePdfBase64(order);
+                      setPdfPreviewUrl(pdfUrl);
+                    }} title="Email">
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={e => {
+                      e.stopPropagation();
+                      // Prepare data for Excel
+                      const ws = XLSX.utils.json_to_sheet([
+                        {
+                          'Sales Voucher No': order.referenceNo,
+                          'Customer': order.customer?.name || 'N/A',
+                          'Date': formatDateDisplay(order.date),
+                          'Amount': order.totalAmount?.toFixed(2) || '0.00',
+                        }
+                      ]);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, 'SalesVoucher');
+                      XLSX.writeFile(wb, `SalesVoucher-${order.referenceNo || order._id}.xlsx`);
+                    }} title="Download Excel">
+                      <FileSpreadsheet className="h-4 w-4 text-green-700" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={async e => {
+                      e.stopPropagation();
+                      // Dynamically import autotable and attach to jsPDF
+                      const jsPDFModule = await import('jspdf');
+                      const autoTable = (await import('jspdf-autotable')).default;
+                      const doc = new jsPDFModule.jsPDF('p', 'pt');
+                      // Company Info (placeholder)
+                      doc.setFontSize(18);
+                      doc.text('[Company Name]', 40, 40);
+                      doc.setFontSize(10);
+                      doc.text('[Street Address]', 40, 60);
+                      doc.text('[City, ST ZIP]', 40, 75);
+                      doc.text('Phone: [000-000-0000]', 40, 90);
+                      doc.text('Fax: [000-000-0000]', 40, 105);
+                      // Invoice Title
+                      doc.setFontSize(24);
+                      doc.setTextColor('#3a5da8');
+                      doc.text('INVOICE', 420, 50, { align: 'right' });
+                      doc.setTextColor('#222');
+                      doc.setFontSize(12);
+                      // Invoice Info Table
+                      autoTable(doc, {
+                        startY: 120,
+                        head: [['DATE', 'SALES VOUCHER NO', 'CUSTOMER ID']],
+                        body: [[
+                          formatDateDisplay(order.date),
+                          order.referenceNo || 'N/A',
+                          order.customer?._id || 'N/A',
+                        ]],
+                        theme: 'grid',
+                        styles: { fontSize: 10 },
+                        headStyles: { fillColor: [34, 58, 94] },
+                      });
+                      // Customer Info
+                      let y = doc.lastAutoTable.finalY + 20;
+                      doc.setFontSize(12);
+                      doc.setFillColor(34, 58, 94);
+                      doc.setTextColor('#fff');
+                      doc.rect(40, y, 220, 20, 'F');
+                      doc.text('BILL TO:', 45, y + 14);
+                      doc.rect(300, y, 220, 20, 'F');
+                      doc.text('SHIP TO:', 305, y + 14);
+                      doc.setTextColor('#222');
+                      doc.setFontSize(10);
+                      doc.text('[Name]', 45, y + 34);
+                      doc.text('[Company Name]', 45, y + 48);
+                      doc.text('[Street Address]', 45, y + 62);
+                      doc.text('[City, ST ZIP]', 45, y + 76);
+                      doc.text('[Phone]', 45, y + 90);
+                      doc.text('[Name]', 305, y + 34);
+                      doc.text('[Company Name]', 305, y + 48);
+                      doc.text('[Street Address]', 305, y + 62);
+                      doc.text('[City, ST ZIP]', 305, y + 76);
+                      doc.text('[Phone]', 305, y + 90);
+                      // Items Table
+                      const items = (order.items || []).map(item => [
+                        item.item?._id || 'N/A',
+                        item.item?.name || 'Unknown Product',
+                        item.quantity || 0,
+                        (item.price || 0).toFixed(2),
+                        ((item.quantity || 0) * (item.price || 0)).toFixed(2),
+                      ]);
+                      autoTable(doc, {
+                        startY: y + 110,
+                        head: [['ITEM #', 'DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL']],
+                        body: items,
+                        theme: 'grid',
+                        styles: { fontSize: 10 },
+                        headStyles: { fillColor: [34, 58, 94] },
+                      });
+                      // Totals
+                      let y2 = doc.lastAutoTable.finalY + 20;
+                      doc.setFontSize(12);
+                      doc.text('SUBTOTAL', 400, y2);
+                      doc.text((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0).toFixed(2), 520, y2, { align: 'right' });
+                      doc.text('TAX RATE', 400, y2 + 16);
+                      doc.text('6.750%', 520, y2 + 16, { align: 'right' });
+                      doc.text('TAX', 400, y2 + 32);
+                      doc.text(((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0) * 0.0675).toFixed(2), 520, y2 + 32, { align: 'right' });
+                      doc.text('TOTAL', 400, y2 + 48);
+                      doc.setFontSize(14);
+                      doc.setTextColor('#3a5da8');
+                      doc.text(((order.items || []).reduce((sum, i) => sum + ((i.quantity || 0) * (i.price || 0)), 0) * 1.0675).toFixed(2), 520, y2 + 48, { align: 'right' });
+                      doc.setTextColor('#222');
+                      // Comments
+                      doc.setFontSize(10);
+                      doc.text('Other Comments or Special Instructions:', 40, y2 + 80);
+                      doc.text('- Total payment due in 30 days', 60, y2 + 96);
+                      doc.text('- Please include the invoice number on your check', 60, y2 + 110);
+                      // Footer
+                      doc.setFontSize(12);
+                      doc.setTextColor('#3a5da8');
+                      doc.text('Thank You For Your Business!', 40, y2 + 140);
+                      doc.setTextColor('#888');
+                      doc.setFontSize(10);
+                      doc.text('If you have any questions about this invoice, please contact', 40, y2 + 160);
+                      doc.text('[Name, Phone #, E-mail]', 40, y2 + 172);
+                      doc.save(`SalesVoucher-${order.referenceNo || order._id}.pdf`);
+                    }} title="Download PDF">
+                      <FileText className="h-4 w-4 text-red-700" />
+                    </Button>
+          </div>
                     </CustomTableCell>
                   </CustomTableRow>
                 ))}
                 {filteredOrders.length === 0 && (
                   <CustomTableRow>
                     <CustomTableCell colSpan={8} className="text-center py-4">
-                      {searchQuery ? "No matching sales orders found." : "No approved sales orders found."}
+                  {searchQuery ? "No matching sales orders found." : "No sales orders found."}
                     </CustomTableCell>
                   </CustomTableRow>
                 )}
               </CustomTableBody>
             </CustomTable>
           </div>
-        </TabsContent>
-
-        <TabsContent value="draft">
-          <div className="border rounded-md">
-            <CustomTable>
-              <CustomTableHeader>
-                <CustomTableRow className="bg-gray-100">
-                  <CustomTableHead>CUSTOMER</CustomTableHead>
-                  <CustomTableHead>ORDER NO</CustomTableHead>
-                  <CustomTableHead>REFERENCE NO</CustomTableHead>
-                  <CustomTableHead>DATE</CustomTableHead>
-                  <CustomTableHead>AMOUNT</CustomTableHead>
-                  <CustomTableHead>STATUS</CustomTableHead>
-                  <CustomTableHead>ACTIONS</CustomTableHead>
-                </CustomTableRow>
-              </CustomTableHeader>
-              <CustomTableBody>
-                {filteredOrders.map((order) => (
-                  <CustomTableRow
-                    key={order._id}
-                    className={(order.highlighted ? "bg-green-50 " : "") + " cursor-pointer"}
-                    onClick={e => {
-                      if (
-                        e.target.closest('button') ||
-                        e.target.closest('input[type=checkbox]') ||
-                        e.target.closest('.switch')
-                      ) return;
-                      router.push(`/dashboard/sales/sales-orders/${order._id}`);
-                    }}
-                  >
-                    <CustomTableCell>{order.customer?.name || 'N/A'}</CustomTableCell>
-                    <CustomTableCell>{order.salesOrderNumber || 'N/A'}</CustomTableCell>
-                    <CustomTableCell>{order.referenceNo || ''}</CustomTableCell>
-                    <CustomTableCell>{formatDateDisplay(order.date)}</CustomTableCell>
-                    <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
-                    <CustomTableCell>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        order.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-                        order.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status || 'N/A'}
-                      </span>
-                    </CustomTableCell>
-                    <CustomTableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={e => e.stopPropagation()}>
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); router.push(`/dashboard/sales/add-sales-bill?id=${order._id}`); }}>
-                            Edit
-                          </DropdownMenuItem>
-                          {order.status !== 'DRAFT' && (
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleStatusToggle(order._id, order.status); }}>
-                              Switch to Draft
-                            </DropdownMenuItem>
-                          )}
-                          {order.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDelete(order._id); }}>
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handlePrint(order._id); }}>
-                            Print
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </CustomTableCell>
-                  </CustomTableRow>
-                ))}
-                {filteredOrders.length === 0 && (
-                  <CustomTableRow>
-                    <CustomTableCell colSpan={8} className="text-center py-4">
-                      {searchQuery ? "No matching sales orders found." : "No draft sales orders found."}
-                    </CustomTableCell>
-                  </CustomTableRow>
-                )}
-              </CustomTableBody>
-            </CustomTable>
-          </div>
-        </TabsContent>
-      </Tabs>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Sales Bill</DialogTitle>
+            <DialogTitle>Delete Sales Voucher</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this sales bill? This action cannot be undone.
+              Are you sure you want to delete this sales voucher? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -438,6 +479,20 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {emailDialogOpen && emailOrder && (
+        <EmailModal
+          isOpen={emailDialogOpen}
+          onClose={() => setEmailDialogOpen(false)}
+          to={emailOrder.customer?.email || ""}
+          subject={`Sales Voucher ${emailOrder.referenceNo}`}
+          body={`Please find attached the sales voucher for your reference.\n\n-- Sent from Cloud Ledger`}
+          pdfPreviewUrl={pdfPreviewUrl}
+          pdfFileName={`SalesVoucher-${emailOrder.referenceNo || emailOrder._id}.pdf`}
+          orderId={emailOrder._id}
+          type="sales-voucher"
+        />
+      )}
     </div>
   );
 }

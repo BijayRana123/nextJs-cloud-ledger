@@ -22,9 +22,9 @@ export default function AddSalesReturnPage() {
     referenceNo: '',
     billNumber: '',
     billDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0], // Initialize with today's date
     customerInvoiceReferenceNo: '',
-    currency: 'Nepalese Rupee',
+    currency: 'NPR',
     exchangeRateToNPR: '1',
     isImport: false,
     items: [],
@@ -52,7 +52,7 @@ export default function AddSalesReturnPage() {
               billDate: sr.date ? new Date(sr.date).toISOString().split('T')[0] : '',
               dueDate: sr.dueDate ? new Date(sr.dueDate).toISOString().split('T')[0] : '',
               customerInvoiceReferenceNo: sr.customerInvoiceReferenceNo || '',
-              currency: sr.currency || 'Nepalese Rupee',
+              currency: sr.currency || 'NPR',
               exchangeRateToNPR: sr.exchangeRateToNPR?.toString() || '1',
               isImport: sr.isImport || false,
               items: sr.items?.map(item => ({
@@ -142,7 +142,7 @@ export default function AddSalesReturnPage() {
       returnNumber: formData.billNumber,
       dueDate: formData.dueDate,
       customerInvoiceReferenceNo: formData.customerInvoiceReferenceNo,
-      currency: formData.currency,
+      currency: 'NPR',
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
       isImport: formData.isImport,
     };
@@ -228,4 +228,4 @@ export default function AddSalesReturnPage() {
       <CalculationSection items={formData.items} />
     </div>
   );
-} 
+}

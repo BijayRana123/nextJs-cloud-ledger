@@ -21,11 +21,11 @@ export async function POST(request) {
     if (!salesReturnData.referenceNo) {
       try {
         salesReturnData.referenceNo = await Counter.getNextSequence('sales_return_voucher', {
-          prefix: 'SR-',
+          prefix: 'SRV-',
           paddingSize: 4
         });
       } catch (err) {
-        salesReturnData.referenceNo = `SR-${Date.now()}`;
+        salesReturnData.referenceNo = `SRV-${Date.now()}`;
       }
     }
     const newSalesReturn = new SalesReturnVoucher({
@@ -36,7 +36,7 @@ export async function POST(request) {
     });
     await newSalesReturn.save();
     // Create journal entry for sales return
-    await createSalesReturnEntry(newSalesReturn);
+    // await createSalesReturnEntry(newSalesReturn); // Commented out for now as createSalesReturnEntry is not implemented
     return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: newSalesReturn }, { status: 201 });
   } catch (error) {
     let errorMessage = "Failed to create sales return voucher";
@@ -46,12 +46,16 @@ export async function POST(request) {
       });
       errorMessage = `Validation failed: ${validationErrors.join(', ')}`;
     }
-    return NextResponse.json({ 
+    console.error("Error creating sales return voucher:", error);
+    return NextResponse.json({
       message: errorMessage,
       error: error.message
     }, { status: 500 });
   }
 }
+
+// Remove placeholder data and use database fetching
+// const dummySalesReturnVouchers = [...];
 
 export async function GET(request) {
   await dbConnect();
@@ -64,9 +68,15 @@ export async function GET(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const salesReturnVouchers = await SalesReturnVoucher.find({ organization: organizationId }).populate('customer').lean();
+    // Fetch sales return vouchers for the organization, populate customer and sort
+    const salesReturnVouchers = await SalesReturnVoucher.find({ organization: organizationId })
+      .populate('customer')
+      .sort({ createdAt: -1 }) // Sort by creation date descending
+      .lean();
+
     return NextResponse.json({ salesReturnVouchers }, { status: 200 });
   } catch (error) {
+    console.error("Error fetching sales return vouchers:", error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -92,8 +102,39 @@ export async function PUT(request) {
     }
     salesReturn.status = status;
     await salesReturn.save();
-    return NextResponse.json({ message: 'Sales return voucher status updated', salesReturn }, { status: 200 });
+    return NextResponse.json({ message: 'Sales return voucher status updated', salesReturn: salesReturn }, { status: 200 });
   } catch (error) {
+    console.error("Error updating sales return voucher status:", error);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
-} 
+}
+
+// Add DELETE handler similar to Sales Orders if needed
+/*
+export async function DELETE(request, context) {
+  await dbConnect();
+  try {
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      return authResult;
+    }
+    const organizationId = request.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
+    }
+    const params = context.params;
+    const id = params.id;
+    const deleted = await SalesReturnVoucher.findOneAndDelete({
+      _id: id,
+      organization: organizationId
+    });
+    if (!deleted) {
+      return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
+    }
+    return NextResponse.json({ message: 'Sales return voucher deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting sales return voucher:", error);
+    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
+  }
+}
+*/

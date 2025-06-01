@@ -29,7 +29,7 @@ export async function POST(request) {
     
     // Ensure salesOrderNumber is set
     if (!salesOrderData.salesOrderNumber) {
-      salesOrderData.salesOrderNumber = `SO-${Date.now()}`;
+      salesOrderData.salesOrderNumber = `SV-${Date.now()}`;
     }
 
     // Log the data being sent to the database
@@ -96,7 +96,12 @@ export async function GET(request) {
     }
 
     // Fetch sales orders for the authenticated user's organization and populate the customer details
-    const salesOrders = await SalesOrder.find({ organization: organizationId }).populate('customer').lean();
+    const salesOrders = await SalesOrder.find({ organization: organizationId })
+      .populate({
+        path: 'customer',
+        select: 'name address pan phoneNumber email',
+      })
+      .lean();
 
     return NextResponse.json({ salesOrders }, { status: 200 });
   } catch (error) {

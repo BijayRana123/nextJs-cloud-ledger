@@ -17,7 +17,6 @@ export default function SalesBillDetailPage() {
   const [error, setError] = useState(null);
   const [approveError, setApproveError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -36,48 +35,19 @@ export default function SalesBillDetailPage() {
         },
       });
       if (!response.ok) {
-        throw new Error(`Failed to fetch sales bill: ${response.status}`);
+        throw new Error(`Failed to fetch sales voucher: ${response.status}`);
       }
       const data = await response.json();
       setBill(data.salesOrder);
     } catch (err) {
-      setError("An error occurred while fetching the sales bill.");
+      setError("An error occurred while fetching the sales voucher.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleApprove = async () => {
-    setIsApproving(true);
-    setApproveError(null);
-    try {
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      const response = await fetch(`/api/organization/sales-orders/${id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await response.json();
-      if (response.ok) {
-        fetchBill();
-      } else {
-        let errorMessage = result.message || "Failed to approve sales bill";
-        if (result.error) {
-          errorMessage += `: ${result.error}`;
-        }
-        setApproveError(`Failed to approve sales bill: ${response.status} - ${errorMessage}`);
-      }
-    } catch (err) {
-      setApproveError(`An error occurred while approving the sales bill: ${err.message}`);
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this sales bill?")) {
+    if (!confirm("Are you sure you want to delete this sales voucher?")) {
       return;
     }
     setIsDeleting(true);
@@ -95,10 +65,10 @@ export default function SalesBillDetailPage() {
       if (response.ok) {
         router.push('/dashboard/sales/sales-bills');
       } else {
-        setDeleteError(result.message || "Failed to delete sales bill");
+        setDeleteError(result.message || "Failed to delete sales voucher");
       }
     } catch (err) {
-      setDeleteError("An error occurred while deleting the sales bill.");
+      setDeleteError("An error occurred while deleting the sales voucher.");
     } finally {
       setIsDeleting(false);
     }
@@ -109,19 +79,19 @@ export default function SalesBillDetailPage() {
   };
 
   if (isLoading) {
-    return <div className="p-4">Loading sales bill...</div>;
+    return <div className="p-4">Loading sales voucher...</div>;
   }
   if (error) {
     return <div className="p-4 text-red-600">{error}</div>;
   }
   if (!bill) {
-    return <div className="p-4 text-red-600">Sales bill not found</div>;
+    return <div className="p-4 text-red-600">Sales voucher not found</div>;
   }
   if (deleteError) {
-    return <div className="p-4 text-red-600">Error deleting sales bill: {deleteError}</div>;
+    return <div className="p-4 text-red-600">Error deleting sales voucher: {deleteError}</div>;
   }
   if (approveError) {
-    return <div className="p-4 text-red-600">Error approving sales bill: {approveError}</div>;
+    return <div className="p-4 text-red-600">Error approving sales voucher: {approveError}</div>;
   }
 
   const {
@@ -154,18 +124,14 @@ export default function SalesBillDetailPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold">Sales Bill Details</h1>
+      <h1 className="text-2xl font-bold">Sales Voucher Details</h1>
       <div className="flex space-x-2 mb-4">
         {!isLoading && bill && (
           <>
             {status === 'DRAFT' && (
               <>
                 <Button variant="outline" onClick={() => router.push(`/dashboard/sales/add-sales-bill?id=${id}`)}>Edit</Button>
-                <Button onClick={handleApprove} disabled={isApproving}>
-                  {isApproving ? 'Approving...' : 'Approve'}
-                  <CheckCircle className="ml-2 h-4 w-4" />
-                </Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                <Button onClick={handleDelete} disabled={isDeleting}>
                   {isDeleting ? 'Deleting...' : 'Delete'}
                   <Trash2 className="ml-2 h-4 w-4" />
                 </Button>
@@ -181,7 +147,7 @@ export default function SalesBillDetailPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Sales Bill Information</CardTitle>
+          <CardTitle>Sales Voucher Information</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

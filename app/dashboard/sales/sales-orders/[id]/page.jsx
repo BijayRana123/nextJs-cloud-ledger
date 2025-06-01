@@ -9,7 +9,11 @@ import CustomerSection from "@/app/components/sales/customer-section";
 import ItemsSection from "@/app/components/sales/items-section";
 import CalculationSection from "@/app/components/sales/calculation-section";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/app/components/sales/items-section";
-import { Printer, FileEdit, Trash2, CheckCircle } from "lucide-react";
+import { Printer, FileEdit, Trash2, CheckCircle, Mail, MoreVertical, FileSpreadsheet, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import EmailModal from "@/app/components/email-modal";
+import SalesOrderExcelDownload from "@/components/sales/SalesOrderExcelDownload";
+import SalesOrderPdfDownload from "@/components/sales/SalesOrderPdfDownload";
 
 export default function SalesOrderDetailPage() {
   const { id } = useParams(); // Get the sales order ID from the URL
@@ -18,10 +22,12 @@ export default function SalesOrderDetailPage() {
   const [salesOrder, setSalesOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [approveError, setApproveError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailOrder, setEmailOrder] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
+  const [generatePdfBase64, setGeneratePdfBase64] = useState(null);
 
   useEffect(() => {
     fetchSalesOrder();
@@ -63,47 +69,6 @@ export default function SalesOrderDetailPage() {
     console.log("Sales Order state updated:", salesOrder);
   }, [salesOrder]);
 
-  const handleApprove = async () => {
-    setIsApproving(true);
-    setApproveError(null);
-
-    try {
-      // Retrieve the JWT from the cookie
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      
-      // Make the API call with the authentication token
-      const response = await fetch(`/api/organization/sales-orders/${id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        console.log("Sales order approved successfully:", result);
-        // Optionally refetch the sales order to update its status
-        fetchSalesOrder();
-      } else {
-        let errorMessage = result.message || "Failed to approve sales order";
-        
-        // If there's a more detailed error message in the response
-        if (result.error) {
-          errorMessage += `: ${result.error}`;
-        }
-        
-        setApproveError(`Failed to approve sales order: ${response.status} - ${errorMessage}`);
-      }
-    } catch (err) {
-      console.error("Error approving sales order:", err);
-      setApproveError(`An error occurred while approving the sales order: ${err.message}`);
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this sales order?")) {
       return;
@@ -128,7 +93,7 @@ export default function SalesOrderDetailPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // Redirect to sales bills page after successful deletion
+        // Redirect to sales vouchers page after successful deletion
         router.push('/dashboard/sales/sales-bills');
       } else {
         setDeleteError(result.message || "Failed to delete sales order");
@@ -142,9 +107,30 @@ export default function SalesOrderDetailPage() {
   };
 
   const handlePrint = () => {
-    // Navigate to the print page
-    router.push(`/dashboard/sales/sales-orders/${id}/print`);
+    // Open the print view in a new tab/window
+    if (salesOrder) {
+      window.open(`/dashboard/sales/sales-orders/${salesOrder._id}/print`, '_blank');
+    }
   };
+
+  const handleEmailClick = async () => {
+    if (salesOrder) {
+      setEmailOrder(salesOrder);
+      setIsEmailModalOpen(true);
+      // Generate PDF preview for the modal
+      if (generatePdfBase64) {
+        const pdfUrl = await generatePdfBase64(salesOrder);
+        setPdfPreviewUrl(pdfUrl);
+      }
+    }
+  };
+
+  // Function to dynamically import PDF generation for email modal
+  useEffect(() => {
+    import('./print/generatePdfBase64')
+      .then(module => setGeneratePdfBase64(() => module.generatePdfBase64)) // Use functional update
+      .catch(error => console.error('Failed to load PDF generation module:', error));
+  }, []);
 
   if (isLoading) {
     return <div className="p-4">Loading sales order...</div>;
@@ -160,10 +146,6 @@ export default function SalesOrderDetailPage() {
 
   if (deleteError) {
     return <div className="p-4 text-red-600">Error deleting sales order: {deleteError}</div>;
-  }
-
-  if (approveError) {
-    return <div className="p-4 text-red-600">Error approving sales order: {approveError}</div>;
   }
 
   // Extract data from the salesOrder object
@@ -198,58 +180,71 @@ export default function SalesOrderDetailPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Sales Order Details</h1>
+        <h1 className="text-2xl font-bold">Sales Voucher Details</h1>
         <div className="flex space-x-2">
-          {/* Conditionally render buttons based on sales order status and loading state */}
-          {!isLoading && salesOrder && (
-            <>
-              {salesOrder.status === 'DRAFT' && (
-                <>
-                  <Button variant="outline" onClick={() => router.push(`/dashboard/sales/add-sales-bill?id=${id}`)}>Edit</Button>
-                  <Button onClick={handleApprove} disabled={isApproving}>
-                    {isApproving ? 'Approving...' : 'Approve'}
-                    <CheckCircle className="ml-2 h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                    {isDeleting ? 'Deleting...' : 'Delete'}
-                    <Trash2 className="ml-2 h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              <Button variant="outline" onClick={handlePrint}>
-                Print
-                <Printer className="ml-2 h-4 w-4" />
-              </Button>
-            </>
-          )}
+          <Button variant="outline" onClick={() => router.push('/dashboard/sales/sales-bills')}>
+            Back to Sales Vouchers
+          </Button>
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/sales/add-sales-bill')}>
+            + Add New
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/dashboard/sales/add-sales-bill?id=${id}`)}>
+                <FileEdit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" /> Print
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Mail className="mr-2 h-4 w-4" /> Email
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={handleEmailClick}>
+                    Email Sales Order
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Download
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <SalesOrderExcelDownload salesOrder={salesOrder}>
+                    <DropdownMenuItem>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+                    </DropdownMenuItem>
+                  </SalesOrderExcelDownload>
+                  <SalesOrderPdfDownload salesOrder={salesOrder}>
+                    <DropdownMenuItem>
+                      <FileText className="mr-2 h-4 w-4" /> PDF
+                    </DropdownMenuItem>
+                  </SalesOrderPdfDownload>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Sales Order Information</CardTitle>
+          <CardTitle>Sales Voucher Information</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-medium mb-2">Basic Details</h3>
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Sales Order Number:</span>
-                  <div>{salesOrderNumber || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Status:</span>
-                  <div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      salesOrder.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      salesOrder.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {salesOrder.status || 'DRAFT'}
-                    </span>
-                  </div>
-                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Date:</span>
                   <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
@@ -259,12 +254,11 @@ export default function SalesOrderDetailPage() {
                   <div>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Reference No:</span>
+                  <span className="text-gray-500">Sales Voucher No:</span>
                   <div>{referenceNo || 'N/A'}</div>
                 </div>
               </div>
             </div>
-
             <div>
               <h3 className="font-medium mb-2">Customer Information</h3>
               <div className="space-y-2">
@@ -382,6 +376,17 @@ export default function SalesOrderDetailPage() {
             <p>{salesOrder.notes}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Email Modal */}
+      {isEmailModalOpen && emailOrder && (
+        <EmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          salesOrder={emailOrder}
+          pdfPreviewUrl={pdfPreviewUrl}
+          pdfFileName={`SalesVoucher-${emailOrder?.referenceNo || emailOrder?._id}.pdf`}
+        />
       )}
     </div>
   );

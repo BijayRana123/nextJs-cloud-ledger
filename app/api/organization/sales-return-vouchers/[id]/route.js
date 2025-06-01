@@ -16,16 +16,18 @@ export async function GET(request, context) {
     }
     const params = await context.params;
     const id = params.id;
-    // Fetch the sales return voucher by ID and populate customer and items.item
-    const salesReturn = await SalesReturnVoucher.findOne({
+    const salesReturnVoucher = await SalesReturnVoucher.findOne({
       _id: id,
       organization: organizationId
     }).populate('customer').populate('items.item').lean();
-    if (!salesReturn) {
+
+    if (!salesReturnVoucher) {
       return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
     }
-    return NextResponse.json({ salesReturn }, { status: 200 });
+
+    return NextResponse.json({ salesReturnVoucher }, { status: 200 });
   } catch (error) {
+    console.error("Error fetching sales return voucher:", error);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }
@@ -52,6 +54,7 @@ export async function DELETE(request, context) {
     }
     return NextResponse.json({ message: 'Sales return voucher deleted successfully' }, { status: 200 });
   } catch (error) {
+    console.error("Error deleting sales return voucher:", error);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }
@@ -69,18 +72,23 @@ export async function PUT(request, context) {
     }
     const params = await context.params;
     const id = params.id;
-    const { status } = await request.json();
-    if (!status) {
-      return NextResponse.json({ message: 'Status is required.' }, { status: 400 });
-    }
+    const { status, ...updateData } = await request.json();
+
     const voucher = await SalesReturnVoucher.findOne({ _id: id, organization: organizationId });
     if (!voucher) {
       return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
     }
-    voucher.status = status;
+
+    Object.assign(voucher, updateData);
+
+    if (status !== undefined) {
+      voucher.status = status;
+    }
+
     await voucher.save();
-    return NextResponse.json({ message: 'Sales return voucher status updated', salesReturn: voucher }, { status: 200 });
+    return NextResponse.json({ message: 'Sales return voucher updated successfully', salesReturnVoucher: voucher }, { status: 200 });
   } catch (error) {
+    console.error("Error updating sales return voucher:", error);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 } 

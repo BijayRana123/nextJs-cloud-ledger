@@ -27,9 +27,9 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
     referenceNo: '',
     billNumber: '',
     billDate: new Date().toISOString().split('T')[0], // Initialize with today's date
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0], // Initialize with today's date
     customerInvoiceReferenceNo: '',
-    currency: 'Nepalese Rupee',
+    currency: 'NPR',
     exchangeRateToNPR: '1',
     isImport: false,
     items: [], // Array to hold product/service items
@@ -65,7 +65,7 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
               billDate: so.date ? new Date(so.date).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
               dueDate: so.dueDate ? new Date(so.dueDate).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
               customerInvoiceReferenceNo: so.customerInvoiceReferenceNo || '',
-              currency: so.currency || 'Nepalese Rupee',
+              currency: so.currency || 'NPR',
               exchangeRateToNPR: so.exchangeRateToNPR?.toString() || '1',
               isImport: so.isImport || false,
               items: so.items?.map(item => ({
@@ -151,7 +151,7 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
     // Construct the data object to send to the API (for sales orders)
     const dataToSend = {
       organization: organizationId, // Use the organization ID from context
-      // salesOrderNumber: `SO-${Date.now()}`, // Simple mock SO number, consider a proper sequence generator - Keep existing SO number if editing
+      // salesOrderNumber: `SV-${Date.now()}`, // Simple mock SV number, consider a proper sequence generator - Keep existing SV number if editing
       date: formData.billDate, // Mapping billDate to date
       customer: formData.customerName, // Using the selected customer ID (should also be ObjectId if backend expects it)
       items: validSalesOrderItems, // Use the filtered items
@@ -161,12 +161,12 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
       billNumber: formData.billNumber,
       dueDate: formData.dueDate,
       customerInvoiceReferenceNo: formData.customerInvoiceReferenceNo,
-      currency: formData.currency,
+      currency: 'NPR',
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
       isImport: formData.isImport,
     };
 
-    console.log("Submitting Purchase Order (via Sales Bill Page):", dataToSend);
+    console.log("Submitting Purchase Order (via Sales Voucher Page):", dataToSend);
 
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing ? `/api/organization/sales-orders/${salesOrderId}` : '/api/organization/sales-orders'; // Target sales order API
@@ -183,15 +183,15 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
       const result = await response.json();
 
       if (response.ok) {
-        console.log("Sales Order saved successfully (via Sales Bill Page):", result.salesOrder);
+        console.log("Sales Order saved successfully (via Sales Voucher Page):", result.salesOrder);
         // Redirect to the sales order detail page
         router.push(`/dashboard/sales/sales-orders/${result.salesOrder._id}`);
       } else {
-        console.error("Error saving Sales Order (via Sales Bill Page):", result.message);
+        console.error("Error saving Sales Order (via Sales Voucher Page):", result.message);
         // TODO: Display an error message to the user
       }
     } catch (error) {
-      console.error("Error saving Sales Order (via Sales Bill Page):", error);
+      console.error("Error saving Sales Order (via Sales Voucher Page):", error);
       // TODO: Display a generic error message to the user
     }
   };
@@ -199,7 +199,7 @@ export default function AddSalesBillPage() { // Keep the component name as AddSa
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{isEditing ? 'Edit Sales Bill' : 'Add New Sales Bill'}</h1> {/* Update title */}
+        <h1 className="text-2xl font-bold">{isEditing ? 'Edit Sales Voucher' : 'Add New Sales Voucher'}</h1> {/* Update title */}
         <div className="flex items-center gap-4">
           <Button className="bg-green-500 hover:bg-green-600" onClick={handleSubmit} disabled={!organizationId}>Save</Button> {/* Disable save until org ID is loaded */}
           {/* TODO: Add actual close functionality */}
