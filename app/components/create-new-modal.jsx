@@ -28,12 +28,26 @@ export function CreateNewModal({ isOpen, onClose }) {
   ]
 
   const handleItemClick = (category, item) => {
-    console.log(`Creating new ${item} in ${category}`);
+    // Map modal items to their respective routes
+    const routeMap = {
+      'Customer': '/dashboard', // Update if you have a specific customer page
+      'Supplier': '/dashboard', // Update if you have a specific supplier page
+      'Products': '/dashboard', // Update if you have a specific products page
+      'Accounts': '/dashboard/accounting/ledger',
+      'Sales Voucher': '/dashboard/sales/add-sales-bill',
+      'Sales Return': '/dashboard/sales/add-sales-return',
+      'Purchase Voucher': '/dashboard/purchase/add-purchase-bill',
+      'Purchase Return': '/dashboard/purchase/add-purchase-return',
+      'Journal Voucher': '/dashboard/accounting/journal-entries/new',
+      'Contra Voucher': '/dashboard/accounting/transactions/contra-voucher/new',
+      'Receipt Voucher': '/dashboard/accounting/transactions/receive-payment/new',
+      'Payment Voucher': '/dashboard/accounting/transactions/pay-supplier/new',
+    };
+    const route = routeMap[item];
     onClose();
-    if (category === "PURCHASE" && item === "Purchase Voucher") {
-      router.push('/dashboard/purchase/add-purchase-bill'); // Redirect to add purchase bill page
+    if (route) {
+      router.push(route);
     }
-    // Add more conditions here for other items if they need specific redirects
   }
 
   return (
