@@ -213,9 +213,15 @@ export default function PurchaseBillDetailPage() {
                   <div>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Reference No:</span>
+                  <span className="text-gray-500">Purchase Voucher No:</span>
                   <div>{referenceNo || 'N/A'}</div>
                 </div>
+                {bill.supplierBillNo && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Supplier Bill No:</span>
+                    <div>{bill.supplierBillNo}</div>
+                  </div>
+                )}
               </div>
             </div>
             <div>

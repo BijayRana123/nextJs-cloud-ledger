@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { getCookie } from '@/lib/utils';
 
 // Import custom table components
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable";
@@ -15,8 +16,11 @@ import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomT
 import SupplierSection from "@/app/components/purchase/supplier-section";
 import ItemsSection from "@/app/components/purchase/items-section";
 import CalculationSection from "@/app/components/purchase/calculation-section";
-import { useCalendar } from "@/app/contexts/CalendarContext";
-
+import { useCalendar } from "@/lib/context/CalendarContext";
+import { Printer, FileEdit, Trash2, CheckCircle, Mail, MoreVertical, FileSpreadsheet, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import PurchaseOrderExcelDownload from "@/components/purchase/PurchaseOrderExcelDownload";
+import PurchaseOrderPdfDownload from "@/components/purchase/PurchaseOrderPdfDownload";
 
 export default function PurchaseOrderDetailPage() {
   const { id } = useParams(); // Get the purchase order ID from the URL
@@ -33,6 +37,9 @@ export default function PurchaseOrderDetailPage() {
   const [approveError, setApproveError] = useState(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const { isNepaliCalendar } = useCalendar();
+  const [emailOrder, setEmailOrder] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
+  const [generatePdfBase64, setGeneratePdfBase64] = useState(null);
 
   const fetchPurchaseOrder = async () => {
     setIsLoading(true);
@@ -43,7 +50,13 @@ export default function PurchaseOrderDetailPage() {
     setApproveError(null);
 
     try {
-      const response = await fetch(`/api/organization/purchase-orders/${id}`);
+      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+      const response = await fetch(`/api/organization/purchase-orders/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const result = await response.json();
 
       if (response.ok) {
@@ -73,6 +86,12 @@ export default function PurchaseOrderDetailPage() {
     console.log("Purchase Order state updated:", purchaseOrder);
   }, [purchaseOrder]);
 
+  useEffect(() => {
+    import('@/app/dashboard/sales/sales-orders/[id]/print/generatePdfBase64')
+      .then(module => setGeneratePdfBase64(() => module.generatePdfBase64))
+      .catch(error => console.error('Failed to load PDF generation module:', error));
+  }, []);
+
   const handleDelete = () => {
     setShowDeleteDialog(true);
   };
@@ -82,8 +101,13 @@ export default function PurchaseOrderDetailPage() {
     setDeleteError(null);
     setDeleteSuccess(false);
     try {
+      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
       const response = await fetch(`/api/organization/purchase-orders/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
@@ -103,18 +127,25 @@ export default function PurchaseOrderDetailPage() {
     }
   };
 
-  // handlePrint is no longer needed as we are generating PDF
-  // const handlePrint = () => {
-  //   // Trigger browser print functionality
-  //   window.print();
-  //   // Redirect to purchase bills page after printing
-  //   router.push('/dashboard/purchase/purchase-bills');
-  //   setShowPrintDialog(false); // Close print dialog after triggering print
-  // };
+  const handlePrint = () => {
+    if (purchaseOrder) {
+      window.open(`/dashboard/purchase/purchase-orders/${purchaseOrder._id}/print`, '_blank');
+    }
+  };
 
+  const handleEmailClick = async () => {
+    if (purchaseOrder) {
+      setEmailOrder(purchaseOrder);
+      setIsEmailModalOpen(true);
+      if (generatePdfBase64) {
+        const pdfUrl = await generatePdfBase64(purchaseOrder);
+        setPdfPreviewUrl(pdfUrl);
+      }
+    }
+  };
 
   if (isLoading) {
-    return <div className="p-4">Loading purchase order...</div>;
+    return <div className="p-4">Loading purchase voucher...</div>;
   }
 
   if (error) {
@@ -127,11 +158,11 @@ export default function PurchaseOrderDetailPage() {
 
   // Display success/error messages
   if (deleteSuccess) {
-    return <div className="p-4 text-green-600">Purchase order successfully deleted. Redirecting...</div>;
+    return <div className="p-4 text-green-600">Purchase voucher successfully deleted. Redirecting...</div>;
   }
 
   if (deleteError) {
-    return <div className="p-4 text-red-600">Error deleting purchase order: {deleteError}</div>;
+    return <div className="p-4 text-red-600">Error deleting purchase voucher: {deleteError}</div>;
   }
 
   if (approveSuccess) {
@@ -141,7 +172,7 @@ export default function PurchaseOrderDetailPage() {
   }
 
    if (approveError) {
-    return <div className="p-4 text-red-600">Error approving purchase order: {approveError}</div>;
+    return <div className="p-4 text-red-600">Error approving purchase voucher: {approveError}</div>;
   }
 
   // Extract data from the purchaseOrder object
@@ -157,7 +188,10 @@ export default function PurchaseOrderDetailPage() {
     currency,
     exchangeRateToNPR,
     isImport,
-    items: purchaseItems
+    items: purchaseItems,
+    totalAmount,
+    notes,
+    status
   } = purchaseOrder;
   
   // Format the items array for display
@@ -177,110 +211,131 @@ export default function PurchaseOrderDetailPage() {
  
 
   return (
-    <div className="p-4">
+    <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Purchase Order Details</h1>
-        <div className="flex items-center gap-4">
-           {/* Conditionally render buttons based on purchase order status and loading state */}
-           {!isLoading && purchaseOrder && (
-             <>
-               {purchaseOrder.status === 'APPROVED' && (
-                 <>
-                   <Button variant="outline" onClick={() => setIsEmailModalOpen(true)}>Send Email</Button>
-                   {/* Add Print button that links to the print page */}
-                   <Button variant="outline" onClick={() => router.push(`/dashboard/purchase/purchase-orders/${id}/print`)}>Print</Button>
-                   {/* Commented out server-side PDF generation as react-to-print is used for client-side printing */}
-                   {/*
-                   <Button variant="outline" onClick={async () => {
-                     try {
-                       const response = await fetch(`/api/organization/purchase-orders/${id}/generate-pdf`);
-                       if (!response.ok) {
-                         throw new Error('Failed to generate PDF');
-                       }
-                       const blob = await response.blob();
-                       const url = window.URL.createObjectURL(blob);
-                       const a = document.createElement('a');
-                       a.href = url;
-                       a.download = `purchase-order-${id}.pdf`;
-                       document.body.appendChild(a);
-                       a.click();
-                       a.remove();
-                       window.URL.revokeObjectURL(url);
-
-                       // Redirect to purchase bills page after triggering download
-                       router.push('/dashboard/purchase/purchase-bills');
-
-                     } catch (error) {
-                       console.error('Error generating PDF:', error);
-                       // Optionally show an error message to the user
-                       alert('Failed to generate PDF. Please try again.');
-                     }
-                   }}>Download PDF</Button>
-                   */}
-                   <Button onClick={() => router.push('/dashboard/purchase/add-purchase-bill')}>Add New</Button>
-                 </>
-               )}
-             </>
-           )}
+        <h1 className="text-2xl font-bold">Purchase Voucher Details</h1>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => router.push('/dashboard/purchase/purchase-bills')}>
+            Back to Purchase Vouchers
+          </Button>
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/purchase/add-purchase-bill')}>
+            + Add New
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/dashboard/purchase/add-purchase-bill?id=${id}`)}>
+                <FileEdit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" /> Print
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Download
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <PurchaseOrderExcelDownload purchaseOrder={purchaseOrder}>
+                    <DropdownMenuItem>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+                    </DropdownMenuItem>
+                  </PurchaseOrderExcelDownload>
+                  <PurchaseOrderPdfDownload purchaseOrder={purchaseOrder}>
+                    <DropdownMenuItem>
+                      <FileText className="mr-2 h-4 w-4" /> PDF
+                    </DropdownMenuItem>
+                  </PurchaseOrderPdfDownload>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Mail className="mr-2 h-4 w-4" /> Email
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={handleEmailClick}>
+                    Email Purchase Order
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Display Details Section */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>Purchase Voucher Information</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Supplier Name</Label>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              {typeof supplier === 'object' && supplier.name ? supplier.name :
-               typeof supplier === 'string' ? `Supplier ID: ${supplier}` : 'N/A'}
+              <h3 className="font-medium mb-2">Basic Details</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Date:</span>
+                  <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Due Date:</span>
+                  <div>{purchaseOrder.dueDate ? new Date(purchaseOrder.dueDate).toLocaleDateString() : 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Purchase Voucher Reference No:</span>
+                  <div>{purchaseOrder.referenceNo || 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Supplier Bill No:</span>
+                  <div>{purchaseOrder.supplierBillNo || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">Supplier Information</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Supplier:</span>
+                  <div>{supplierName || 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Address:</span>
+                  <div>{supplier?.address || 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">PAN:</span>
+                  <div>{supplier?.pan || 'N/A'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Phone:</span>
+                  <div>{supplier?.phoneNumber || 'N/A'}</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <Label>Purchase Order Number</Label>
-            <div>{purchaseOrderNumber || 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Reference</Label>
-            <div>{referenceNo || 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Bill Number</Label>
-            <div>{billNumber || 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Date</Label>
-            <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Due Date</Label>
-            <div>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Supplier Invoice Reference No</Label>
-            <div>{supplierInvoiceReferenceNo || 'N/A'}</div>
-          </div>
-          <div>
-            <Label>Currency</Label>
-            <div>{currency || 'NPR'}</div>
-          </div>
-          <div>
-            <Label>Exchange Rate to NPR</Label>
-            <div>{exchangeRateToNPR || '1'}</div>
-          </div>
-          <div>
-            <Label>Is Import</Label>
-            <div>{isImport ? 'Yes' : 'No'}</div>
-          </div>
-          <div>
-            <Label>Total Amount</Label>
-            <div>{purchaseOrder.totalAmount ? `${purchaseOrder.totalAmount.toFixed(2)}` : 'N/A'}</div>
-          </div>
+
+          {isImport && (
+            <div className="mt-6">
+              <h3 className="font-medium mb-2">Import Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Currency:</span>
+                  <div>{currency || 'NPR'}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Exchange Rate to NPR:</span>
+                  <div>{exchangeRateToNPR || '1'}</div>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
-
 
       {/* Display Items Section (Reusing ItemsSection component - might need adaptation for display-only) */}
       {/* For now, just displaying items data directly */}
@@ -346,12 +401,15 @@ export default function PurchaseOrderDetailPage() {
       </Dialog>
 
       {/* Email Modal */}
-      <EmailModal
-        isOpen={isEmailModalOpen}
-        onClose={() => setIsEmailModalOpen(false)}
-        purchaseOrderId={id} // Pass the purchase order ID
-        onEmailSent={() => router.push('/dashboard/purchase/purchase-orders')} // Redirect after email sent
-      />
+      {isEmailModalOpen && emailOrder && (
+        <EmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          purchaseOrder={emailOrder}
+          pdfPreviewUrl={pdfPreviewUrl}
+          pdfFileName={`PurchaseVoucher-${emailOrder?.referenceNo || emailOrder?._id}.pdf`}
+        />
+      )}
     </div>
   );
 }

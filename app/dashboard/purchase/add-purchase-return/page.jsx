@@ -20,8 +20,8 @@ export default function AddPurchaseReturnPage() {
   const [formData, setFormData] = useState({
     supplierName: '',
     referenceNo: '',
+    billNumber: '',
     billDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
     isExport: false,
     items: [],
   });
@@ -43,8 +43,8 @@ export default function AddPurchaseReturnPage() {
             setFormData({
               supplierName: pr.supplier?._id || '',
               referenceNo: pr.referenceNo || '',
+              billNumber: pr.billNumber || '',
               billDate: pr.date ? new Date(pr.date).toISOString().split('T')[0] : '',
-              dueDate: pr.dueDate ? new Date(pr.dueDate).toISOString().split('T')[0] : '',
               isExport: pr.isExport || false,
               items: pr.items?.map(item => ({
                 product: item.item?._id || '',
@@ -66,7 +66,7 @@ export default function AddPurchaseReturnPage() {
       };
       fetchPurchaseReturn();
     } else {
-      // Fetch the next purchase return reference number (now uses 'purchasereturn' for PR- prefix)
+      // Fetch the next purchase return reference number (now uses 'purchasereturn' for PRV- prefix)
       fetch('/api/accounting/counters/next?type=purchasereturn')
         .then(res => res.json())
         .then(data => {
@@ -74,6 +74,17 @@ export default function AddPurchaseReturnPage() {
             setFormData(prev => ({ ...prev, referenceNo: data.nextNumber }));
           }
         });
+      // If redirected from a purchase order, populate billNumber from supplierBillNo
+      const purchaseOrderId = searchParams.get('purchaseOrderId');
+      if (purchaseOrderId) {
+        fetch(`/api/organization/purchase-orders/${purchaseOrderId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.purchaseOrder && data.purchaseOrder.supplierBillNo) {
+              setFormData(prev => ({ ...prev, billNumber: data.purchaseOrder.supplierBillNo }));
+            }
+          });
+      }
       if (formData.items.length === 0) {
         setFormData((prev) => ({
           ...prev,
@@ -122,7 +133,7 @@ export default function AddPurchaseReturnPage() {
       items: validPurchaseReturnItems,
       totalAmount: totalAmount,
       referenceNo: formData.referenceNo,
-      dueDate: formData.dueDate,
+      billNumber: formData.billNumber,
       isExport: formData.isExport,
     };
     const method = isEditing ? 'PUT' : 'POST';
@@ -163,7 +174,32 @@ export default function AddPurchaseReturnPage() {
       </div>
 
       {/* Supplier Section */}
-      <SupplierSection formData={formData} setFormData={setFormData} />
+      <SupplierSection formData={formData} setFormData={setFormData}>
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="billNumber">Purchase Return Bill No</Label>
+          <input
+            id="billNumber"
+            name="billNumber"
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Enter purchase return bill number"
+            value={formData.billNumber}
+            onChange={handleInputChange}
+          />
+        </div>
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="referenceNo">Purchase Return Voucher Reference No</Label>
+          <input
+            id="referenceNo"
+            name="referenceNo"
+            type="text"
+            className="w-full border rounded px-3 py-2 bg-gray-100"
+            placeholder="Auto-generated purchase return voucher reference number"
+            value={formData.referenceNo}
+            readOnly
+          />
+        </div>
+      </SupplierSection>
 
       <Card className="mb-6">
         <CardContent>
@@ -177,19 +213,6 @@ export default function AddPurchaseReturnPage() {
                   value={formData.billDate}
                   onChange={handleInputChange}
                   required
-                  className="w-full"
-                />
-                <CalendarIcon className="h-5 w-5 text-gray-500" />
-              </div>
-            </div>
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <div className="flex items-center gap-2">
-                <ConditionalDatePicker
-                  id="dueDate"
-                  name="dueDate"
-                  value={formData.dueDate}
-                  onChange={handleInputChange}
                   className="w-full"
                 />
                 <CalendarIcon className="h-5 w-5 text-gray-500" />

@@ -82,7 +82,7 @@ const getCookie = (name) => {
   return null;
 };
 
-export default function SupplierSection({ formData, setFormData }) {
+export default function SupplierSection({ formData, setFormData, children }) {
   const router = useRouter();
   // State to control the new supplier modal visibility
   const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
@@ -319,12 +319,8 @@ export default function SupplierSection({ formData, setFormData }) {
                 </div>
               )}
             </div>
-             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="referenceNo">Reference No</Label>
-              <div className="flex items-center gap-2">
-                 <Input id="referenceNo" placeholder="Reference" value={formData.referenceNo} readOnly />
-              </div>
-            </div>
+            {/* Render children in the right column */}
+            <div className="flex flex-col space-y-1.5">{children}</div>
           </div>
         </CardContent>
       </Card>

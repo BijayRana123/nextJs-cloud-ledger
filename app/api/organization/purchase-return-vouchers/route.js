@@ -28,7 +28,7 @@ export async function POST(request) {
     while (retryCount < maxRetries && generatedReferenceNo === null) {
       try {
         generatedReferenceNo = await Counter.getNextSequence('purchase_return_voucher', {
-          prefix: 'PR-',
+          prefix: 'PRV-',
           paddingSize: 4
         });
       } catch (err) {
@@ -51,6 +51,7 @@ export async function POST(request) {
       organization: organizationId,
       createdAt: new Date(),
       status: 'DRAFT',
+      billNumber: purchaseReturnData.billNumber || '',
     });
     await newPurchaseReturn.save();
     // Create journal entry for purchase return
@@ -97,17 +98,23 @@ export async function PUT(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const { id, status } = await request.json();
-    if (!id || !status) {
-      return NextResponse.json({ message: 'ID and status are required.' }, { status: 400 });
+    const data = await request.json();
+    const { id, status, billNumber } = data;
+    if (!id) {
+      return NextResponse.json({ message: 'ID is required.' }, { status: 400 });
     }
     const purchaseReturn = await PurchaseReturnVoucher.findOne({ _id: id, organization: organizationId });
     if (!purchaseReturn) {
       return NextResponse.json({ message: 'Purchase return voucher not found' }, { status: 404 });
     }
-    purchaseReturn.status = status;
+    if (typeof status !== 'undefined') {
+      purchaseReturn.status = status;
+    }
+    if (typeof billNumber !== 'undefined') {
+      purchaseReturn.billNumber = billNumber;
+    }
     await purchaseReturn.save();
-    return NextResponse.json({ message: 'Purchase return voucher status updated', purchaseReturn }, { status: 200 });
+    return NextResponse.json({ message: 'Purchase return voucher updated', purchaseReturn }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }

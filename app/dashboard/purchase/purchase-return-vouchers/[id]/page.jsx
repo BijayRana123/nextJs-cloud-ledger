@@ -7,7 +7,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { getCookie } from '@/lib/utils';
 import SupplierSection from "@/app/components/purchase/supplier-section";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable";
-import { Printer, FileEdit, Trash2, CheckCircle } from "lucide-react";
+import { Printer, FileEdit, Trash2, CheckCircle, MoreVertical, Mail, FileSpreadsheet, FileText } from "lucide-react";
+import PurchaseReturnExcelDownload from "@/components/purchase/PurchaseReturnExcelDownload";
+import PurchaseReturnPdfDownload from "@/components/purchase/PurchaseReturnPdfDownload";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import EmailModal from "@/app/components/email-modal";
 
 export default function PurchaseReturnVoucherDetailPage() {
   const { id } = useParams();
@@ -19,6 +23,9 @@ export default function PurchaseReturnVoucherDetailPage() {
   const [approveError, setApproveError] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailVoucher, setEmailVoucher] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
 
   useEffect(() => {
     fetchPurchaseReturn();
@@ -79,6 +86,14 @@ export default function PurchaseReturnVoucherDetailPage() {
     router.push(`/dashboard/purchase/purchase-return-vouchers/${id}/print`);
   };
 
+  const handleEmailClick = async () => {
+    if (purchaseReturn) {
+      setEmailVoucher(purchaseReturn);
+      setIsEmailModalOpen(true);
+      // Optionally, generate PDF preview if you have a function for it
+    }
+  };
+
   if (isLoading) {
     return <div className="p-4">Loading purchase return voucher...</div>;
   }
@@ -100,7 +115,6 @@ export default function PurchaseReturnVoucherDetailPage() {
     supplier,
     returnNumber,
     date,
-    dueDate,
     referenceNo,
     supplierInvoiceReferenceNo,
     currency,
@@ -127,16 +141,56 @@ export default function PurchaseReturnVoucherDetailPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold">Purchase Return Voucher Details</h1>
-      <div className="flex space-x-2 mb-4">
-        {!isLoading && purchaseReturn && (
-          <>
-            <Button variant="outline" onClick={handlePrint}>
-              Print
-              <Printer className="ml-2 h-4 w-4" />
-            </Button>
-          </>
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Purchase Return Voucher Details</h1>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => router.push('/dashboard/purchase/purchase-return-vouchers')}>Back to Purchase Return Vouchers</Button>
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/purchase/add-purchase-return')}>+ Add New</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon"><MoreVertical className="h-5 w-5" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/dashboard/purchase/add-purchase-return?id=${id}`)}>
+                <FileEdit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" /> Print
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Download
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <PurchaseReturnExcelDownload purchaseReturn={purchaseReturn}>
+                    <DropdownMenuItem>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+                    </DropdownMenuItem>
+                  </PurchaseReturnExcelDownload>
+                  <PurchaseReturnPdfDownload purchaseReturn={purchaseReturn}>
+                    <DropdownMenuItem>
+                      <FileText className="mr-2 h-4 w-4" /> PDF
+                    </DropdownMenuItem>
+                  </PurchaseReturnPdfDownload>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Mail className="mr-2 h-4 w-4" /> Email
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={handleEmailClick}>
+                    Email Purchase Return Voucher
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <Card className="mb-6">
@@ -149,32 +203,16 @@ export default function PurchaseReturnVoucherDetailPage() {
               <h3 className="font-medium mb-2">Basic Details</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Return Number:</span>
-                  <div>{returnNumber || 'N/A'}</div>
+                  <span className="text-gray-500">Purchase Return Bill No:</span>
+                  <div>{purchaseReturn.billNumber || 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Status:</span>
-                  <div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {status || 'DRAFT'}
-                    </span>
-                  </div>
+                  <span className="text-gray-500">Purchase Return Voucher No:</span>
+                  <div>{referenceNo || 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Date:</span>
                   <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Due Date:</span>
-                  <div>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Reference No:</span>
-                  <div>{referenceNo || 'N/A'}</div>
                 </div>
               </div>
             </div>
@@ -293,6 +331,16 @@ export default function PurchaseReturnVoucherDetailPage() {
             <p>{notes}</p>
           </CardContent>
         </Card>
+      )}
+
+      {isEmailModalOpen && emailVoucher && (
+        <EmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          purchaseReturn={emailVoucher}
+          pdfPreviewUrl={pdfPreviewUrl}
+          pdfFileName={`PurchaseReturnVoucher-${emailVoucher?.referenceNo || emailVoucher?._id}.pdf`}
+        />
       )}
     </div>
   );

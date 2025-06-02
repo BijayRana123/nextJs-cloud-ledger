@@ -22,7 +22,6 @@ export default function AddSalesReturnPage() {
     referenceNo: '',
     billNumber: '',
     billDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date().toISOString().split('T')[0], // Initialize with today's date
     customerInvoiceReferenceNo: '',
     currency: 'NPR',
     exchangeRateToNPR: '1',
@@ -50,7 +49,6 @@ export default function AddSalesReturnPage() {
               referenceNo: sr.referenceNo || '',
               billNumber: sr.returnNumber || '',
               billDate: sr.date ? new Date(sr.date).toISOString().split('T')[0] : '',
-              dueDate: sr.dueDate ? new Date(sr.dueDate).toISOString().split('T')[0] : '',
               customerInvoiceReferenceNo: sr.customerInvoiceReferenceNo || '',
               currency: sr.currency || 'NPR',
               exchangeRateToNPR: sr.exchangeRateToNPR?.toString() || '1',
@@ -137,10 +135,8 @@ export default function AddSalesReturnPage() {
       customer: formData.customerName,
       items: validSalesReturnItems,
       totalAmount: totalAmount,
-      // Only include referenceNo if editing
       ...(isEditing ? { referenceNo: formData.referenceNo } : {}),
       returnNumber: formData.billNumber,
-      dueDate: formData.dueDate,
       customerInvoiceReferenceNo: formData.customerInvoiceReferenceNo,
       currency: 'NPR',
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
@@ -189,7 +185,6 @@ export default function AddSalesReturnPage() {
       <Card className="mb-6">
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-       
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="billDate">Bill Date</Label>
               <div className="flex items-center gap-2">
@@ -199,19 +194,6 @@ export default function AddSalesReturnPage() {
                   value={formData.billDate}
                   onChange={handleInputChange}
                   required
-                  className="w-full"
-                />
-                <CalendarIcon className="h-5 w-5 text-gray-500" />
-              </div>
-            </div>
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <div className="flex items-center gap-2">
-                <ConditionalDatePicker
-                  id="dueDate"
-                  name="dueDate"
-                  value={formData.dueDate}
-                  onChange={handleInputChange}
                   className="w-full"
                 />
                 <CalendarIcon className="h-5 w-5 text-gray-500" />

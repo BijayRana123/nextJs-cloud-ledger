@@ -32,7 +32,7 @@ export default function PurchaseReturnPrintPage() {
   if (error) return <div className="p-4 text-red-600">{error}</div>;
   if (!voucher) return <div className="p-4 text-red-600">Purchase return voucher not found</div>;
 
-  const { supplier, referenceNo, date, dueDate, items: voucherItems, totalAmount, status } = voucher;
+  const { supplier, referenceNo, date, items: voucherItems, totalAmount, status } = voucher;
   const items = voucherItems?.map(item => ({
     productName: item.item?.name || 'Unknown Product',
     productCode: item.item?._id || 'N/A',

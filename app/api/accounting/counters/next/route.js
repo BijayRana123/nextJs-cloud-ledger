@@ -52,7 +52,7 @@ export async function GET(request) {
         break;
       case 'purchase':
         counterConfig.name = 'purchase_order';
-        counterConfig.prefix = 'PO-';
+        counterConfig.prefix = 'PV-';
         break;
       case 'salesreturn':
         counterConfig.name = 'sales_return_voucher';
@@ -60,7 +60,7 @@ export async function GET(request) {
         break;
       case 'purchasereturn':
         counterConfig.name = 'purchase_return_voucher';
-        counterConfig.prefix = 'PR-';
+        counterConfig.prefix = 'PRV-';
         break;
       default:
         return NextResponse.json(

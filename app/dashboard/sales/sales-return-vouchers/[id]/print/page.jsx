@@ -115,7 +115,6 @@ export default function SalesReturnPrintPage() {
           <tr style={{ background: '#223a5e', color: '#fff' }}>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>SALESPERSON</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>P.O. #</th>
-            <th style={{ padding: 6, border: '1px solid #223a5e' }}>DUE DATE</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>SHIP VIA</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>F.O.B.</th>
             <th style={{ padding: 6, border: '1px solid #223a5e' }}>TERMS</th>
@@ -125,7 +124,6 @@ export default function SalesReturnPrintPage() {
           <tr>
             <td style={{ border: '1px solid #223a5e', height: 28 }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>
-            <td style={{ border: '1px solid #223a5e' }}>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</td>
             <td style={{ border: '1px solid #223a5e' }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>
             <td style={{ border: '1px solid #223a5e' }}></td>

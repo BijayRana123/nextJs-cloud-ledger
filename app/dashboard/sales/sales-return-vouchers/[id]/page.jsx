@@ -310,10 +310,6 @@ export default function SalesReturnVoucherDetailPage() {
                   <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Due Date:</span>
-                  <div>{dueDate ? new Date(dueDate).toLocaleDateString() : 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-gray-500">Sales Return Voucher No:</span>
                   <div>{salesReturnNumber || 'N/A'}</div>
                 </div>

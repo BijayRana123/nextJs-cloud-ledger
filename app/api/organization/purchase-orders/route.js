@@ -32,18 +32,24 @@ export async function POST(request) {
       purchaseOrderData.purchaseOrderNumber = `PO-${Date.now()}`;
     }
 
+    // Generate referenceNo with PV- prefix if not provided
+    if (!purchaseOrderData.referenceNo) {
+      purchaseOrderData.referenceNo = `PV-${Date.now()}`;
+    }
+
     // Log the data being sent to the database
     console.log("Purchase Order Data to save:", {
       ...purchaseOrderData,
       organization: organizationId,
-      status: 'DRAFT'
     });
 
+    // Save dueDate and supplierBillNo if provided, always set them
     const newPurchaseOrder = new PurchaseOrder({
       ...purchaseOrderData,
-      organization: organizationId, // Associate purchase order with the user's organization
-      createdAt: new Date(), // Mongoose will handle timestamp if schema has timestamps: true
-      status: 'DRAFT', // Initial status
+      organization: organizationId,
+      dueDate: purchaseOrderData.dueDate || null,
+      supplierBillNo: purchaseOrderData.supplierBillNo || '',
+      createdAt: new Date(),
     });
 
     await newPurchaseOrder.save();

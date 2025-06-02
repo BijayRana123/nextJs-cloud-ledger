@@ -81,7 +81,10 @@ export default function PurchaseBillPrintPage() {
           <table style={{ fontSize: 14, marginTop: 8 }}>
             <tbody>
               <tr><td style={{ paddingRight: 8 }}>DATE</td><td>{date ? new Date(date).toLocaleDateString() : 'N/A'}</td></tr>
-              <tr><td>BILL #</td><td>{referenceNo || 'N/A'}</td></tr>
+              <tr><td>PURCHASE VOUCHER NO</td><td>{referenceNo || 'N/A'}</td></tr>
+              {bill.supplierBillNo && (
+                <tr><td>SUPPLIER BILL NO</td><td>{bill.supplierBillNo}</td></tr>
+              )}
               <tr><td>SUPPLIER</td><td>{billTo.name || 'N/A'}</td></tr>
             </tbody>
           </table>

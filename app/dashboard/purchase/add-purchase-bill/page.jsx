@@ -26,8 +26,9 @@ export default function AddPurchaseBillPage() {
   const [formData, setFormData] = useState({
     supplierName: '',
     referenceNo: '',
+    supplierBillNo: '',
     billDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0],
     currency: 'Nepalese Rupee',
     exchangeRateToNPR: '1',
     isImport: false,
@@ -60,6 +61,7 @@ export default function AddPurchaseBillPage() {
             setFormData({
               supplierName: po.supplier?._id || '', // Assuming supplierName in formData should be the ID
               referenceNo: po.referenceNo || '',
+              supplierBillNo: po.supplierBillNo || '',
               billDate: po.date ? new Date(po.date).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
               dueDate: po.dueDate ? new Date(po.dueDate).toISOString().split('T')[0] : '', // Format date as YYYY-MM-DD
               currency: po.currency || 'Nepalese Rupee',
@@ -160,6 +162,7 @@ export default function AddPurchaseBillPage() {
       items: validPurchaseOrderItems,
       totalAmount: totalAmount,
       referenceNo: formData.referenceNo,
+      supplierBillNo: formData.supplierBillNo,
       dueDate: formData.dueDate,
       currency: formData.currency,
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
@@ -208,11 +211,37 @@ export default function AddPurchaseBillPage() {
       </div>
 
       {/* Supplier Section Component */}
-      <SupplierSection formData={formData} setFormData={setFormData} />
+      <SupplierSection formData={formData} setFormData={setFormData}>
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="supplierBillNo">Supplier Bill No</Label>
+          <input
+            id="supplierBillNo"
+            name="supplierBillNo"
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            placeholder="Enter supplier bill number"
+            value={formData.supplierBillNo}
+            onChange={handleInputChange}
+          />
+        </div>
+        <div className="flex flex-col space-y-1.5">
+          <Label htmlFor="referenceNo">Purchase Voucher Reference No</Label>
+          <input
+            id="referenceNo"
+            name="referenceNo"
+            type="text"
+            className="w-full border rounded px-3 py-2 bg-gray-100"
+            placeholder="Auto-generated purchase voucher reference number"
+            value={formData.referenceNo}
+            onChange={handleInputChange}
+            readOnly
+          />
+        </div>
+      </SupplierSection>
 
       <Card className="mb-6">
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="billDate">Bill Date</Label>
               <div className="flex items-center gap-2">
