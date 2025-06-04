@@ -87,7 +87,7 @@ export default function PurchaseOrderDetailPage() {
   }, [purchaseOrder]);
 
   useEffect(() => {
-    import('@/app/dashboard/sales/sales-orders/[id]/print/generatePdfBase64')
+    import('@/app/dashboard/sales/sales-vouchers-details/[id]/print/generatePdfBase64')
       .then(module => setGeneratePdfBase64(() => module.generatePdfBase64))
       .catch(error => console.error('Failed to load PDF generation module:', error));
   }, []);

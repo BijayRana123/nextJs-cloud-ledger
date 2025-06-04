@@ -16,7 +16,7 @@ export default function SalesOrderPrintPage() {
       setError(null);
       try {
         const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-        const response = await fetch(`/api/organization/sales-orders/${id}`, {
+        const response = await fetch(`/api/organization/sales-vouchers/${id}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',

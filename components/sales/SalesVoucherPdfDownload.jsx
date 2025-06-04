@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 
-export default function SalesOrderPdfDownload({ salesOrder, children }) {
+export default function SalesVoucherPdfDownload({ salesOrder, children }) {
   const generatePdf = (order) => {
     if (!order) return;
 
@@ -102,7 +102,7 @@ export default function SalesOrderPdfDownload({ salesOrder, children }) {
 
   // Render children (the menu item) and attach the onClick handler
   if (React.Children.count(children) !== 1) {
-      console.error("SalesOrderPdfDownload expects exactly one child element.");
+      console.error("SalesVoucherPdfDownload expects exactly one child element.");
       return null; // Or handle error appropriately
   }
 

@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet } from "lucide-react";
 
-export default function SalesOrderExcelDownload({ salesOrder, children }) {
+export default function SalesVoucherExcelDownload({ salesOrder, children }) {
   const handleDownload = () => {
     if (!salesOrder) return;
 
@@ -23,7 +23,7 @@ export default function SalesOrderExcelDownload({ salesOrder, children }) {
   // Render children (the menu item) and attach the onClick handler
   // Need to clone the child element to add props
   if (React.Children.count(children) !== 1) {
-      console.error("SalesOrderExcelDownload expects exactly one child element.");
+      console.error("SalesVoucherExcelDownload expects exactly one child element.");
       return null; // Or handle error appropriately
   }
 

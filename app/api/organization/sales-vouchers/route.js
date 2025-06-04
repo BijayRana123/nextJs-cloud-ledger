@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { SalesOrder, User } from '@/lib/models'; // Import User model
+import { SalesVoucher, User } from '@/lib/models'; // Import User model
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
-import { createSalesEntry } from '@/lib/accounting'; // Import accounting function
+import { createSalesVoucherEntry } from '@/lib/accounting'; // Import accounting function
 
 export async function POST(request) {
   
@@ -27,9 +27,9 @@ export async function POST(request) {
     
     const salesOrderData = await request.json();
     
-    // Ensure salesOrderNumber is set
-    if (!salesOrderData.salesOrderNumber) {
-      salesOrderData.salesOrderNumber = `SV-${Date.now()}`;
+    // Ensure salesVoucherNumber is set
+    if (!salesOrderData.salesVoucherNumber) {
+      salesOrderData.salesVoucherNumber = `SV-${Date.now()}`;
     }
 
     // Log the data being sent to the database
@@ -39,7 +39,7 @@ export async function POST(request) {
       status: 'DRAFT'
     });
 
-    const newSalesOrder = new SalesOrder({
+    const newSalesOrder = new SalesVoucher({
       ...salesOrderData,
       organization: organizationId, // Associate sales order with the user's organization
       createdAt: new Date(), // Mongoose will handle timestamp if schema has timestamps: true
@@ -49,16 +49,16 @@ export async function POST(request) {
     await newSalesOrder.save();
 
     // Create accounting entry for the sales order
-    await createSalesEntry(newSalesOrder);
+    await createSalesVoucherEntry(newSalesOrder);
 
-    console.log("New Sales Order saved:", newSalesOrder);
+    console.log("New Sales Voucher saved:", newSalesOrder);
 
-    return NextResponse.json({ message: "Sales Order created successfully", salesOrder: newSalesOrder }, { status: 201 });
+    return NextResponse.json({ message: "Sales Voucher created successfully", salesVoucher: newSalesOrder }, { status: 201 });
   } catch (error) {
-    console.error("Error creating sales order:", error);
+    console.error("Error creating sales voucher:", error);
     
     // Provide more detailed error message
-    let errorMessage = "Failed to create sales order";
+    let errorMessage = "Failed to create sales voucher";
     
     // Check if it's a validation error
     if (error.name === 'ValidationError') {
@@ -95,15 +95,15 @@ export async function GET(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    // Fetch sales orders for the authenticated user's organization and populate the customer details
-    const salesOrders = await SalesOrder.find({ organization: organizationId })
+    // Fetch sales vouchers for the authenticated user's organization and populate the customer details
+    const salesOrders = await SalesVoucher.find({ organization: organizationId })
       .populate({
         path: 'customer',
         select: 'name address pan phoneNumber email',
       })
       .lean();
 
-    return NextResponse.json({ salesOrders }, { status: 200 });
+    return NextResponse.json({ salesVouchers: salesOrders }, { status: 200 });
   } catch (error) {
     console.error("Error fetching sales orders:", error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });

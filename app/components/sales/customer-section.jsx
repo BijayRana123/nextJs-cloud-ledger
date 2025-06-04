@@ -172,7 +172,7 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerCreated }) => {
   );
 };
 
-const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
+const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucherNumber }) => {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -183,7 +183,15 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
   const router = useRouter();
 
   // Use SWR for fetching customers
-  const fetcher = url => fetch(url).then(res => res.json());
+  const fetcher = url => {
+    const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+    return fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      }
+    }).then(res => res.json());
+  };
   const { data: customersData, isLoading: isLoadingCustomers } = useSWR(
     '/api/organization/customers',
     fetcher
@@ -327,11 +335,9 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Customer Information</CardTitle>
-      </CardHeader>
-      <CardContent>
+    
+    
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label htmlFor="customerName">Customer</Label>
@@ -395,20 +401,34 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
             </Popover>
           </div>
 
-          <div>
-            <Label htmlFor="referenceNo">{counterType === 'salesreturn' ? 'Sales Return Voucher No.' : 'Sales Voucher No.'}</Label>
-            <Input
-              id="referenceNo"
-              value={formData.referenceNo || nextSalesRefNo || ''}
-              placeholder="Auto-generated when customer selected"
-              disabled={counterType === 'sales' && nextSalesRefNo !== ''}
-              readOnly
-              className="bg-gray-50"
-            />
-            {counterType === 'sales' && nextSalesRefNo !== '' && (
-              <p className="text-sm text-gray-500">Generated: {nextSalesRefNo}</p>
-            )}
-          </div>
+          {/* Show Sales Voucher No for sales, styled like sales return */}
+          {counterType === 'sales' && (
+            <div>
+              <Label htmlFor="billNumber">Sales Voucher No</Label>
+              <Input
+                id="billNumber"
+                value={voucherNumber || ''}
+                placeholder="Auto-generated when customer selected"
+                disabled
+                readOnly
+                className="bg-gray-50"
+              />
+            </div>
+          )}
+          {/* Only show Sales Return Voucher No. for sales returns, not for sales vouchers */}
+          {counterType === 'salesreturn' && (
+            <div>
+              <Label htmlFor="referenceNo">Sales Return Voucher No.</Label>
+              <Input
+                id="referenceNo"
+                value={formData.referenceNo || nextSalesRefNo || ''}
+                placeholder="Auto-generated when customer selected"
+                disabled
+                readOnly
+                className="bg-gray-50"
+              />
+            </div>
+          )}
 
           {customerDetails && (
             <div className="md:col-span-2">
@@ -442,7 +462,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
             </div>
           )}
         </div>
-      </CardContent>
+      
 
       {isModalOpen && (
         <AddCustomerModal
@@ -451,7 +471,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales' }) => {
           onCustomerCreated={handleCustomerCreated}
         />
       )}
-    </Card>
+   </>
   );
 };
 

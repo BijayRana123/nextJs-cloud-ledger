@@ -12,8 +12,8 @@ import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, Custom
 import { Printer, FileEdit, Trash2, CheckCircle, Mail, MoreVertical, FileSpreadsheet, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import EmailModal from "@/app/components/email-modal";
-import SalesOrderExcelDownload from "@/components/sales/SalesOrderExcelDownload";
-import SalesOrderPdfDownload from "@/components/sales/SalesOrderPdfDownload";
+import SalesVoucherExcelDownload from "@/components/sales/SalesVoucherExcelDownload";
+import SalesVoucherPdfDownload from "@/components/sales/SalesVoucherPdfDownload";
 
 export default function SalesOrderDetailPage() {
   const { id } = useParams(); // Get the sales order ID from the URL
@@ -42,7 +42,7 @@ export default function SalesOrderDetailPage() {
       const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
       
       // Make the API call with the authentication token
-      const response = await fetch(`/api/organization/sales-orders/${id}`, {
+      const response = await fetch(`/api/organization/sales-vouchers/${id}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export default function SalesOrderDetailPage() {
       const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
       
       // Make the API call with the authentication token
-      const response = await fetch(`/api/organization/sales-orders/${id}`, {
+      const response = await fetch(`/api/organization/sales-vouchers/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -94,7 +94,7 @@ export default function SalesOrderDetailPage() {
 
       if (response.ok) {
         // Redirect to sales vouchers page after successful deletion
-        router.push('/dashboard/sales/sales-bills');
+        router.push('/dashboard/sales/sales-vouchers');
       } else {
         setDeleteError(result.message || "Failed to delete sales order");
       }
@@ -109,7 +109,7 @@ export default function SalesOrderDetailPage() {
   const handlePrint = () => {
     // Open the print view in a new tab/window
     if (salesOrder) {
-      window.open(`/dashboard/sales/sales-orders/${salesOrder._id}/print`, '_blank');
+      window.open(`/dashboard/sales/sales-vouchers/${salesOrder._id}/print`, '_blank');
     }
   };
 
@@ -182,10 +182,10 @@ export default function SalesOrderDetailPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sales Voucher Details</h1>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => router.push('/dashboard/sales/sales-bills')}>
+          <Button variant="outline" onClick={() => router.push('/dashboard/sales/sales-vouchers')}>
             Back to Sales Vouchers
           </Button>
-          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/sales/add-sales-bill')}>
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/sales/add-sales-voucher')}>
             + Add New
           </Button>
           <DropdownMenu>
@@ -193,7 +193,7 @@ export default function SalesOrderDetailPage() {
               <Button variant="outline" size="icon"><MoreVertical className="h-5 w-5" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/dashboard/sales/add-sales-bill?id=${id}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/dashboard/sales/add-sales-voucher?id=${id}`)}>
                 <FileEdit className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleDelete} className="text-red-600">
@@ -219,16 +219,16 @@ export default function SalesOrderDetailPage() {
                   <FileSpreadsheet className="mr-2 h-4 w-4" /> Download
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <SalesOrderExcelDownload salesOrder={salesOrder}>
+                  <SalesVoucherExcelDownload salesOrder={salesOrder}>
                     <DropdownMenuItem>
                       <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
                     </DropdownMenuItem>
-                  </SalesOrderExcelDownload>
-                  <SalesOrderPdfDownload salesOrder={salesOrder}>
+                  </SalesVoucherExcelDownload>
+                  <SalesVoucherPdfDownload salesOrder={salesOrder}>
                     <DropdownMenuItem>
                       <FileText className="mr-2 h-4 w-4" /> PDF
                     </DropdownMenuItem>
-                  </SalesOrderPdfDownload>
+                  </SalesVoucherPdfDownload>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             </DropdownMenuContent>
@@ -255,7 +255,7 @@ export default function SalesOrderDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Sales Voucher No:</span>
-                  <div>{referenceNo || 'N/A'}</div>
+                  <div>{salesOrder.salesVoucherNumber || 'N/A'}</div>
                 </div>
               </div>
             </div>

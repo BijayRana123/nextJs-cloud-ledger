@@ -44,37 +44,38 @@ export function TopNavbar({ children }) {
   }
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-[#2a2f4a] px-4">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-[#ffffff] px-4">
       <div className="flex items-center">
+        <img src="/logo1.png" alt="Logo" className="h-10 w-auto mr-3" />
         {children}
-        <Link className="text-white font-bold text-2xl mr-6" href="/dashboard">tigg</Link>
+        <Link className="text-black font-bold text-2xl mr-6" href="/dashboard">ZBooks</Link>
         <div className="relative w-64 lg:w-96">
-          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-black-400" />
           <Input
             placeholder="Search..."
-            className="pl-8 bg-[#3a3f5a] border-none text-white placeholder:text-gray-400"
+            className="pl-8 bg-[##FFBA26] border-none text-black placeholder:text-gray-400"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">Ctrl + /</div>
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" className="text-white gap-2">
+        <Button variant="ghost" className="text-black gap-2">
           <Headphones className="h-5 w-5" />
           <span>Support</span>
           <span className="ml-1 h-2 w-2 rounded-full bg-green-500"></span>
         </Button>
-        <Button variant="ghost" className="text-white">
+        <Button variant="ghost" className="text-black">
           <Calendar className="h-5 w-5 mr-2" />
           <span>This Fiscal Year to Date</span>
         </Button>
         <div className="flex items-center gap-2 bg-[#3a3f5a] p-2 rounded-md">
-          <span className="text-white text-sm">AD</span>
+          <span className="text-black text-sm">AD</span>
           <Switch 
             id="calendar-toggle" 
             checked={isNepaliCalendar} 
             onCheckedChange={toggleCalendarType}
           />
-          <span className="text-white text-sm">BS</span>
+          <span className="text-black text-sm">BS</span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

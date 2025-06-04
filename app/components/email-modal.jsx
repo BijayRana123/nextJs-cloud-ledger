@@ -31,7 +31,7 @@ const EmailModal = ({ isOpen, onClose, to: toProp = '', subject: subjectProp = '
       // Use the correct endpoint based on the type
       let endpoint = '';
       if (type === 'sales-voucher') {
-        endpoint = `/api/organization/sales-orders/${orderId}/send-email`;
+        endpoint = `/api/organization/sales-vouchers/${orderId}/send-email`;
       } else if (type === 'purchase-order') {
         endpoint = `/api/organization/purchase-orders/${orderId}/send-email`;
       } else if (type === 'sales-return-voucher') {

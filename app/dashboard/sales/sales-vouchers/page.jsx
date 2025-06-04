@@ -35,11 +35,11 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
     setError(null);
     try {
       // Fetch data from the sales orders API endpoint
-      const response = await fetch('/api/organization/sales-orders');
+      const response = await fetch('/api/organization/sales-vouchers');
       const result = await response.json();
 
       if (response.ok) {
-        setSalesOrders(result.salesOrders); // Updated to setSalesOrders
+        setSalesOrders(result.salesVouchers); // Updated to setSalesOrders with the correct key
       } else {
         setError(result.message || "Failed to fetch sales vouchers");
       }
@@ -70,25 +70,24 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
     setSearchQuery(e.target.value);
   };
 
-  // Filter and sort orders based on search query and Sales Voucher No (referenceNo)
+  // Filter and sort orders based on search query and Sales Voucher No (salesVoucherNumber)
   const filteredOrders = salesOrders
     .filter(order => {
-    const searchMatches = searchQuery === "" || 
-      (order.customer?.name && order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (order.salesOrderNumber && order.salesOrderNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (order.referenceNo && order.referenceNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (order.totalAmount && order.totalAmount.toString().includes(searchQuery.toLowerCase()));
+      const searchMatches = searchQuery === "" || 
+        (order.customer?.name && order.customer.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (order.salesVoucherNumber && order.salesVoucherNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (order.totalAmount && order.totalAmount.toString().includes(searchQuery.toLowerCase()));
       return searchMatches;
     })
     .sort((a, b) => {
-      // Extract numeric part from referenceNo (e.g., SV-0001 -> 1)
+      // Extract numeric part from salesVoucherNumber (e.g., SV-0001 -> 1)
       const getNum = ref => {
         if (!ref) return 0;
         const match = ref.match(/\d+/g);
         return match ? parseInt(match.join(''), 10) : 0;
       };
-      return getNum(b.referenceNo) - getNum(a.referenceNo);
-  });
+      return getNum(b.salesVoucherNumber) - getNum(a.salesVoucherNumber);
+    });
 
   const handleDelete = (id) => {
     setDeletingId(id);
@@ -98,7 +97,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      const response = await fetch(`/api/organization/sales-orders/${deletingId}`, {
+      const response = await fetch(`/api/organization/sales-vouchers/${deletingId}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -115,7 +114,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
   };
 
   const handlePrint = (id) => {
-    window.open(`/dashboard/sales/sales-bills/${id}/print`, '_blank');
+    window.open(`/dashboard/sales/sales-vouchers/${id}/print`, '_blank');
   };
 
   // Helper to generate PDF as base64 for preview/attachment
@@ -143,7 +142,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
       head: [['DATE', 'SALES VOUCHER NO', 'CUSTOMER ID']],
       body: [[
         formatDateDisplay(order.date),
-        order.referenceNo || 'N/A',
+        order.salesVoucherNumber || 'N/A',
         order.customer?._id || 'N/A',
       ]],
       theme: 'grid',
@@ -237,7 +236,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
               {isNepaliCalendar ? "Nepali (BS)" : "English (AD)"}
             </span>
           </div>
-          <Link href="/dashboard/sales/add-sales-bill" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2">
+          <Link href="/dashboard/sales/add-sales-voucher" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2">
             <Rocket className="h-5 w-5 mr-2" />
           ADD NEW
         </Link>
@@ -310,11 +309,11 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                         e.target.closest('input[type=checkbox]') ||
                         e.target.closest('.switch')
                       ) return;
-                      router.push(`/dashboard/sales/sales-orders/${order._id}`);
+                      router.push(`/dashboard/sales/sales-vouchers/${order._id}`);
                     }}
                   >
                     <CustomTableCell>{order.customer?.name || 'N/A'}</CustomTableCell>
-                <CustomTableCell>{order.referenceNo || 'N/A'}</CustomTableCell>
+                    <CustomTableCell>{order.salesVoucherNumber || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{formatDateDisplay(order.date)}</CustomTableCell>
                     <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>
                     <CustomTableCell>
@@ -335,7 +334,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                       // Prepare data for Excel
                       const ws = XLSX.utils.json_to_sheet([
                         {
-                          'Sales Voucher No': order.referenceNo,
+                          'Sales Voucher No': order.salesVoucherNumber,
                           'Customer': order.customer?.name || 'N/A',
                           'Date': formatDateDisplay(order.date),
                           'Amount': order.totalAmount?.toFixed(2) || '0.00',
@@ -343,7 +342,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                       ]);
                       const wb = XLSX.utils.book_new();
                       XLSX.utils.book_append_sheet(wb, ws, 'SalesVoucher');
-                      XLSX.writeFile(wb, `SalesVoucher-${order.referenceNo || order._id}.xlsx`);
+                      XLSX.writeFile(wb, `SalesVoucher-${order.salesVoucherNumber || order._id}.xlsx`);
                     }} title="Download Excel">
                       <FileSpreadsheet className="h-4 w-4 text-green-700" />
                     </Button>
@@ -373,7 +372,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                         head: [['DATE', 'SALES VOUCHER NO', 'CUSTOMER ID']],
                         body: [[
                           formatDateDisplay(order.date),
-                          order.referenceNo || 'N/A',
+                          order.salesVoucherNumber || 'N/A',
                           order.customer?._id || 'N/A',
                         ]],
                         theme: 'grid',
@@ -444,7 +443,7 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                       doc.setFontSize(10);
                       doc.text('If you have any questions about this invoice, please contact', 40, y2 + 160);
                       doc.text('[Name, Phone #, E-mail]', 40, y2 + 172);
-                      doc.save(`SalesVoucher-${order.referenceNo || order._id}.pdf`);
+                      doc.save(`SalesVoucher-${order.salesVoucherNumber || order._id}.pdf`);
                     }} title="Download PDF">
                       <FileText className="h-4 w-4 text-red-700" />
                     </Button>
@@ -485,10 +484,10 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
           isOpen={emailDialogOpen}
           onClose={() => setEmailDialogOpen(false)}
           to={emailOrder.customer?.email || ""}
-          subject={`Sales Voucher ${emailOrder.referenceNo}`}
+          subject={`Sales Voucher ${emailOrder.salesVoucherNumber}`}
           body={`Please find attached the sales voucher for your reference.\n\n-- Sent from Cloud Ledger`}
           pdfPreviewUrl={pdfPreviewUrl}
-          pdfFileName={`SalesVoucher-${emailOrder.referenceNo || emailOrder._id}.pdf`}
+          pdfFileName={`SalesVoucher-${emailOrder.salesVoucherNumber || emailOrder._id}.pdf`}
           orderId={emailOrder._id}
           type="sales-voucher"
         />

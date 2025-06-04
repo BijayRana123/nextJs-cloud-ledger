@@ -34,7 +34,7 @@ export function CreateNewModal({ isOpen, onClose }) {
       'Supplier': '/dashboard', // Update if you have a specific supplier page
       'Products': '/dashboard', // Update if you have a specific products page
       'Accounts': '/dashboard/accounting/ledger',
-      'Sales Voucher': '/dashboard/sales/add-sales-bill',
+      'Sales Voucher': '/dashboard/sales/add-sales-voucher',
       'Sales Return': '/dashboard/sales/add-sales-return',
       'Purchase Voucher': '/dashboard/purchase/add-purchase-bill',
       'Purchase Return': '/dashboard/purchase/add-purchase-return',

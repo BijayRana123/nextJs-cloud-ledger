@@ -658,7 +658,7 @@ By reverting to the original JSX implementation of the CustomTable components, w
 - Fixed issues in both the PurchaseOrderDetailPage and ItemsSection components
 
 ### Summary:
-The hydration error was caused by invalid HTML structure in our table components. Our attempts to fix whitespace issues with React.createElement actually created more problems by generating invalid HTML nesting.
+The hydration error was caused by invalid HTML structure in our table components. Our attempts to fix whitespace issues with React.createElement were actually creating more problems by generating invalid HTML nesting.
 
 The solution was to revert to the original JSX implementation of the CustomTable components, which ensures that the proper HTML structure is maintained. This approach preserves the reusability and abstraction of the custom components while ensuring valid HTML structure that renders consistently between the server and client.
 
@@ -1144,9 +1144,9 @@ The `router` object was included in the dependency array of the `useEffect` hook
 3. ✅ Created API routes for sales functionality:
    - `/api/organization/customers` - GET, POST
    - `/api/organization/customers/[id]` - GET, PUT, DELETE
-   - `/api/organization/sales-orders` - GET, POST
-   - `/api/organization/sales-orders/[id]` - GET, DELETE
-   - `/api/organization/sales-orders/[id]/approve` - POST
+   - `/api/organization/sales-vouchers` - GET, POST
+   - `/api/organization/sales-vouchers/[id]` - GET, DELETE
+   - `/api/organization/sales-vouchers/[id]/approve` - POST
 
 4. ✅ Created UI components for sales:
    - `customer-section.jsx` - For selecting and managing customers
@@ -1154,9 +1154,9 @@ The `router` object was included in the dependency array of the `useEffect` hook
    - `calculation-section.jsx` - For calculating totals and additional information
 
 5. ✅ Created pages for the sales module:
-   - `/dashboard/sales/sales-bills/page.jsx` - For viewing all sales bills
-   - `/dashboard/sales/add-sales-bill/page.jsx` - For creating new sales bills
-   - `/dashboard/sales/sales-orders/[id]/page.jsx` - For viewing sales order details
+   - `/dashboard/sales/sales-vouchers/page.jsx` - For viewing all sales vouchers
+   - `/dashboard/sales/add-sales-voucher/page.jsx` - For creating new sales vouchers
+   - `/dashboard/sales/sales-vouchers-details/[id]/page.jsx` - For viewing sales voucher details
 
 ### Benefits:
 - Complete sales functionality that mirrors the purchase functionality
@@ -1201,6 +1201,6 @@ We have successfully implemented a complete sales module that mirrors the purcha
 The sales module now provides a complete solution for managing sales transactions, with support for both domestic and export sales, customer management, and integration with the existing organization access control system.
 
 ### Update (2023-10-15):
-- Fixed the date picker in the add-sales-bill page to use NepaliDatePicker for consistency with the purchase functionality
+- Fixed the date picker in the add-sales-voucher page to use NepaliDatePicker for consistency with the purchase functionality
 - Updated the date handling to work correctly with the NepaliDatePicker component
 - Ensured consistent date format across the application

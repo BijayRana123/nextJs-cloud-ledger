@@ -13,7 +13,7 @@ export default function SalesBillPrintPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    fetch(`/api/organization/sales-orders/${id}`)
+    fetch(`/api/organization/sales-vouchers/${id}`)
       .then(res => res.json())
       .then(data => setBill(data.salesOrder))
       .catch(() => setError("Failed to fetch sales voucher"))

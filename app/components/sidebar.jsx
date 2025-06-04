@@ -49,7 +49,7 @@ function SidebarCreateNewMenu({ onNavigate }) {
     'Supplier': '/dashboard',
     'Products': '/dashboard',
     'Accounts': '/dashboard/accounting/ledger',
-    'Sales Voucher': '/dashboard/sales/add-sales-bill',
+    'Sales Voucher': '/dashboard/sales/add-sales-voucher',
     'Sales Return': '/dashboard/sales/add-sales-return',
     'Purchase Voucher': '/dashboard/purchase/add-purchase-bill',
     'Purchase Return': '/dashboard/purchase/add-purchase-return',
