@@ -19,6 +19,7 @@ export function ReportsMenu({ isExpanded: isSidebarExpanded }) { // Accept isExp
   };
 
   const reportItems = [
+    { label: "Day Book", href: "/dashboard/accounting/reports/day-book", icon: <PieChart className="h-4 w-4" /> },
     { label: "Transaction Ledger", href: "/dashboard/accounting/ledger", icon: <FileText className="h-4 w-4" /> },
     { 
       label: "Financial Statements", 

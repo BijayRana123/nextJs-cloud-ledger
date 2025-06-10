@@ -110,9 +110,7 @@ export default function TransactionsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              <Button onClick={() => router.push("/dashboard/accounting/journal-entries")}>
-                View Journal Entries
-              </Button>
+              <Button onClick={() => router.push("/dashboard/accounting/reports/day-book")}>View Day Book</Button>
               <Button variant="outline" onClick={() => router.push("/dashboard/accounting/reports")}>
                 View Financial Reports
               </Button>

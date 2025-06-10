@@ -13,17 +13,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 
-export default function JournalEntriesPage() {
+export default function DayBookPage() {
   const router = useRouter();
   const [journalEntries, setJournalEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
   const [error, setError] = useState(null);
   const { isNepaliCalendar } = useCalendar();
 
@@ -65,7 +63,7 @@ export default function JournalEntriesPage() {
     }
   };
 
-  // Filter journal entries based on search term and active tab
+  // Filter journal entries based on search term
   const filteredEntries = Array.isArray(journalEntries) 
     ? journalEntries.filter((entry) => {
         // Ensure entry and its properties exist before filtering
@@ -75,9 +73,7 @@ export default function JournalEntriesPage() {
           entry.memo.toLowerCase().includes(searchTerm.toLowerCase()) ||
           entry._id.toLowerCase().includes(searchTerm.toLowerCase());
         
-        if (activeTab === "all") return matchesSearch;
-        if (activeTab === "voided") return matchesSearch && entry.voided;
-        return matchesSearch && !entry.voided;
+        return matchesSearch;
       })
     : [];
 
@@ -85,7 +81,8 @@ export default function JournalEntriesPage() {
   const formatDateDisplay = (dateString) => {
     if (!dateString) return "N/A";
     try {
-      return formatDate(new Date(dateString), isNepaliCalendar);
+      // Always specify locale and options for deterministic output
+      return formatDate(new Date(dateString), isNepaliCalendar, 'en');
     } catch (e) {
       console.error("Error formatting date:", e);
       return "Invalid Date";
@@ -111,11 +108,7 @@ export default function JournalEntriesPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Day Book</h1>
-        <Button onClick={() => router.push("/dashboard/accounting/journal-entries/new")}>New Entry</Button>
-      </div>
-
+      <h1 className="text-3xl font-bold mb-6">Day Book</h1>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -137,72 +130,62 @@ export default function JournalEntriesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Entries</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="voided">Voided</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value={activeTab}>
-              {loading ? (
-                <div className="flex justify-center items-center h-40">
-                  <p>Loading journal entries...</p>
-                </div>
-              ) : error ? (
-                <div className="flex justify-center items-center h-40 text-red-500">
-                  <p>{error}</p>
-                </div>
-              ) : filteredEntries.length === 0 ? (
-                <div className="flex justify-center items-center h-40">
-                  <p>No day book entries found.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Memo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <CustomTableRow key={entry._id}>
-                        <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
-                        <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
-                        <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
-                        <CustomTableCell>
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            entry.voided
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
-                          }`}>
-                            {entry.voided ? "Voided" : "Active"}
-                          </span>
-                        </CustomTableCell>
-                        <CustomTableCell className="text-right">
-                          ${calculateTotalAmount(entry).toFixed(2)}
-                        </CustomTableCell>
-                        <CustomTableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/accounting/journal-entries/${entry._id}`)}
-                          >
-                            View
-                          </Button>
-                        </CustomTableCell>
-                      </CustomTableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
-          </Tabs>
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <p>Loading journal entries...</p>
+            </div>
+          ) : error ? (
+            <div className="flex justify-center items-center h-40 text-red-500">
+              <p>{error}</p>
+            </div>
+          ) : filteredEntries.length === 0 ? (
+            <div className="flex justify-center items-center h-40">
+              <p>No day book entries found.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Memo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEntries.map((entry) => (
+                  <CustomTableRow key={entry._id}>
+                    <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
+                    <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
+                    <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
+                    <CustomTableCell>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        entry.voided
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                      }`}>
+                        {entry.voided ? "Voided" : "Active"}
+                      </span>
+                    </CustomTableCell>
+                    <CustomTableCell className="text-right">
+                      ${calculateTotalAmount(entry).toFixed(2)}
+                    </CustomTableCell>
+                    <CustomTableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/accounting/reports/day-book/${entry._id}`)}
+                      >
+                        View
+                      </Button>
+                    </CustomTableCell>
+                  </CustomTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

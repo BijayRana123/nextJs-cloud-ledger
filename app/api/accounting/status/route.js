@@ -21,8 +21,6 @@ export async function GET() {
         console.log('Testing direct MongoDB connection...');
         const uri = process.env.MONGODB_URI || 'mongodb://localhost/medici_test';
         await mongoose.connect(uri, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
           serverSelectionTimeoutMS: 5000 // 5 second timeout
         });
         mongoStatus.directConnectionTest = {

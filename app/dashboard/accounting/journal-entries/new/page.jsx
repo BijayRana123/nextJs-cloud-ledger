@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { accounts } from "@/lib/accountingClient";
 import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
+import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
 
 export default function NewJournalEntryPage() {
   const router = useRouter();
@@ -62,6 +63,15 @@ export default function NewJournalEntryPage() {
     
     setAccountOptions(options);
   }, []);
+
+  // Helper: Map full path to label and vice versa
+  const accountLabelMap = {};
+  const labelToPathMap = {};
+  accountOptions.forEach((full) => {
+    const label = full.split(":").slice(1).join(":") || full.split(":")[0];
+    accountLabelMap[full] = label;
+    labelToPathMap[label] = full;
+  });
 
   // Add a new transaction row
   const addTransaction = () => {
@@ -308,23 +318,13 @@ export default function NewJournalEntryPage() {
                 {transactions.map((transaction, index) => (
                   <CustomTableRow key={index}>
                     <CustomTableCell>
-                      <Select
-                        value={transaction.account || "placeholder"}
-                        onValueChange={(value) => handleTransactionChange(index, "account", value === "placeholder" ? null : value)}
+                      <AccountAutocompleteInput
+                        accountOptions={accountOptions}
+                        value={transaction.account}
+                        onChange={val => handleTransactionChange(index, "account", val)}
+                        placeholder="Select or type account"
                         required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="placeholder" disabled>Select an account</SelectItem>
-                          {accountOptions.map((account) => (
-                            <SelectItem key={account} value={account}>
-                              {account}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </CustomTableCell>
                     <CustomTableCell>
                       <Select
