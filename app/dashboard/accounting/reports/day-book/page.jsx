@@ -149,7 +149,6 @@ export default function DayBookPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>Memo</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -160,15 +159,6 @@ export default function DayBookPage() {
                     <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
                     <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
                     <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
-                    <CustomTableCell>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        entry.voided
-                          ? "bg-red-100 text-red-800"
-                          : "bg-green-100 text-green-800"
-                      }`}>
-                        {entry.voided ? "Voided" : "Active"}
-                      </span>
-                    </CustomTableCell>
                     <CustomTableCell className="text-right">
                       ${calculateTotalAmount(entry).toFixed(2)}
                     </CustomTableCell>

@@ -32,20 +32,17 @@ export async function GET(request) {
         break;
       case 'bill':
         counterConfig.name = 'payment_voucher';
-        counterConfig.prefix = 'BILL-';
+        counterConfig.prefix = 'PaV-';
+        break;
+      case 'receipt':
+        counterConfig.name = 'receipt_voucher';
+        counterConfig.prefix = 'RcV-';
         break;
       case 'journal':
         counterConfig.name = 'journal_entry';
         counterConfig.prefix = 'JV-';
         break;
-      case 'expense':
-        counterConfig.name = 'expense_voucher';
-        counterConfig.prefix = 'EV-';
-        break;
-      case 'income':
-        counterConfig.name = 'income_voucher';
-        counterConfig.prefix = 'IV-';
-        break;
+
       case 'sales':
         counterConfig.name = 'sales_order';
         counterConfig.prefix = 'SV-';

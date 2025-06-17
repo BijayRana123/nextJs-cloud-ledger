@@ -136,7 +136,6 @@ export default function PurchaseBillDetailPage() {
     isExport,
     items: billItems,
     totalAmount,
-    status,
     notes
   } = bill;
 
@@ -158,7 +157,7 @@ export default function PurchaseBillDetailPage() {
       <div className="flex space-x-2 mb-4">
         {!isLoading && bill && (
           <>
-            {status === 'DRAFT' && (
+            {bill.status === 'DRAFT' && (
               <>
                 <Button variant="outline" onClick={() => router.push(`/dashboard/purchase/add-purchase-bill?id=${id}`)}>Edit</Button>
                 <Button onClick={handleApprove} disabled={isApproving}>
@@ -191,18 +190,6 @@ export default function PurchaseBillDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Order Number:</span>
                   <div>{purchaseOrderNumber || 'N/A'}</div>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Status:</span>
-                  <div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                      status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {status || 'DRAFT'}
-                    </span>
-                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Date:</span>

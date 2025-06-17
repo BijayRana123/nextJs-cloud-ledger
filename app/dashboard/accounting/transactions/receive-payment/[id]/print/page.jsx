@@ -8,6 +8,7 @@ export default function ReceiptVoucherPrintPage() {
   const [voucher, setVoucher] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [customerName, setCustomerName] = useState('N/A');
 
   useEffect(() => {
     if (!id) return;
@@ -31,13 +32,32 @@ export default function ReceiptVoucherPrintPage() {
     fetchVoucher();
   }, [id]);
 
+  // Set customerName after voucher is loaded
+  useEffect(() => {
+    if (!voucher) return;
+    const customerMetaName = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName;
+    const customerId = voucher.transactions?.find(t => t.meta?.customerId)?.meta?.customerId;
+    if (customerMetaName && customerMetaName !== 'N/A') {
+      setCustomerName(customerMetaName);
+    } else if (customerId) {
+      fetch(`/api/organization/customers/${customerId}`)
+        .then(res => res.json())
+        .then(data => setCustomerName(data.customer?.name || 'N/A'));
+    } else {
+      setCustomerName('N/A');
+    }
+  }, [voucher]);
+
   if (isLoading) return <div className="p-8">Loading receipt voucher...</div>;
   if (error) return <div className="p-8 text-red-600">Error: {error}</div>;
   if (!voucher) return null;
 
-  // Extract customer and payment method
-  const customer = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || 'N/A';
   const paymentMethod = voucher.transactions?.find(t => t.meta?.paymentMethod)?.meta?.paymentMethod || 'N/A';
+  // Memo: replace any customerId with customer name
+  let memo = voucher.memo || '';
+  if (memo && customerName && memo.includes('Customer')) {
+    memo = memo.replace(/Customer [0-9a-fA-F]{24}/, `Customer ${customerName}`);
+  }
 
   return (
     <div className="p-8 print:p-0 max-w-2xl mx-auto bg-white print:bg-white">
@@ -52,7 +72,7 @@ export default function ReceiptVoucherPrintPage() {
         </div>
         <div>
           <div className="text-sm text-gray-500">Customer</div>
-          <div>{customer}</div>
+          <div>{customerName}</div>
         </div>
         <div>
           <div className="text-sm text-gray-500">Payment Method</div>
@@ -63,7 +83,7 @@ export default function ReceiptVoucherPrintPage() {
         <span className="font-medium">Amount:</span> {voucher.amount || voucher.transactions?.[0]?.amount || 'N/A'}
       </div>
       <div className="mb-4">
-        <span className="font-medium">Memo:</span> {voucher.memo || ''}
+        <span className="font-medium">Memo:</span> {memo}
       </div>
       <div className="mt-8">
         <h3 className="font-semibold mb-2">Transactions</h3>
@@ -78,9 +98,9 @@ export default function ReceiptVoucherPrintPage() {
           <tbody>
             {voucher.transactions?.map((t, idx) => (
               <tr key={idx}>
-                <td className="border px-2 py-1">{t.accountName || t.account || 'N/A'}</td>
+                <td className="border px-2 py-1">{t.accounts ? t.accounts.split(':').pop() : 'N/A'}</td>
                 <td className="border px-2 py-1">{t.amount}</td>
-                <td className="border px-2 py-1">{t.type}</td>
+                <td className="border px-2 py-1">{t.debit ? 'Debit' : t.credit ? 'Credit' : 'N/A'}</td>
               </tr>
             ))}
           </tbody>

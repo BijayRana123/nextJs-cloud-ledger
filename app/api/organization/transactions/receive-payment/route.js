@@ -4,6 +4,8 @@ import { protect } from '@/lib/middleware/auth';
 import { createPaymentReceivedEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
 import mongoose from 'mongoose';
+import { generateVoucherNumber } from '@/lib/accounting';
+import Customer from '@/lib/models/Customer';
 
 export async function POST(request) {
   await dbConnect();
@@ -34,37 +36,37 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Invalid amount. Must be a positive number.' }, { status: 400 });
     }
 
-    // Generate a new invoice number if one doesn't exist
-    if (!paymentDetails.invoiceNumber) {
-      try {
-        paymentDetails.invoiceNumber = await Counter.getNextSequence('receipt_voucher', { 
-          prefix: 'INV-', 
-          paddingSize: 4 
-        });
-      } catch (counterError) {
-        console.error("Error generating invoice number:", counterError);
-        // Fallback to a default format if counter fails
-        paymentDetails.invoiceNumber = `INV-${Date.now().toString().substring(7)}`;
-      }
-    }
-
     console.log('Recording payment receipt with details:', {
       ...paymentDetails,
       amount,
       organizationId
     });
 
+    // Fetch customer name
+    const customer = await Customer.findOne({ _id: paymentDetails.customerId, organization: organizationId });
+    if (!customer) {
+      return NextResponse.json({ message: 'Customer not found.' }, { status: 404 });
+    }
+    const customerName = customer.name;
+    // Use customer name in memo
+    const memo = `Payment Received from Customer ${customerName}`;
+    const receiptVoucherNumber = await generateVoucherNumber(memo);
+
     // Create the accounting entry with validated data
-    await createPaymentReceivedEntry({
+    const journal = await createPaymentReceivedEntry({
       ...paymentDetails,
       amount,
+      receiptVoucherNumber,
+      customerName,
+      paymentMethod: paymentDetails.paymentMethod,
       organizationId,
-      _id: new mongoose.Types.ObjectId() // Generate a new ID for this payment
+      _id: new mongoose.Types.ObjectId()
     });
 
     return NextResponse.json({ 
       message: "Payment received and accounting entry created successfully",
-      invoiceNumber: paymentDetails.invoiceNumber 
+      receiptVoucherNumber,
+      journalId: journal && journal._id ? journal._id : undefined
     }, { status: 201 });
 
   } catch (error) {

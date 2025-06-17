@@ -16,6 +16,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { MoreVertical, FileEdit, Trash2, Printer, Plus } from "lucide-react";
 
 export default function JournalEntryDetailPage({ params }) {
   // Unwrap params using React.use
@@ -25,10 +27,9 @@ export default function JournalEntryDetailPage({ params }) {
   const router = useRouter();
   const [journalEntry, setJournalEntry] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [voidDialogOpen, setVoidDialogOpen] = useState(false);
-  const [voidReason, setVoidReason] = useState("");
-  const [voidingEntry, setVoidingEntry] = useState(false);
   const [error, setError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
   const [entityData, setEntityData] = useState({
     customer: null,
     supplier: null
@@ -172,34 +173,30 @@ export default function JournalEntryDetailPage({ params }) {
     }
   };
 
-  // Handle void journal entry
-  const handleVoidJournalEntry = async () => {
+  // Handle delete journal entry
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this journal entry? This action cannot be undone.")) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
-      setVoidingEntry(true);
-      
-      const response = await fetch(`/api/accounting/journal-entries/${entryId}/void`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reason: voidReason }),
+      const response = await fetch(`/api/accounting/journal-entries/${entryId}`, {
+        method: 'DELETE',
       });
-      
-      if (!response.ok) {
-        throw new Error("Failed to void journal entry");
+      if (response.ok) {
+        router.push('/dashboard/accounting/journal-entries');
+      } else {
+        const result = await response.json();
+        setDeleteError(result.message || "Failed to delete journal entry");
       }
-      
-      const data = await response.json();
-      
-      // Refresh journal entry data
-      setJournalEntry(data.journalEntry);
-      setVoidDialogOpen(false);
-    } catch (error) {
-      console.error("Error voiding journal entry:", error);
-      alert("Error voiding journal entry: " + error.message);
+    } catch (err) {
+      setDeleteError("An error occurred while deleting the journal entry.");
     } finally {
-      setVoidingEntry(false);
+      setIsDeleting(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.open(`/dashboard/accounting/journal-entries/${entryId}/print`, '_blank');
   };
 
   if (loading) {
@@ -337,163 +334,115 @@ export default function JournalEntryDetailPage({ params }) {
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Journal Entry Details</h1>
-        <div className="space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push("/dashboard/accounting/journal-entries")}
-          >
+        <h1 className="text-2xl font-bold">Journal Entry Details</h1>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => router.push('/dashboard/accounting/journal-entries')}>
             Back to Journal Entries
           </Button>
+          <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={() => router.push('/dashboard/accounting/journal-entries/new')}>
+            <Plus className="h-5 w-5 mr-2" /> Add New
+          </Button>
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="h-5 w-5 mr-2" /> Print
+          </Button>
           {!journalEntry.voided && (
-            <Dialog open={voidDialogOpen} onOpenChange={setVoidDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive">Void Entry</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Void Journal Entry</DialogTitle>
-                </DialogHeader>
-                <div className="py-4">
-                  <p className="mb-4">
-                    Are you sure you want to void this journal entry? This action cannot be undone.
-                  </p>
-                  <Input
-                    placeholder="Reason for voiding"
-                    value={voidReason}
-                    onChange={(e) => setVoidReason(e.target.value)}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setVoidDialogOpen(false)}
-                    disabled={voidingEntry}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleVoidJournalEntry}
-                    disabled={voidingEntry || !voidReason.trim()}
-                  >
-                    {voidingEntry ? "Voiding..." : "Void Entry"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              <Trash2 className="h-5 w-5 mr-2" /> {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
           )}
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-2">
-              <div className="flex justify-between">
-                <dt className="font-medium">Voucher Number:</dt>
-                <dd>{journalEntry.voucherNumber || journalEntry.transactions?.[0]?.meta?.voucherNumber || journalEntry.transactions?.[0]?.meta?.invoiceNumber || journalEntry.transactions?.[0]?.meta?.billNumber || "N/A"}</dd>
+      {deleteError && <div className="text-red-600 mb-4">{deleteError}</div>}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Journal Entry Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-medium mb-2">Basic Details</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Date:</span>
+                  <div>{formatDate(journalEntry.datetime)}</div>
                 </div>
-              <div className="flex justify-between">
-                <dt className="font-medium">Date:</dt>
-                <dd>{formatDate(journalEntry.datetime)}</dd>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Journal Voucher Reference Number:</span>
+                  <div>{journalEntry.voucherNumber || "N/A"}</div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Description:</span>
+                  <div>{formatMemo(journalEntry.memo)}</div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <dt className="font-medium">Description:</dt>
-                <dd>{formatMemo(journalEntry.memo)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="font-medium">Status:</dt>
-                <dd>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    journalEntry.voided
-                      ? "bg-red-100 text-red-800"
-                      : "bg-green-100 text-green-800"
-                  }`}>
-                    {journalEntry.voided ? "Voided" : "Active"}
-                  </span>
-                </dd>
-              </div>
-              {journalEntry.voided && (
-                <>
-                  <div className="flex justify-between">
-                    <dt className="font-medium">Void Reason:</dt>
-                    <dd>{journalEntry.void_reason || "No reason provided"}</dd>
-                  </div>
-                </>
-              )}
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction, index) => (
-                  <CustomTableRow key={transaction._id || index}>
-                    <CustomTableCell>
-                      {Array.isArray(transaction.account_path) 
-                        ? transaction.account_path.join(":") 
-                        : transaction.accounts || "Unknown Account"}
-                    </CustomTableCell>
-                    <CustomTableCell>
-                      {transaction.debit ? "Debit" : "Credit"}
-                    </CustomTableCell>
-                    <CustomTableCell className="text-right">
-                      {transaction.debit ? `$${(parseFloat(transaction.amount) || 1.00).toFixed(2)}` : ""}
-                    </CustomTableCell>
-                    <CustomTableCell className="text-right">
-                      {!transaction.debit ? `$${(parseFloat(transaction.amount) || 1.00).toFixed(2)}` : ""}
-                    </CustomTableCell>
-                  </CustomTableRow>
-                ))}
-                
-                {/* Totals row */}
-                <CustomTableRow>
-                  <CustomTableCell colSpan={2} className="font-bold">
-                    Totals
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Account</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Debit</TableHead>
+                <TableHead className="text-right">Credit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((transaction, index) => (
+                <CustomTableRow key={transaction._id || index}>
+                  <CustomTableCell>
+                    {Array.isArray(transaction.account_path)
+                      ? transaction.account_path[transaction.account_path.length - 1] || transaction.account_path.join(":")
+                      : (transaction.accounts ? transaction.accounts.split(':').pop() : "Unknown Account")}
                   </CustomTableCell>
-                  <CustomTableCell className="text-right font-bold">
-                    $
-                    {transactions
-                      .filter(t => t.debit)
-                      .reduce((sum, t) => {
-                        const amount = parseFloat(t.amount);
-                        return sum + (isNaN(amount) || amount <= 0 ? 1.00 : amount);
-                      }, 0)
-                      .toFixed(2)}
+                  <CustomTableCell>
+                    {transaction.debit ? "Debit" : "Credit"}
                   </CustomTableCell>
-                  <CustomTableCell className="text-right font-bold">
-                    $
-                    {transactions
-                      .filter(t => !t.debit)
-                      .reduce((sum, t) => {
-                        const amount = parseFloat(t.amount);
-                        return sum + (isNaN(amount) || amount <= 0 ? 1.00 : amount);
-                      }, 0)
-                      .toFixed(2)}
+                  <CustomTableCell className="text-right">
+                    {transaction.debit ? `$${(parseFloat(transaction.amount) || 1.00).toFixed(2)}` : ""}
+                  </CustomTableCell>
+                  <CustomTableCell className="text-right">
+                    {!transaction.debit ? `$${(parseFloat(transaction.amount) || 1.00).toFixed(2)}` : ""}
                   </CustomTableCell>
                 </CustomTableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+              
+              {/* Totals row */}
+              <CustomTableRow>
+                <CustomTableCell colSpan={2} className="font-bold">
+                  Totals
+                </CustomTableCell>
+                <CustomTableCell className="text-right font-bold">
+                  $
+                  {transactions
+                    .filter(t => t.debit)
+                    .reduce((sum, t) => {
+                      const amount = parseFloat(t.amount);
+                      return sum + (isNaN(amount) || amount <= 0 ? 1.00 : amount);
+                    }, 0)
+                    .toFixed(2)}
+                </CustomTableCell>
+                <CustomTableCell className="text-right font-bold">
+                  $
+                  {transactions
+                    .filter(t => !t.debit)
+                    .reduce((sum, t) => {
+                      const amount = parseFloat(t.amount);
+                      return sum + (isNaN(amount) || amount <= 0 ? 1.00 : amount);
+                    }, 0)
+                    .toFixed(2)}
+                </CustomTableCell>
+              </CustomTableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {journalEntry.meta && Object.keys(journalEntry.meta).length > 0 && (
         <Card>
@@ -512,8 +461,6 @@ export default function JournalEntryDetailPage({ params }) {
           </CardContent>
         </Card>
       )}
-
-   
-      </div>
+    </div>
   );
 } 

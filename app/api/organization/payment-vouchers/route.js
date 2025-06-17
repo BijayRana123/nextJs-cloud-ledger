@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import { protect } from '@/lib/middleware/auth';
 import { createPaymentSentEntry } from '@/lib/accounting';
-import mongoose from 'mongoose';
 import PaymentVoucher from '@/lib/models/PaymentVoucher';
 import AccountingJournal from '@/lib/models/AccountingJournal';
 import AccountingTransaction from '@/lib/models/AccountingTransaction';
@@ -124,3 +123,24 @@ export async function POST(request) {
     }, { status: 500 });
   }
 }
+
+export async function GET(request) {
+  await dbConnect();
+  try {
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      return authResult;
+    }
+    const organizationId = request.headers.get('x-organization-id') || request.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ message: 'No organization context found.' }, { status: 400 });
+    }
+    const vouchers = await PaymentVoucher.find({ organization: organizationId })
+      .populate('supplier', 'name email phoneNumber')
+      .sort({ date: -1 });
+    return NextResponse.json({ paymentVouchers: vouchers });
+  } catch (error) {
+    console.error('Error fetching payment vouchers:', error);
+    return NextResponse.json({ message: 'Failed to fetch payment vouchers', error: error.message }, { status: 500 });
+  }
+} 

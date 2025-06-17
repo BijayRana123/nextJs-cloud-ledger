@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 export default function PaymentVoucherPrintPage() {
   const { id } = useParams();
   const [voucher, setVoucher] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,10 +16,11 @@ export default function PaymentVoucherPrintPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/accounting/vouchers/payment?_id=${id}`);
+        const response = await fetch(`/api/organization/payment-vouchers/${id}`);
         const result = await response.json();
-        if (response.ok && result.paymentVouchers && result.paymentVouchers.length > 0) {
-          setVoucher(result.paymentVouchers[0]);
+        if (response.ok && result.paymentVoucher) {
+          setVoucher(result.paymentVoucher);
+          setTransactions(result.transactions || []);
         } else {
           setError('Payment voucher not found');
         }
@@ -35,35 +37,40 @@ export default function PaymentVoucherPrintPage() {
   if (error) return <div className="p-8 text-red-600">Error: {error}</div>;
   if (!voucher) return null;
 
-  // Extract supplier and payment method
-  const supplier = voucher.transactions?.find(t => t.meta?.supplierName)?.meta?.supplierName || 'N/A';
-  const paymentMethod = voucher.transactions?.find(t => t.meta?.paymentMethod)?.meta?.paymentMethod || 'N/A';
+  const {
+    paymentVoucherNumber,
+    date,
+    supplierName,
+    amount,
+    paymentMethod,
+    memo
+  } = voucher;
 
   return (
     <div className="p-8 print:p-0 max-w-2xl mx-auto bg-white print:bg-white">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-2">Payment Voucher</h1>
-        <div className="text-gray-600">Voucher ID: {voucher._id}</div>
+        <div className="text-gray-600">Voucher No: {paymentVoucherNumber}</div>
       </div>
       <div className="mb-4 flex justify-between">
         <div>
           <div className="text-sm text-gray-500">Date</div>
-          <div>{voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A'}</div>
+          <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
         </div>
         <div>
           <div className="text-sm text-gray-500">Supplier</div>
-          <div>{supplier}</div>
+          <div>{supplierName || 'N/A'}</div>
         </div>
         <div>
           <div className="text-sm text-gray-500">Payment Method</div>
-          <div>{paymentMethod}</div>
+          <div>{paymentMethod || 'N/A'}</div>
         </div>
       </div>
       <div className="mb-4">
-        <span className="font-medium">Amount:</span> {voucher.amount || voucher.transactions?.[0]?.amount || 'N/A'}
+        <span className="font-medium">Amount:</span> {amount || 'N/A'}
       </div>
       <div className="mb-4">
-        <span className="font-medium">Memo:</span> {voucher.memo || ''}
+        <span className="font-medium">Memo:</span> {memo || ''}
       </div>
       <div className="mt-8">
         <h3 className="font-semibold mb-2">Transactions</h3>
@@ -76,9 +83,9 @@ export default function PaymentVoucherPrintPage() {
             </tr>
           </thead>
           <tbody>
-            {voucher.transactions?.map((t, idx) => (
+            {transactions.map((t, idx) => (
               <tr key={idx}>
-                <td className="border px-2 py-1">{t.accountName || t.account || 'N/A'}</td>
+                <td className="border px-2 py-1">{t.account ? t.account.split(':').pop() : 'N/A'}</td>
                 <td className="border px-2 py-1">{t.amount}</td>
                 <td className="border px-2 py-1">{t.type}</td>
               </tr>

@@ -76,8 +76,7 @@ export default function JournalEntriesPage() {
           entry._id.toLowerCase().includes(searchTerm.toLowerCase());
         
         if (activeTab === "all") return matchesSearch;
-        if (activeTab === "voided") return matchesSearch && entry.voided;
-        return matchesSearch && !entry.voided;
+        return matchesSearch;
       })
     : [];
 
@@ -140,8 +139,6 @@ export default function JournalEntriesPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="all">All Entries</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="voided">Voided</TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab}>
@@ -164,7 +161,6 @@ export default function JournalEntriesPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>ID</TableHead>
                       <TableHead>Memo</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -175,15 +171,6 @@ export default function JournalEntriesPage() {
                         <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
                         <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
                         <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
-                        <CustomTableCell>
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            entry.voided
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
-                          }`}>
-                            {entry.voided ? "Voided" : "Active"}
-                          </span>
-                        </CustomTableCell>
                         <CustomTableCell className="text-right">
                           ${calculateTotalAmount(entry).toFixed(2)}
                         </CustomTableCell>

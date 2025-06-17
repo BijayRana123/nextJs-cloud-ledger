@@ -64,16 +64,7 @@ export default function ContraVoucherPrintPage() {
         <span className="font-medium">Amount:</span> {voucher.amount}
       </div>
       <div className="mb-4">
-        <span className="font-medium">Currency:</span> {voucher.currency}
-      </div>
-      <div className="mb-4">
-        <span className="font-medium">Exchange Rate to NPR:</span> {voucher.exchangeRateToNPR}
-      </div>
-      <div className="mb-4">
         <span className="font-medium">Notes:</span> {voucher.notes || ''}
-      </div>
-      <div className="mb-4">
-        <span className="font-medium">Status:</span> {voucher.status}
       </div>
       <div className="mb-4">
         <span className="font-medium">Reference No:</span> {voucher.referenceNo}

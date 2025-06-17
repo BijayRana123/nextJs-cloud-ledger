@@ -70,7 +70,9 @@ export default function AddPurchaseReturnPage() {
       fetch('/api/accounting/counters/next?type=purchasereturn')
         .then(res => res.json())
         .then(data => {
-          if (data.nextNumber) {
+          if (data.nextNumber && data.nextNumber.startsWith('PR-')) {
+            setFormData(prev => ({ ...prev, referenceNo: data.nextNumber.replace('PR-', 'PRV-') }));
+          } else if (data.nextNumber) {
             setFormData(prev => ({ ...prev, referenceNo: data.nextNumber }));
           }
         });

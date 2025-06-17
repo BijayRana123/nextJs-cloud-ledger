@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import { ContraVoucher } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 import { createContraEntry } from '@/lib/accounting';
+import Counter from '@/lib/models/Counter';
 
 export async function POST(request) {
   await dbConnect();
@@ -19,8 +20,13 @@ export async function POST(request) {
     if (!data.fromAccount || !data.toAccount || !data.amount || !data.date) {
       return NextResponse.json({ message: 'fromAccount, toAccount, amount, and date are required.' }, { status: 400 });
     }
+    // Generate auto-incrementing referenceNo if not provided
     if (!data.referenceNo) {
-      data.referenceNo = `CV-${Date.now()}`;
+      data.referenceNo = await Counter.getNextSequence('contra_voucher', {
+        prefix: 'CV-',
+        paddingSize: 4,
+        startValue: 1
+      });
     }
     const contraVoucher = new ContraVoucher({
       ...data,

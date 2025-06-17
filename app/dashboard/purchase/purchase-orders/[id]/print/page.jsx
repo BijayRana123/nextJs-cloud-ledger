@@ -124,7 +124,6 @@ const PurchaseOrderDocument = ({ purchaseOrder }) => (
           <Text>PAN: {purchaseOrder.supplier?.pan || 'N/A'}</Text>
         </View>
         <View style={styles.orderInfo}>
-          <Text><Text style={styles.forTitle}>Order:</Text> {purchaseOrder.status || 'N/A'}</Text>
           <Text><Text style={styles.forTitle}>Date:</Text> {purchaseOrder.date ? new Date(purchaseOrder.date).toLocaleDateString('en-GB') : 'N/A'}</Text>
           <Text><Text style={styles.forTitle}>Ref:</Text> {purchaseOrder.referenceNo || 'N/A'}</Text>
         </View>

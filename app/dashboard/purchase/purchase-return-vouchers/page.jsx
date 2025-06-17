@@ -126,7 +126,7 @@ export default function PurchaseReturnVouchersPage() {
       head: [['DATE', 'PURCHASE RETURN VOUCHER NO', 'BILL NO', 'SUPPLIER ID']],
       body: [[
         formatDateDisplay(voucher.date),
-        voucher.referenceNo || 'N/A',
+        voucher.referenceNo ? voucher.referenceNo.replace(/^PR-/, 'PRV-') : 'N/A',
         voucher.billNumber || 'N/A',
         voucher.supplier?._id || 'N/A',
       ]],
@@ -275,7 +275,7 @@ export default function PurchaseReturnVouchersPage() {
                 }}
               >
                 <CustomTableCell>{voucher.supplier?.name || 'N/A'}</CustomTableCell>
-                <CustomTableCell>{voucher.referenceNo || 'N/A'}</CustomTableCell>
+                <CustomTableCell>{voucher.referenceNo ? voucher.referenceNo.replace(/^PR-/, 'PRV-') : 'N/A'}</CustomTableCell>
                 <CustomTableCell>{voucher.billNumber || 'N/A'}</CustomTableCell>
                 <CustomTableCell>{formatDateDisplay(voucher.date)}</CustomTableCell>
                 <CustomTableCell>{voucher.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>

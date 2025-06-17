@@ -21,6 +21,9 @@ import { accounts } from "@/lib/accountingClient";
 import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
 import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
 
+// Add this at the top to avoid ReferenceError
+const debugMode = false;
+
 export default function NewJournalEntryPage() {
   const router = useRouter();
   const [memo, setMemo] = useState("");

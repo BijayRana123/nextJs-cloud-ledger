@@ -9,23 +9,34 @@ import { Label } from "@/components/ui/label";
 import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
 import { toast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarIcon } from "lucide-react";
+import { useCalendar } from "@/lib/context/CalendarContext";
+import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
+import { accounts } from "@/lib/accountingClient";
 
 export default function AddContraVoucherPage() {
   const router = useRouter();
+  const { isNepaliCalendar } = useCalendar();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     fromAccount: "",
     toAccount: "",
     amount: "",
-    currency: "NPR",
-    exchangeRateToNPR: 1,
     notes: "",
-    status: "DRAFT"
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [voucher, setVoucher] = useState(null);
+
+  // Build account options from accounts object
+  const accountOptions = [
+    ...accounts.assets.map(a => `assets:${a}`),
+    ...accounts.liabilities.map(a => `liabilities:${a}`),
+    ...accounts.income.map(a => `income:${a}`),
+    ...accounts.expenses.map(a => `expenses:${a}`),
+    ...accounts.equity.map(a => `equity:${a}`),
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -52,7 +63,7 @@ export default function AddContraVoucherPage() {
       setVoucher(data.contraVoucher);
       setSuccess(true);
       toast({ title: "Contra voucher created!", description: "You can now approve it if needed." });
-      setTimeout(() => router.push("/dashboard/accounting/transactions/contra-voucher"), 1200);
+      setTimeout(() => router.push(`/dashboard/accounting/transactions/contra-voucher/${data.contraVoucher._id}`), 1200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -73,7 +84,7 @@ export default function AddContraVoucherPage() {
         <CardContent>
           {success && voucher && (
             <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-              Contra voucher created! Status: <b>{voucher.status}</b>
+              Contra voucher created!
             </div>
           )}
           {error && (
@@ -81,42 +92,43 @@ export default function AddContraVoucherPage() {
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ConditionalDatePicker id="date" name="date" label="Voucher Date" value={formData.date} onChange={handleChange} required />
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <div className="flex items-center gap-2">
+                  <ConditionalDatePicker
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                    className="w-full"
+                  />
+                  <CalendarIcon className="h-5 w-5 text-gray-500" />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="fromAccount">From Account</Label>
-                <Select id="fromAccount" name="fromAccount" value={formData.fromAccount} onValueChange={(value) => handleSelectChange("fromAccount", value)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Assets:Cash">Cash</SelectItem>
-                    <SelectItem value="Assets:Bank">Bank</SelectItem>
-                  </SelectContent>
-                </Select>
+                <AccountAutocompleteInput
+                  accountOptions={accountOptions}
+                  value={formData.fromAccount}
+                  onChange={val => setFormData(prev => ({ ...prev, fromAccount: val }))}
+                  placeholder="Select or type account"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="toAccount">To Account</Label>
-                <Select id="toAccount" name="toAccount" value={formData.toAccount} onValueChange={(value) => handleSelectChange("toAccount", value)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Assets:Cash">Cash</SelectItem>
-                    <SelectItem value="Assets:Bank">Bank</SelectItem>
-                  </SelectContent>
-                </Select>
+                <AccountAutocompleteInput
+                  accountOptions={accountOptions}
+                  value={formData.toAccount}
+                  onChange={val => setFormData(prev => ({ ...prev, toAccount: val }))}
+                  placeholder="Select or type account"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount</Label>
                 <Input id="amount" name="amount" type="number" step="0.01" value={formData.amount} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Input id="currency" name="currency" type="text" value={formData.currency} onChange={handleChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="exchangeRateToNPR">Exchange Rate to NPR</Label>
-                <Input id="exchangeRateToNPR" name="exchangeRateToNPR" type="number" step="0.0001" value={formData.exchangeRateToNPR} onChange={handleChange} required />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="notes">Notes</Label>
@@ -124,7 +136,7 @@ export default function AddContraVoucherPage() {
               </div>
             </div>
             <div className="flex justify-end mt-6">
-              <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save as Draft"}</Button>
+              <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Create Voucher"}</Button>
             </div>
           </form>
         </CardContent>

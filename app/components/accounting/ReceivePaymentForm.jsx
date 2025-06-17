@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { getAuthHeaders } from '@/lib/utils/auth-helpers';
 
-export default function ReceivePaymentForm({ onSuccess }) {
+export default function ReceivePaymentForm({ onSuccess, voucherNumber, setVoucherNumber }) {
   const router = useRouter();
   const organizationId = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,21 +21,24 @@ export default function ReceivePaymentForm({ onSuccess }) {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [loading, setLoading] = useState(true);
-  const [nextInvoiceNumber, setNextInvoiceNumber] = useState('');
 
   const [formData, setFormData] = useState({
     customerId: '',
-    invoiceNumber: '',
+    receiptVoucherNumber: voucherNumber || '',
     amount: '',
     paymentMethod: '',
     notes: '',
   });
 
-  // Fetch customers and next invoice number on component mount
+  // Sync voucher number from prop
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, receiptVoucherNumber: voucherNumber || '' }));
+  }, [voucherNumber]);
+
+  // Fetch customers on component mount
   useEffect(() => {
     if (organizationId) {
       fetchCustomers();
-      fetchNextInvoiceNumber();
     }
   }, [organizationId]);
 
@@ -59,25 +62,6 @@ export default function ReceivePaymentForm({ onSuccess }) {
     }
   };
 
-  const fetchNextInvoiceNumber = async () => {
-    try {
-      const response = await fetch('/api/accounting/counters/next?type=invoice', {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setNextInvoiceNumber(data.nextNumber);
-      } else {
-        console.error("Failed to fetch next invoice number");
-        setNextInvoiceNumber('INV-1001'); // Fallback
-      }
-    } catch (error) {
-      console.error("Error fetching next invoice number:", error);
-      setNextInvoiceNumber('INV-1001'); // Fallback
-    }
-  };
-
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({
@@ -95,20 +79,6 @@ export default function ReceivePaymentForm({ onSuccess }) {
     // If changing customer, update the selected customer
     if (id === 'customerId') {
       setSelectedCustomer(value);
-      if (value) {
-        // Set the invoice number when a customer is selected
-        setFormData(prev => ({
-          ...prev,
-          invoiceNumber: nextInvoiceNumber,
-        }));
-      } else {
-        // Reset fields when customer is deselected
-        setFormData(prev => ({
-          ...prev,
-          invoiceNumber: '',
-          amount: '',
-        }));
-      }
     }
   };
 
@@ -155,23 +125,19 @@ export default function ReceivePaymentForm({ onSuccess }) {
         description: "Payment has been successfully recorded with accounting entries.",
       });
 
-      // Clear form and fetch next invoice number for future use
-      setFormData({
-        customerId: '',
-        invoiceNumber: '',
-        amount: '',
-        paymentMethod: '',
-        notes: '',
-      });
-      setSelectedCustomer('');
-      fetchNextInvoiceNumber();
-      
-      // Call onSuccess if provided, otherwise redirect to journal-entries
-      if (onSuccess) {
+      // Redirect to the new receipt voucher detail page if ID is available
+      if (orgResult && orgResult.journalId) {
+        router.push(`/dashboard/accounting/transactions/receive-payment/${orgResult.journalId}`);
+      } else if (orgResult && orgResult.receiptVoucherNumber) {
+        // Fallback: try to find the journal entry by voucher number
+        setTimeout(() => {
+          router.push(`/dashboard/accounting/transactions/receive-payment`);
+        }, 1500);
+      } else if (onSuccess) {
         onSuccess();
       } else {
         setTimeout(() => {
-          router.push("/dashboard/accounting/journal-entries");
+          router.push("/dashboard/accounting/transactions/receive-payment");
         }, 1500);
       }
     } catch (error) {
@@ -209,15 +175,15 @@ export default function ReceivePaymentForm({ onSuccess }) {
             </div>
             
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="invoiceNumber">Invoice Number</Label>
-              <Input 
-                id="invoiceNumber" 
-                value={formData.invoiceNumber} 
-                placeholder="Auto-generated when customer selected"
-                disabled={true}
-                className="bg-gray-50"
+              <Label htmlFor="receiptVoucherNumber">Receipt Voucher Number *</Label>
+              <Input
+                id="receiptVoucherNumber"
+                value={voucherNumber}
+                placeholder="RcV-XXXX"
+                readOnly
+                disabled
+                autoComplete="off"
               />
-              <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
             </div>
             
             <div className="flex flex-col space-y-1.5">

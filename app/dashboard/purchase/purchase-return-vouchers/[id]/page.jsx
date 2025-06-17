@@ -208,7 +208,7 @@ export default function PurchaseReturnVoucherDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Purchase Return Voucher No:</span>
-                  <div>{referenceNo || 'N/A'}</div>
+                  <div>{referenceNo ? referenceNo.replace(/^PR-/, 'PRV-') : 'N/A'}</div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Date:</span>

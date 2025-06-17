@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { getAuthHeaders } from '@/lib/utils/auth-helpers';
 
-export default function PaySupplierForm({ onSuccess }) {
+export default function PaySupplierForm({ onSuccess, voucherNumber, initialData, onSubmit, mode }) {
   const router = useRouter();
   const organizationId = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,23 +21,39 @@ export default function PaySupplierForm({ onSuccess }) {
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [loading, setLoading] = useState(true);
-  const [nextBillNumber, setNextBillNumber] = useState('');
 
   const [formData, setFormData] = useState({
-    supplierId: '',
-    billNumber: '',
-    amount: '',
-    paymentMethod: '',
-    notes: '',
+    supplierId: initialData?.supplierId || '',
+    paymentVoucherNumber: initialData?.paymentVoucherNumber || '',
+    amount: initialData?.amount || '',
+    paymentMethod: initialData?.paymentMethod || '',
+    notes: initialData?.notes || '',
   });
 
-  // Fetch suppliers and next bill number on component mount
+  // Fetch suppliers on component mount
   useEffect(() => {
     if (organizationId) {
       fetchSuppliers();
-      fetchNextBillNumber();
     }
   }, [organizationId]);
+
+  // Sync voucher number from prop
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, paymentVoucherNumber: voucherNumber || '' }));
+  }, [voucherNumber]);
+
+  // Sync initialData if provided
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        supplierId: initialData.supplierId || '',
+        paymentVoucherNumber: initialData.paymentVoucherNumber || '',
+        amount: initialData.amount || '',
+        paymentMethod: initialData.paymentMethod || '',
+        notes: initialData.notes || '',
+      });
+    }
+  }, [initialData]);
 
   const fetchSuppliers = async () => {
     try {
@@ -59,25 +75,6 @@ export default function PaySupplierForm({ onSuccess }) {
     }
   };
 
-  const fetchNextBillNumber = async () => {
-    try {
-      const response = await fetch('/api/accounting/counters/next?type=bill', {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setNextBillNumber(data.nextNumber);
-      } else {
-        console.error("Failed to fetch next bill number");
-        setNextBillNumber('BILL-2001'); // Fallback
-      }
-    } catch (error) {
-      console.error("Error fetching next bill number:", error);
-      setNextBillNumber('BILL-2001'); // Fallback
-    }
-  };
-
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({
@@ -95,92 +92,36 @@ export default function PaySupplierForm({ onSuccess }) {
     // If changing supplier, update the selected supplier
     if (id === 'supplierId') {
       setSelectedSupplier(value);
-      if (value) {
-        // Set the bill number when a supplier is selected
-        setFormData(prev => ({
-          ...prev,
-          billNumber: nextBillNumber,
-        }));
-      } else {
-        // Reset fields when supplier is deselected
-        setFormData(prev => ({
-          ...prev,
-          billNumber: '',
-          amount: '',
-        }));
-      }
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
-    if (!organizationId) {
-      toast({
-        title: "Error",
-        description: "Organization ID is required. Please refresh and try again.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    const dataToSend = {
-      ...formData,
-      organizationId,
-      amount: parseFloat(formData.amount) || 0,
-    };
-
     try {
-      // Use the organization API which already handles the accounting entries
-      const orgResponse = await fetch('/api/organization/transactions/pay-supplier', {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend),
-      });
-
-      const orgResult = await orgResponse.json();
-
-      if (!orgResponse.ok) {
-        throw new Error(orgResult.message || "Failed to record payment in organization");
-      }
-
-      // Success
-      toast({
-        title: "Payment Sent",
-        description: "Payment has been successfully recorded with accounting entries.",
-      });
-
-      // Clear form and fetch next bill number for future use
-      setFormData({
-        supplierId: '',
-        billNumber: '',
-        amount: '',
-        paymentMethod: '',
-        notes: '',
-      });
-      setSelectedSupplier('');
-      fetchNextBillNumber();
-      
-      // Call onSuccess if provided, otherwise redirect to journal-entries
-      if (onSuccess) {
-        onSuccess();
+      if (onSubmit) {
+        await onSubmit(formData);
       } else {
-        setTimeout(() => {
-          router.push("/dashboard/accounting/journal-entries");
-        }, 1500);
+        // Default create logic
+        const response = await fetch('/api/organization/payment-vouchers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        if (!response.ok) {
+          throw new Error('Failed to create payment voucher');
+        }
+        const result = await response.json();
+        if (onSuccess) onSuccess();
+        // Redirect to the payment voucher detail page
+        if (result && result.paymentVoucher && result.paymentVoucher._id) {
+          router.push(`/dashboard/accounting/transactions/pay-supplier/${result.paymentVoucher._id}`);
+        } else {
+          router.push('/dashboard/accounting/transactions/pay-supplier');
+        }
       }
-    } catch (error) {
-      console.error("Error recording payment:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to record payment. Please try again.",
-        variant: "destructive",
-      });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -209,15 +150,15 @@ export default function PaySupplierForm({ onSuccess }) {
             </div>
             
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="billNumber">Bill Number</Label>
-              <Input 
-                id="billNumber" 
-                value={formData.billNumber} 
-                placeholder="Auto-generated when supplier selected"
-                disabled={true}
-                className="bg-gray-50"
+              <Label htmlFor="paymentVoucherNumber">Payment Voucher Number *</Label>
+              <Input
+                id="paymentVoucherNumber"
+                value={voucherNumber}
+                placeholder="PaV-XXXX"
+                readOnly
+                disabled
+                autoComplete="off"
               />
-              <p className="text-xs text-muted-foreground">System-generated, unique identifier</p>
             </div>
             
             <div className="flex flex-col space-y-1.5">
