@@ -75,7 +75,7 @@ export async function POST(request) {
       _id: paymentVoucher._id
     });
 
-    // Create the journal entry
+    // Create the journal voucher
     const journal = new AccountingJournal({
       datetime: new Date(),
       memo: `Payment to ${supplier.name}`,

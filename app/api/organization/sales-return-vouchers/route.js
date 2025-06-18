@@ -35,7 +35,7 @@ export async function POST(request) {
       status: 'DRAFT',
     });
     await newSalesReturn.save();
-    // Create journal entry for sales return
+    // Create journal voucher for sales return
     // await createSalesReturnEntry(newSalesReturn); // Commented out for now as createSalesReturnEntry is not implemented
     return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: newSalesReturn }, { status: 201 });
   } catch (error) {

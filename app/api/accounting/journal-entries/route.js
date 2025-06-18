@@ -1,275 +1,22 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { getBook, getJournalEntries, connectToDatabase } from '@/lib/accounting';
-// Import necessary models
-import dbConnect from '@/lib/dbConnect';
-import { protect } from '@/lib/middleware/auth';
+import { connectToDatabase } from '@/lib/accounting';
 
+// This is a redirect endpoint to fix the mixed up logic between journal entries and day books
+// The frontend is looking for /api/accounting/journal-entries but the actual implementation is in /api/accounting/day-books
 export async function GET(request) {
   try {
-    // Ensure MongoDB is connected
-    await dbConnect();
-    if (mongoose.connection.readyState !== 1) {
-      return NextResponse.json(
-        { error: 'Database connection not established' },
-        { status: 500 }
-      );
-    }
-
-    // Optional: Add authentication check
-    const authResult = await protect(request);
-    if (authResult && authResult.status !== 200) {
-      // Skip auth check for now to ensure data can be displayed
-      console.log('Warning: Authentication check failed but proceeding anyway for diagnostic purposes');
-    }
-
-    // Get search parameters from the request
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const searchTerm = searchParams.get('searchTerm');
-
-    // Build query object
-    const query = {};
-    
-    // Add date range filters if provided
-    if (startDate && endDate) {
-      query.datetime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    } else if (startDate) {
-      query.datetime = { $gte: new Date(startDate) };
-    } else if (endDate) {
-      query.datetime = { $lte: new Date(endDate) };
-    }
-
-    // Add search term filter if provided
-    if (searchTerm) {
-      query.memo = { $regex: searchTerm, $options: 'i' };
-    }
-
-    // Options for pagination
-    const options = {
-      page,
-      perPage: limit,
-    };
-
-    try {
-      // Use our custom journal entries function instead of book.ledger()
-      let journalEntries = await getJournalEntries(query, options);
-      
-      // Get the models we need for populating data
-      const Customer = mongoose.models.Customer;
-      const Supplier = mongoose.models.Supplier;
-      const SalesOrder = mongoose.models.SalesOrder;
-      const PurchaseOrder = mongoose.models.PurchaseOrder;
-      
-      // Enhance journal entries with additional data
-      const enhancedEntries = await Promise.all(journalEntries.map(async (entry) => {
-        let enhancedEntry = { ...entry };
-        
-        // Process the memo to replace IDs with names
-        if (entry.memo) {
-          // For payment received from customer
-          if (entry.memo.includes('Payment Received from Customer')) {
-            // Extract customer ID - handle both formats with and without invoice reference
-            let customerId;
-            if (entry.memo.includes(' for Invoice ')) {
-              customerId = entry.memo.split('Customer ')[1].split(' for Invoice ')[0];
-            } else {
-              customerId = entry.memo.split('Customer ')[1];
-            }
-            
-            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
-            if (customerId && customerId.includes('(')) {
-              customerId = customerId.split(' (')[0];
-            }
-              
-            try {
-              // Only attempt to find if it's a valid ObjectId
-              if (mongoose.Types.ObjectId.isValid(customerId)) {
-                const customer = await Customer.findById(customerId);
-                if (customer) {
-                  // Check if we have an invoice reference
-                  if (entry.memo.includes(' for Invoice ')) {
-                    const invoiceRef = entry.memo.split(' for Invoice ')[1];
-                    enhancedEntry.memo = `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
-                  } else {
-                    // Also check transaction meta for invoice number
-                    const invoiceRef = entry.transactions?.[0]?.meta?.invoiceNumber;
-                    if (invoiceRef) {
-                      enhancedEntry.memo = `Payment Received from Customer ${customer.name} for Invoice ${invoiceRef}`;
-                    } else {
-                      enhancedEntry.memo = `Payment Received from Customer ${customer.name}`;
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching customer:', error);
-            }
-          }
-          
-          // For payment sent to supplier
-          else if (entry.memo.includes('Payment Sent to Supplier')) {
-            // Extract supplier ID - handle both formats with and without bill reference
-            let supplierId;
-            if (entry.memo.includes(' for Bill ')) {
-              supplierId = entry.memo.split('Supplier ')[1].split(' for Bill ')[0];
-            } else {
-              supplierId = entry.memo.split('Supplier ')[1];
-            }
-            
-            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
-            if (supplierId && supplierId.includes('(')) {
-              supplierId = supplierId.split(' (')[0];
-            }
-              
-            try {
-              // Only attempt to find if it's a valid ObjectId
-              if (mongoose.Types.ObjectId.isValid(supplierId)) {
-                const supplier = await Supplier.findById(supplierId);
-                if (supplier) {
-                  // Check if we have a bill reference
-                  if (entry.memo.includes(' for Bill ')) {
-                    const billRef = entry.memo.split(' for Bill ')[1];
-                    enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
-                  } else {
-                    // Also check transaction meta for bill number
-                    const billRef = entry.transactions?.[0]?.meta?.billNumber;
-                    if (billRef) {
-                      enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name} for Bill ${billRef}`;
-                    } else {
-                      enhancedEntry.memo = `Payment Sent to Supplier ${supplier.name}`;
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching supplier:', error);
-            }
-          }
-          
-          // For sales orders
-          else if (entry.memo.includes('Sales Order to Customer')) {
-            // Extract the customer ID
-            let customerId = entry.memo.replace('Sales Order to Customer ', '');
-            
-            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
-            if (customerId && customerId.includes('(')) {
-              customerId = customerId.split(' (')[0].trim();
-            }
-            
-            // Only process if it looks like a MongoDB ID
-            if (mongoose.Types.ObjectId.isValid(customerId.trim())) {
-              try {
-                const customer = await Customer.findById(customerId.trim());
-                if (customer) {
-                  enhancedEntry.memo = `Sales Order to Customer ${customer.name}`;
-                }
-              } catch (error) {
-                console.error('Error fetching customer for sales order:', error);
-              }
-            } 
-            // If no specific customer in the memo, check transaction meta
-            else if (customerId.trim() === '' && entry.transactions && entry.transactions.length > 0) {
-              const txnCustomerId = entry.transactions[0]?.meta?.customerId;
-              if (txnCustomerId && mongoose.Types.ObjectId.isValid(txnCustomerId)) {
-                try {
-                  const customer = await Customer.findById(txnCustomerId);
-                  if (customer) {
-                    enhancedEntry.memo = `Sales Order to Customer ${customer.name}`;
-                  }
-                } catch (error) {
-                  console.error('Error fetching customer from meta:', error);
-                }
-              }
-            }
-          }
-          
-          // For purchase orders
-          else if (entry.memo.includes('Purchase Order from Supplier')) {
-            // Extract the supplier ID
-            let supplierId = entry.memo.replace('Purchase Order from Supplier ', '');
-            
-            // Extract just the MongoDB ObjectId if it contains parentheses with reference numbers
-            if (supplierId && supplierId.includes('(')) {
-              supplierId = supplierId.split(' (')[0].trim();
-            }
-            
-            // Only process if it looks like a MongoDB ID
-            if (mongoose.Types.ObjectId.isValid(supplierId.trim())) {
-              try {
-                const supplier = await Supplier.findById(supplierId.trim());
-                if (supplier) {
-                  enhancedEntry.memo = `Purchase Order from Supplier ${supplier.name}`;
-                }
-              } catch (error) {
-                console.error('Error fetching supplier for purchase order:', error);
-              }
-            }
-            // If no specific supplier in the memo, check transaction meta
-            else if (supplierId.trim() === '' && entry.transactions && entry.transactions.length > 0) {
-              const txnSupplierId = entry.transactions[0]?.meta?.supplierId;
-              if (txnSupplierId && mongoose.Types.ObjectId.isValid(txnSupplierId)) {
-                try {
-                  const supplier = await Supplier.findById(txnSupplierId);
-                  if (supplier) {
-                    enhancedEntry.memo = `Purchase Order from Supplier ${supplier.name}`;
-                  }
-                } catch (error) {
-                  console.error('Error fetching supplier from meta:', error);
-                }
-              }
-            }
-          }
-        }
-        
-        return enhancedEntry;
-      }));
-      
-      // Get total count for pagination
-      let totalCount = 0;
-      
-      try {
-        const journalModel = mongoose.model('Medici_Journal');
-        totalCount = await journalModel.countDocuments({ ...query, book: 'cloud_ledger' });
-      } catch (countError) {
-        console.error('Error counting journal entries:', countError);
-      }
-
-      return NextResponse.json({
-        journalEntries: enhancedEntries.map(entry => ({
-          ...entry,
-          voucherNumber: entry.voucherNumber || entry.transactions?.[0]?.meta?.voucherNumber || 'N/A'
-        })),
-        pagination: {
-          totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-          currentPage: page,
-          perPage: limit,
-        },
-      });
-    } catch (error) {
-      console.error('Error fetching journal entries:', error);
-      
-      // Return an empty result with error message
-      return NextResponse.json({
-        error: 'Failed to fetch journal entries: ' + error.message,
-        journalEntries: [],
-        pagination: {
-          totalCount: 0,
-          totalPages: 0,
-          currentPage: page,
-          perPage: limit,
-        },
-      });
-    }
+    await connectToDatabase();
+    const db = mongoose.connection.db;
+    const journalCollection = db.collection('accounting_journals');
+    // Only fetch journal vouchers (voucherNumber starts with JV-)
+    const entries = await journalCollection
+      .find({ voucherNumber: { $regex: '^JV-', $options: 'i' } })
+      .sort({ datetime: -1 })
+      .toArray();
+    return NextResponse.json({ journalEntries: entries });
   } catch (error) {
-    console.error('Error in journal entries API:', error);
+    console.error('Error fetching journal entries:', error);
     return NextResponse.json(
       { error: 'Failed to fetch journal entries', journalEntries: [] },
       { status: 500 }
@@ -277,124 +24,43 @@ export async function GET(request) {
   }
 }
 
+// For POST requests, redirect to the day-books endpoint
 export async function POST(request) {
   try {
-    // Ensure database connection
-    await connectToDatabase();
-
-    // Parse request body
-    const data = await request.json();
-    const { memo, transactions } = data;
-
-    // Validate input
-    if (!memo || !transactions || !Array.isArray(transactions) || transactions.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid journal entry data. Memo and transactions are required.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate all transaction amounts are proper numbers
-    const hasInvalidAmount = transactions.some(t => {
-      const amount = Number(t.amount);
-      return isNaN(amount) || amount <= 0;
-    });
-
-    if (hasInvalidAmount) {
-      return NextResponse.json(
-        { error: 'All transaction amounts must be valid positive numbers.' },
-        { status: 400 }
-      );
-    }
-
-    // Convert all amounts to numbers
-    const validatedTransactions = transactions.map(t => ({
-      ...t,
-      amount: parseFloat(t.amount)
-    }));
-
-    // Check if debits equal credits
-    const totalDebits = validatedTransactions
-      .filter(t => t.type === 'debit')
-      .reduce((sum, t) => sum + t.amount, 0);
+    // Clone the request to read the body
+    const clonedRequest = request.clone();
+    const body = await clonedRequest.json();
     
-    const totalCredits = validatedTransactions
-      .filter(t => t.type === 'credit')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    // Validate accounting equation (debits = credits)
-    if (Math.abs(totalDebits - totalCredits) > 0.001) { // Allow small rounding differences
-      // Auto-fix simple entries with just 2 transactions
-      if (validatedTransactions.length === 2) {
-        if (totalDebits > totalCredits) {
-          const creditTxn = validatedTransactions.find(t => t.type === 'credit');
-          if (creditTxn) creditTxn.amount = totalDebits;
-        } else {
-          const debitTxn = validatedTransactions.find(t => t.type === 'debit');
-          if (debitTxn) debitTxn.amount = totalCredits;
-        }
-      } else {
-        return NextResponse.json(
-          { error: 'Debits must equal credits. Please check your transaction amounts.' },
-          { status: 400 }
-        );
-      }
+    // Get the original URL and create a new URL for the day-books endpoint
+    const originalUrl = new URL(request.url);
+    const dayBooksUrl = new URL(originalUrl);
+    
+    // Change the path from journal-entries to day-books
+    dayBooksUrl.pathname = dayBooksUrl.pathname.replace('/journal-entries', '/day-books');
+    
+    // Forward the request to the day-books endpoint
+    const response = await fetch(dayBooksUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to post journal voucher to day-books: ${response.status} ${response.statusText}`);
     }
-
-    // Create the journal entry
-    try {
-      const book = await getBook();
-      
-      if (!book) {
-        return NextResponse.json(
-          { error: 'Failed to initialize accounting book' },
-          { status: 500 }
-        );
-      }
-  
-      // Create journal entry
-      const journal = await book.entry(memo);
-      
-      if (!journal) {
-        return NextResponse.json(
-          { error: 'Failed to create journal entry' },
-          { status: 500 }
-        );
-      }
-  
-      // Add transactions to journal entry
-      for (const transaction of validatedTransactions) {
-        const { account, amount, type, meta = {} } = transaction;
-        
-        if (type === 'debit') {
-          journal.debit(account, amount, meta);
-        } else if (type === 'credit') {
-          journal.credit(account, amount, meta);
-        }
-      }
-  
-      // Commit the journal entry
-      const result = await journal.commit();
-      
-      return NextResponse.json({
-        message: 'Journal entry created successfully',
-        journalEntry: {
-          ...result.toObject(),
-          voucherNumber: result.voucherNumber
-        },
-      });
-    } catch (error) {
-      console.error('Error creating journal entry:', error);
-      return NextResponse.json(
-        { error: 'Failed to create journal entry' },
-        { status: 500 }
-      );
-    }
+    
+    const data = await response.json();
+    
+    // Return the response from the day-books endpoint
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error processing journal entry request:', error);
+    console.error('Error in journal-entries redirect API (POST) for journal voucher:', error);
     return NextResponse.json(
-      { error: 'Failed to process journal entry request' },
+      { error: 'Failed to create journal voucher (via redirect)' },
+      { error: 'Failed to create journal entry' },
       { status: 500 }
     );
   }
-} 
+}

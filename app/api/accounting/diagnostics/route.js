@@ -136,7 +136,7 @@ async function createTestAccountingEntry() {
     const timestamp = new Date().toISOString();
     const journal = await book.entry(`Test Transaction ${timestamp}`);
     
-    // Commit the journal entry
+    // Commit the journal voucher
     const result = await journal.commit();
     
     return {

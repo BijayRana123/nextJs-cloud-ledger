@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -16,452 +21,257 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
-import { accounts } from "@/lib/accountingClient";
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
-import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner"; // Assuming you have a toast notification system
 
-// Add this at the top to avoid ReferenceError
-const debugMode = false;
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 export default function NewJournalEntryPage() {
   const router = useRouter();
   const [memo, setMemo] = useState("");
   const [transactions, setTransactions] = useState([
-    { account: null, amount: "", type: "debit", meta: {} },
-    { account: null, amount: "", type: "credit", meta: {} },
+    { account: "", type: "debit", amount: 0 },
+    { account: "", type: "credit", amount: 0 },
   ]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [accountOptions, setAccountOptions] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Process account structure for dropdown options
   useEffect(() => {
-    const options = [];
-    
-    // Process assets accounts
-    accounts.assets.forEach(asset => {
-      options.push(`assets:${asset}`);
-    });
-    
-    // Process liabilities accounts
-    accounts.liabilities.forEach(liability => {
-      options.push(`liabilities:${liability}`);
-    });
-    
-    // Process income accounts
-    accounts.income.forEach(income => {
-      options.push(`income:${income}`);
-    });
-    
-    // Process expenses accounts
-    accounts.expenses.forEach(expense => {
-      options.push(`expenses:${expense}`);
-    });
-    
-    // Process equity accounts
-    accounts.equity.forEach(equity => {
-      options.push(`equity:${equity}`);
-    });
-    
-    setAccountOptions(options);
+    fetchAccounts();
   }, []);
 
-  // Helper: Map full path to label and vice versa
-  const accountLabelMap = {};
-  const labelToPathMap = {};
-  accountOptions.forEach((full) => {
-    const label = full.split(":").slice(1).join(":") || full.split(":")[0];
-    accountLabelMap[full] = label;
-    labelToPathMap[label] = full;
-  });
-
-  // Add a new transaction row
-  const addTransaction = () => {
-    setTransactions([...transactions, { account: null, amount: "", type: "debit", meta: {} }]);
-  };
-
-  // Remove a transaction row
-  const removeTransaction = (index) => {
-    if (transactions.length <= 2) {
-      setErrorMessage("A journal entry must have at least two transactions");
-      return;
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch("/api/accounting?action=balances");
+      if (!response.ok) throw new Error("Failed to fetch accounts");
+      const data = await response.json();
+      setAccounts(data);
+    } catch (e) {
+      console.error("Error fetching accounts:", e);
+      setAccounts([]);
     }
-    
-    const updatedTransactions = [...transactions];
-    updatedTransactions.splice(index, 1);
-    setTransactions(updatedTransactions);
   };
 
-  // Handle transaction input changes
   const handleTransactionChange = (index, field, value) => {
-    const updatedTransactions = [...transactions];
-    
-    if (field === 'amount') {
-      // Ensure amount is a valid number and store as a string for the input field
-      const numValue = parseFloat(value);
-      // Store as empty string if NaN, otherwise store the original string value
-      updatedTransactions[index][field] = isNaN(numValue) ? '' : value;
-      
-      // Add debugging log for amount value
-      console.log(`Transaction amount changed: value=${value}, parsed=${numValue}, type=${typeof numValue}`);
+    const newTransactions = [...transactions];
+    if (field === "amount") {
+      newTransactions[index][field] = parseFloat(value) || 0;
     } else {
-      updatedTransactions[index][field] = value;
+      newTransactions[index][field] = value;
     }
-    
-    setTransactions(updatedTransactions);
-    
-    // Clear any previous error
-    setErrorMessage("");
+    setTransactions(newTransactions);
   };
 
-  // Calculate totals for debits and credits
-  const calculateTotals = () => {
-    const debits = transactions
-      .filter(t => t.type === "debit" && t.amount)
-      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
-      
-    const credits = transactions
-      .filter(t => t.type === "credit" && t.amount)
-      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
-      
-    return { debits, credits, difference: Math.abs(debits - credits) };
+  const addTransactionRow = () => {
+    setTransactions([
+      ...transactions,
+      { account: "", type: "debit", amount: 0 },
+    ]);
   };
 
-  // Check if form is valid
-  const isFormValid = () => {
-    // Check if memo is provided
-    if (!memo.trim()) return false;
-    
-    // Check if all transactions have account, amount, and type
-    for (const transaction of transactions) {
-      if (!transaction.account || transaction.account === "placeholder" || !transaction.amount || !transaction.type) {
-        return false;
-      }
-      
-      // Ensure amount is a valid number
-      if (isNaN(parseFloat(transaction.amount))) {
-        return false;
-      }
-    }
-    
-    // Check if debits equal credits
-    const { difference } = calculateTotals();
-    return difference < 0.01; // Allow for small rounding errors
+  const removeTransactionRow = (index) => {
+    const newTransactions = transactions.filter((_, i) => i !== index);
+    setTransactions(newTransactions);
   };
 
-  // Handle form submission
+  const calculateTotal = (type) => {
+    return transactions
+      .filter((t) => t.type === type)
+      .reduce((sum, t) => sum + t.amount, 0)
+      .toFixed(2);
+  };
+
+  const totalDebits = parseFloat(calculateTotal("debit"));
+  const totalCredits = parseFloat(calculateTotal("credit"));
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01; // Allow small rounding differences
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
-    if (!isFormValid()) {
-      setErrorMessage("Please complete all required fields and ensure debits equal credits");
+    setLoading(true);
+    setError(null);
+
+    if (!memo.trim()) {
+      setError("Memo is required.");
+      setLoading(false);
       return;
     }
-    
-    setIsSubmitting(true);
-    
+
+    if (transactions.some(t => !t.account || t.amount <= 0)) {
+        setError("All transaction rows must have an account and a positive amount.");
+        setLoading(false);
+        return;
+    }
+
+    if (!isBalanced) {
+      setError("Debits must equal credits to create a journal voucher.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Format transactions for API - ENSURE amounts are proper numbers
-      const formattedTransactions = transactions.map(({ account, amount, type, description }) => {
-        // Parse numeric value explicitly
-        let numAmount;
-        try {
-          // First try direct conversion
-          numAmount = Number(amount);
-          
-          // If that fails, try cleaning the string and parsing
-          if (isNaN(numAmount)) {
-            numAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g, ''));
-          }
-          
-          // Validation
-          if (isNaN(numAmount) || numAmount <= 0) {
-            throw new Error(`Invalid amount for ${account}: ${amount}`);
-          }
-          
-          // Ensure it's treated as a number in JSON
-          numAmount = Number(numAmount.toFixed(2));
-          
-          console.log(`Formatted transaction amount: ${amount} => ${numAmount} (${typeof numAmount})`);
-        } catch (error) {
-          console.error(error);
-          throw new Error(`Invalid amount for ${account}: ${amount}`);
-        }
-        
-        return {
-          account,
-          amount: numAmount, // Explicitly as number
-          type,
-          meta: { description: description || "" },
-        };
-      });
-      
-      if (debugMode) {
-        console.log("Formatted transactions for submission:", formattedTransactions);
-        console.log("Data types:", formattedTransactions.map(t => 
-          `${t.account}: ${t.amount} (${typeof t.amount})`
-        ));
-      }
-      
-      const response = await fetch("/api/accounting/journal-entries", {
+      const response = await fetch("/api/accounting/journal-vouchers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          memo,
-          transactions: formattedTransactions,
-        }),
+        body: JSON.stringify({ memo, transactions }),
       });
-      
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          if (debugMode) {
-            console.error("API error response:", data);
-            setDebugInfo({ apiErrorResponse: data });
-          }
-          throw new Error(data.error || "Failed to create journal entry");
-        } else {
-          // Handle non-JSON responses
-          const text = await response.text();
-          if (debugMode) {
-            console.error("API error text response:", text);
-            setDebugInfo({ apiErrorText: text, status: response.status });
-            // Check API status
-            await checkApiStatus();
-          }
-          throw new Error(`Server error: ${response.status} ${text.substring(0, 100)}...`);
-        }
-      }
-      
-      let data;
-      try {
-        data = await response.json();
-        if (debugMode) {
-          console.log("API success response:", data);
-        }
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
-        if (debugMode) {
-          setDebugInfo({ jsonParseError: jsonError.message });
-          await checkApiStatus();
-        }
-        throw new Error("Invalid response from server. Please try again.");
-      }
-      
-      // Redirect to the journal entry detail page
-      if (data && data.journalEntry) {
-        // Check which ID field is available
-        const entryId = data.journalEntry._id || data.journalEntry.journal_id || data.journalEntry.id;
-        if (entryId) {
-          router.push(`/dashboard/accounting/journal-entries/${entryId}`);
-        } else {
-          console.error("Journal entry created but no ID found in response:", data);
-          setErrorMessage("Journal entry created but couldn't retrieve ID for redirection");
-        }
-      } else {
-        console.error("Invalid response data:", data);
-        setErrorMessage("Received invalid response after creating journal entry");
-      }
-    } catch (error) {
-      console.error("Error creating journal entry:", error);
-      setErrorMessage(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  const { debits, credits, difference } = calculateTotals();
-  const isBalanced = difference < 0.01;
-
-  // Function to check API status
-  const checkApiStatus = async () => {
-    try {
-      const response = await fetch("/api/accounting/status");
       const data = await response.json();
-      setDebugInfo(data);
-    } catch (error) {
-      setDebugInfo({ error: error.message });
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create journal voucher");
+      }
+
+      toast.success("Journal voucher created successfully!");
+      router.push(`/dashboard/accounting/journal-entries/${data.journalVoucher.journalId || data.journalVoucher._id}`);
+    } catch (err) {
+      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">New Journal Entry</h1>
-        <Button 
-          variant="outline" 
-          onClick={() => router.push("/dashboard/accounting/journal-entries")}
-        >
-          Cancel
+        <h1 className="text-3xl font-bold">Create New Journal Voucher</h1>
+        <Button variant="outline" onClick={() => router.back()}>
+          Back
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction, index) => (
-                  <CustomTableRow key={index}>
-                    <CustomTableCell>
-                      <AccountAutocompleteInput
-                        accountOptions={accountOptions}
-                        value={transaction.account}
-                        onChange={val => handleTransactionChange(index, "account", val)}
-                        placeholder="Select or type account"
-                        required
-                      />
-                    </CustomTableCell>
-                    <CustomTableCell>
-                      <Select
-                        value={transaction.type}
-                        onValueChange={(value) => handleTransactionChange(index, "type", value)}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="debit">Debit</SelectItem>
-                          <SelectItem value="credit">Credit</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </CustomTableCell>
-                    <CustomTableCell>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={transaction.amount}
-                        onChange={(e) => handleTransactionChange(index, "amount", e.target.value)}
-                        required
-                      />
-                    </CustomTableCell>
-                    <CustomTableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeTransaction(index)}
-                      >
-                        Remove
-                      </Button>
-                    </CustomTableCell>
-                  </CustomTableRow>
-                ))}
-                
-                {/* Totals row */}
-                <CustomTableRow>
-                  <CustomTableCell colSpan={2} className="font-bold">
-                    Totals
-                  </CustomTableCell>
-                  <CustomTableCell colSpan={2}>
-                    <div className="flex justify-between items-center">
-                      <div className="space-y-1">
-                        <div className="flex justify-between">
-                          <span>Debits:</span>
-                          <span className="ml-4">${debits.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Credits:</span>
-                          <span className="ml-4">${credits.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                          <span>Difference:</span>
-                          <span className={`ml-4 ${isBalanced ? "text-green-600" : "text-red-600"}`}>
-                            ${difference.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={addTransaction}
+      <Card>
+        <CardHeader>
+          <CardTitle>Journal Voucher Details</CardTitle>
+          <CardDescription>
+            Record a new general journal voucher by specifying a memo and individual debit and credit transactions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4">
+              <h3 className="text-lg font-semibold mt-4 mb-2">Transactions</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead className="w-[50px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((txn, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="w-[200px]">
+                        <Select
+                          value={txn.account}
+                          onValueChange={(value) =>
+                            handleTransactionChange(index, "account", value)
+                          }
                         >
-                          Add Row
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {accounts.map((acc) => (
+                              <SelectItem key={acc.path} value={acc.path}>
+                                {acc.name} ({acc.path})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="w-[100px]">
+                        <Select
+                          value={txn.type}
+                          onValueChange={(value) =>
+                            handleTransactionChange(index, "type", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="debit">Debit</SelectItem>
+                            <SelectItem value="credit">Credit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="w-[150px]">
+                        <Input
+                          type="number"
+                          value={txn.amount}
+                          onChange={(e) =>
+                            handleTransactionChange(index, "amount", e.target.value)
+                          }
+                          min="0"
+                          step="0.01"
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeTransactionRow(index)}
+                          disabled={transactions.length <= 2} // Ensure at least two lines for debit/credit
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  </CustomTableCell>
-                </CustomTableRow>
-              </TableBody>
-            </Table>
-            
-            {errorMessage && (
-              <div className="mt-4 p-3 bg-red-100 text-red-800 rounded">
-                {errorMessage}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>General Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="memo">Description/Memo</Label>
-                <Textarea
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2"
+                onClick={addTransactionRow}
+              >
+                Add Transaction Row
+              </Button>
+
+              <div className="flex justify-end gap-4 mt-4 text-lg font-semibold">
+                <span>Total Debits: ${totalDebits}</span>
+                <span>Total Credits: ${totalCredits}</span>
+              </div>
+              {!isBalanced && (
+                <p className="text-right text-red-500 text-sm">
+                  Debits and Credits must balance. Difference: $
+                  {(totalDebits - totalCredits).toFixed(2)}
+                </p>
+              )}
+              {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            </div>
+
+            <div className="grid gap-2 mt-6">
+                <Label htmlFor="memo">Memo/Description</Label>
+                <Input
                   id="memo"
-                  placeholder="Enter a description for this journal entry"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  required
+                  placeholder="Enter a brief description for the voucher"
                 />
-              </div>
-              <div>
-                <Label>Date</Label>
-                <ConditionalDatePicker
-                  id="entryDate"
-                  name="entryDate"
-                  label="Date"
-                  value={new Date().toISOString().substring(0, 10)}
-                  onChange={() => {}}
-                  disabled
-                />
-                <p className="text-sm text-gray-500 mt-1">Journal entries use the current date and time</p>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/dashboard/accounting/journal-entries")}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || !isFormValid()}
-          >
-            {isSubmitting ? "Creating..." : "Create Journal Entry"}
-          </Button>
-        </div>
-      </form>
+            <CardFooter className="flex justify-end mt-6 p-0">
+              <Button type="submit" disabled={loading || !isBalanced}>
+                {loading ? "Creating..." : "Create Journal Voucher"}
+              </Button>
+            </CardFooter>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

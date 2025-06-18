@@ -43,7 +43,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Find the associated journal entry
+    // Find the associated journal voucher
     const journal = await AccountingJournal.findOne({
       voucherNumber: paymentVoucher.paymentVoucherNumber,
       organization: organizationId

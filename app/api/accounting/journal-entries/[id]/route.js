@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/accounting';
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
   try {
     await connectToDatabase();
-    // Await the params object to fix the Next.js error
+    const params = await context.params;
     const id = params?.id;
+    console.log('Fetching journal entry with id:', id, 'type:', typeof id);
 
     if (!id) {
       return NextResponse.json(
@@ -15,24 +16,22 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Convert ID string to MongoDB ObjectId
-    let journalId;
+    // Try as ObjectId
+    let entryId;
+    let journalEntry = null;
     try {
-      journalId = new mongoose.Types.ObjectId(id);
+      entryId = new mongoose.Types.ObjectId(id);
+      journalEntry = await mongoose.connection.db.collection('accounting_journals').findOne({ _id: entryId });
+      console.log('Result with ObjectId:', journalEntry);
     } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid journal entry ID format' },
-        { status: 400 }
-      );
+      console.log('Error converting to ObjectId or querying with ObjectId:', error);
     }
 
-    // Get direct access to MongoDB collections
-    const db = mongoose.connection.db;
-    const journalCollection = db.collection('medici_journals');
-    const transactionCollection = db.collection('medici_transactions');
-
-    // Find journal directly
-    const journalEntry = await journalCollection.findOne({ _id: journalId });
+    // If not found, try as string
+    if (!journalEntry) {
+      journalEntry = await mongoose.connection.db.collection('accounting_journals').findOne({ _id: id });
+      console.log('Result with string id:', journalEntry);
+    }
 
     if (!journalEntry) {
       return NextResponse.json(
@@ -42,28 +41,23 @@ export async function GET(request, { params }) {
     }
 
     // Find transactions directly
-    const transactions = await transactionCollection.find({ _journal: journalId }).toArray();
+    const transactionCollection = mongoose.connection.db.collection('accounting_transactions');
+    const transactions = await transactionCollection.find({ journal: journalEntry._id }).toArray();
     
     // Process transactions to ensure proper formatting
     const formattedTransactions = transactions.map(transaction => {
-      // Convert IDs to strings for JSON
       const transactionId = transaction._id.toString();
-      
-      // Ensure amount is a number
       const numAmount = typeof transaction.amount === 'number' 
         ? transaction.amount 
         : Number(transaction.amount) || 0;
-      
-      // Create account_path if needed
-      const account_path = transaction.accounts ? transaction.accounts.split(':') : [];
-      
+      const account_path = transaction.account_path ? transaction.account_path.split(':') : [];
       return {
         ...transaction,
         _id: transactionId,
         amount: numAmount,
         account_path: account_path,
         debit: !!transaction.debit,
-        credit: !transaction.debit
+        credit: !!transaction.credit
       };
     });
 
@@ -79,6 +73,43 @@ export async function GET(request, { params }) {
     console.error('Error fetching journal entry:', error);
     return NextResponse.json(
       { error: 'Failed to fetch journal entry' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request, context) {
+  try {
+    await connectToDatabase();
+    const params = await context.params;
+    const id = params?.id;
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Journal entry ID is required' },
+        { status: 400 }
+      );
+    }
+    let entryId = id;
+    try {
+      entryId = new mongoose.Types.ObjectId(id);
+    } catch (e) {}
+    const journalCollection = mongoose.connection.db.collection('accounting_journals');
+    const transactionCollection = mongoose.connection.db.collection('accounting_transactions');
+    // Delete the journal entry
+    const deleteResult = await journalCollection.deleteOne({ _id: entryId });
+    // Delete related transactions
+    await transactionCollection.deleteMany({ journal: entryId });
+    if (deleteResult.deletedCount === 0) {
+      return NextResponse.json(
+        { error: 'Journal entry not found or already deleted' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({ success: true, message: 'Journal entry deleted' });
+  } catch (error) {
+    console.error('Error deleting journal entry:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete journal entry' },
       { status: 500 }
     );
   }

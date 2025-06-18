@@ -1,197 +1,189 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
-import { useCalendar } from "@/lib/context/CalendarContext";
-import { formatDate } from "@/lib/utils/dateUtils";
+import React, { useState, useMemo } from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from '@/components/ui/CustomTable';
+import { Rocket, ChevronLeft, ChevronRight, X, Search, Printer, FileSpreadsheet, FileText } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-export default function JournalEntriesPage() {
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
+function generateJournalEntryPdf(entry) {
+  if (!entry) return;
+  const doc = new jsPDF();
+  doc.setFontSize(18);
+  doc.text('Journal Entry', 14, 22);
+  doc.setFontSize(12);
+  doc.text('Voucher No: ' + (entry.voucherNumber || entry._id), 14, 32);
+  doc.text('Date: ' + (entry.datetime ? new Date(entry.datetime).toLocaleDateString() : 'N/A'), 14, 39);
+  doc.text('Memo: ' + (entry.memo || ''), 14, 46);
+  autoTable(doc, {
+    startY: 60,
+    head: [['Account', 'Debit', 'Credit']],
+    body: (entry.transactions || []).map(txn => [
+      (txn.account || (txn.account_path && txn.account_path.join(':')) || '-').split(':').pop(),
+      txn.debit ? txn.amount : '',
+      txn.credit ? txn.amount : ''
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0] },
+    bodyStyles: { textColor: [0, 0, 0] },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
+    styles: { cellPadding: 3, fontSize: 10, valign: 'middle', halign: 'center' },
+    columnStyles: { 0: { halign: 'left' } }
+  });
+  doc.save(`JournalEntry-${entry.voucherNumber || entry._id}.pdf`);
+}
+
+function downloadJournalEntryExcel(entry) {
+  if (!entry) return;
+  const ws = XLSX.utils.json_to_sheet([
+    {
+      'Voucher No': entry.voucherNumber || entry._id,
+      'Date': entry.datetime ? new Date(entry.datetime).toLocaleDateString() : 'N/A',
+      'Memo': entry.memo || '',
+    }
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'JournalEntry');
+  XLSX.writeFile(wb, `JournalEntry-${entry.voucherNumber || entry._id}.xlsx`);
+}
+
+export default function JournalEntryListPage() {
   const router = useRouter();
-  const [journalEntries, setJournalEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("all");
-  const [error, setError] = useState(null);
-  const { isNepaliCalendar } = useCalendar();
+  const { data, error, isLoading } = useSWR('/api/accounting/journal-entries', fetcher, { refreshInterval: 10000 });
+  const entries = data?.journalEntries || [];
 
-  useEffect(() => {
-    // Fetch journal entries from the API
-    fetchJournalEntries();
-  }, []);
+  // State for search, pagination, and rows count
+  const [searchQuery, setSearchQuery] = useState("");
+  const [rowsCount, setRowsCount] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch journal entries from the API
-  const fetchJournalEntries = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch("/api/accounting/journal-entries");
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch journal entries");
-      }
-      
-      const data = await response.json();
-      
-      // Ensure journalEntries is an array, even if the API returns unexpected data
-      if (Array.isArray(data.journalEntries)) {
-        setJournalEntries(data.journalEntries);
-      } else if (data.journalEntries) {
-        console.warn("API returned journalEntries in unexpected format:", data.journalEntries);
-        // Try to convert to array if possible, otherwise use empty array
-        setJournalEntries(Array.isArray(data.journalEntries) ? data.journalEntries : []);
-      } else {
-        console.warn("No journalEntries found in API response:", data);
-        setJournalEntries([]);
-      }
-    } catch (error) {
-      console.error("Error fetching journal entries:", error);
-      setError("Failed to load journal entries. Please try again later.");
-      setJournalEntries([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter journal entries based on search term and active tab
-  const filteredEntries = Array.isArray(journalEntries) 
-    ? journalEntries.filter((entry) => {
-        // Ensure entry and its properties exist before filtering
-        if (!entry || !entry.memo || !entry._id) return false;
-        
-        const matchesSearch = 
-          entry.memo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          entry._id.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (activeTab === "all") return matchesSearch;
-        return matchesSearch;
+  // Search and filter
+  const filteredEntries = useMemo(() => {
+    return entries
+      .filter(entry => {
+        const voucherNo = entry.voucherNumber || '';
+        const memo = entry.memo || '';
+        return (
+          searchQuery === "" ||
+          (voucherNo && voucherNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (memo && memo.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
       })
-    : [];
+      .sort((a, b) => {
+        // Sort by date descending first
+        const dateA = a.datetime ? new Date(a.datetime).getTime() : 0;
+        const dateB = b.datetime ? new Date(b.datetime).getTime() : 0;
+        if (dateA !== dateB) {
+          return dateB - dateA;
+        }
+        // If dates are equal, sort by voucher number descending (numeric part)
+        const getNum = ref => {
+          if (!ref) return 0;
+          const match = ref.match(/\d+/g);
+          return match ? parseInt(match.join(''), 10) : 0;
+        };
+        return getNum(b.voucherNumber) - getNum(a.voucherNumber);
+      });
+  }, [entries, searchQuery]);
 
-  // Format date for display based on calendar type
-  const formatDateDisplay = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      return formatDate(new Date(dateString), isNepaliCalendar);
-    } catch (e) {
-      console.error("Error formatting date:", e);
-      return "Invalid Date";
-    }
+  // Pagination
+  const totalPages = Math.ceil(filteredEntries.length / rowsCount);
+  const paginatedEntries = filteredEntries.slice((currentPage - 1) * rowsCount, currentPage * rowsCount);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  // Calculate the total amount of a journal entry (sum of all transactions)
-  const calculateTotalAmount = (entry) => {
-    if (!entry || !entry.transactions || !Array.isArray(entry.transactions) || entry.transactions.length === 0) return 0;
-    
-    const totalDebit = entry.transactions
-      .filter(t => t && t.debit)
-      .reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0);
-      
-    return totalDebit;
-  };
-
-  // Function to format the memo text to make it more readable
-  const formatMemo = (memo) => {
-    if (!memo) return "No description";
-    return memo;
+  const handlePrint = (id) => {
+    window.open(`/dashboard/accounting/journal-entries/${id}/print`, '_blank');
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Day Book</h1>
-        <Button onClick={() => router.push("/dashboard/accounting/journal-entries/new")}>New Entry</Button>
+        <h1 className="text-2xl font-bold">Journal Entries</h1>
+        <Link href="/dashboard/accounting/journal-entries/new" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-green-500 text-primary-foreground shadow hover:bg-green-600 h-9 px-4 py-2">
+          <Rocket className="h-5 w-5 mr-2" />
+          ADD NEW
+        </Link>
       </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Day Book Entries</CardTitle>
-            <div className="flex gap-4 items-center">
-              <div className="text-sm text-gray-500">
-                <span className="font-medium">Calendar:</span>{" "}
-                <span className="bg-gray-100 px-2 py-1 rounded">
-                  {isNepaliCalendar ? "Nepali (BS)" : "English (AD)"}
-                </span>
-              </div>
-              <Input
-                placeholder="Search day book entries..."
-                className="max-w-xs"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <span>Rows Count</span>
+            <Select value={rowsCount.toString()} onValueChange={val => { setRowsCount(Number(val)); setCurrentPage(1); }}>
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-sm text-gray-700">{(currentPage - 1) * rowsCount + 1} - {Math.min(currentPage * rowsCount, filteredEntries.length)} / {filteredEntries.length}</span>
+            <Button variant="outline" size="icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}><ChevronRight className="h-4 w-4" /></Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Entries</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value={activeTab}>
-              {loading ? (
-                <div className="flex justify-center items-center h-40">
-                  <p>Loading journal entries...</p>
-                </div>
-              ) : error ? (
-                <div className="flex justify-center items-center h-40 text-red-500">
-                  <p>{error}</p>
-                </div>
-              ) : filteredEntries.length === 0 ? (
-                <div className="flex justify-center items-center h-40">
-                  <p>No day book entries found.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Memo</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => (
-                      <CustomTableRow key={entry._id}>
-                        <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
-                        <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
-                        <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
-                        <CustomTableCell className="text-right">
-                          ${calculateTotalAmount(entry).toFixed(2)}
-                        </CustomTableCell>
-                        <CustomTableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/accounting/journal-entries/${entry._id}`)}
-                          >
-                            View
-                          </Button>
-                        </CustomTableCell>
-                      </CustomTableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Search by voucher no, memo..."
+          className="pl-10"
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+            onClick={() => setSearchQuery("")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <div className="border rounded-md">
+        <CustomTable>
+          <CustomTableHeader>
+            <CustomTableRow className="bg-gray-100">
+              <CustomTableHead>VOUCHER NO</CustomTableHead>
+              <CustomTableHead>DATE</CustomTableHead>
+              <CustomTableHead>MEMO</CustomTableHead>
+              <CustomTableHead>ACTIONS</CustomTableHead>
+            </CustomTableRow>
+          </CustomTableHeader>
+          <CustomTableBody>
+            {paginatedEntries.map((entry) => (
+              <CustomTableRow key={entry._id} onClick={() => router.push(`/dashboard/accounting/journal-entries/${entry._id}`)} className="cursor-pointer hover:bg-gray-100">
+                <CustomTableCell>{entry.voucherNumber || entry._id}</CustomTableCell>
+                <CustomTableCell>{entry.datetime ? new Date(entry.datetime).toLocaleDateString() : 'N/A'}</CustomTableCell>
+                <CustomTableCell>{entry.memo || ''}</CustomTableCell>
+                <CustomTableCell>
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); handlePrint(entry._id); }} title="Print"><Printer className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); downloadJournalEntryExcel(entry); }} title="Download Excel"><FileSpreadsheet className="h-4 w-4 text-green-700" /></Button>
+                  <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); generateJournalEntryPdf(entry); }} title="Download PDF"><FileText className="h-4 w-4 text-red-700" /></Button>
+                </CustomTableCell>
+              </CustomTableRow>
+            ))}
+          </CustomTableBody>
+        </CustomTable>
+      </div>
     </div>
   );
 } 

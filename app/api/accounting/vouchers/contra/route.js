@@ -34,7 +34,7 @@ export async function POST(request) {
       status: data.status || 'DRAFT',
     });
     await contraVoucher.save();
-    // If status is APPROVED, create journal entry
+    // If status is APPROVED, create journal voucher
     if (contraVoucher.status === 'APPROVED') {
       await createContraEntry(contraVoucher);
     }

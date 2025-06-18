@@ -54,7 +54,7 @@ export async function POST(request) {
       billNumber: purchaseReturnData.billNumber || '',
     });
     await newPurchaseReturn.save();
-    // Create journal entry for purchase return
+    // Create journal voucher for purchase return
     await createPurchaseReturnEntry(newPurchaseReturn);
     return NextResponse.json({ message: 'Purchase Return Voucher created successfully', purchaseReturnVoucher: newPurchaseReturn }, { status: 201 });
   } catch (error) {

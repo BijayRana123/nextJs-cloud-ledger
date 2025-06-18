@@ -35,7 +35,7 @@ export async function POST(request) {
       data._id = new mongoose.Types.ObjectId().toString();
     }
 
-    // Create journal entry
+    // Create journal voucher
     try {
       const result = await createExpenseEntry(data);
       

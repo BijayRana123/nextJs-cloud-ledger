@@ -33,8 +33,12 @@ export async function POST(request, context) {
     // Update the status to APPROVED
     salesReturn.status = 'APPROVED';
     await salesReturn.save();
-    // Optionally, create a journal entry (if not already done)
-    // await createSalesReturnEntry(salesReturn);
+    // Optionally, create a journal voucher (if not already done)
+    // if (salesReturnVoucher.status === 'approved' && !salesReturnVoucher.journalEntryCreated) {
+    //   await createSalesReturnEntry(salesReturnVoucher);
+    //   salesReturnVoucher.journalEntryCreated = true;
+    //   await salesReturnVoucher.save();
+    // }
     return NextResponse.json({ message: 'Sales return voucher approved successfully', salesReturn }, { status: 200 });
   } catch (error) {
     console.error('Error approving sales return voucher:', error);

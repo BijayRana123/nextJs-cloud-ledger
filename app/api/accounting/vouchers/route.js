@@ -38,7 +38,7 @@ export async function POST(request) {
     // Ensure amount is a number
     voucherData.amount = Number(voucherData.amount);
 
-    // Create appropriate journal entry based on voucher type
+    // Create appropriate journal voucher based on voucher type
     let result;
     try {
       switch (type) {

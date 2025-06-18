@@ -29,8 +29,12 @@ export async function POST(request, context) {
     // Update the status to APPROVED
     purchaseReturn.status = 'APPROVED';
     await purchaseReturn.save();
-    // Optionally, create a journal entry (if not already done)
-    // await createPurchaseReturnEntry(purchaseReturn);
+    // Optionally, create a journal voucher (if not already done)
+    // if (purchaseReturnVoucher.status === 'approved' && !purchaseReturnVoucher.journalEntryCreated) {
+    //   await createPurchaseReturnEntry(purchaseReturnVoucher);
+    //   purchaseReturnVoucher.journalEntryCreated = true;
+    //   await purchaseReturnVoucher.save();
+    // }
     return NextResponse.json({ message: 'Purchase return voucher approved successfully', purchaseReturn }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });

@@ -29,7 +29,7 @@ export async function POST(request) {
     // Ensure amount is a number
     data.amount = Number(data.amount);
 
-    // Create journal entry
+    // Create journal voucher
     try {
       const result = await createPaymentSentEntry(data);
       

@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/input";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { formatDate } from "@/lib/utils/dateUtils";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 export default function DayBookPage() {
   const router = useRouter();
@@ -23,58 +30,73 @@ export default function DayBookPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState("");
   const { isNepaliCalendar } = useCalendar();
 
   useEffect(() => {
-    // Fetch journal entries from the API
-    fetchJournalEntries();
+    fetchAccounts();
   }, []);
 
-  // Fetch journal entries from the API
-  const fetchJournalEntries = async () => {
+  useEffect(() => {
+    fetchDayBookEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount]);
+
+  // Fetch account list for dropdown
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch("/api/accounting?action=balances");
+      if (!response.ok) throw new Error("Failed to fetch accounts");
+      const data = await response.json();
+      setAccounts(data);
+    } catch (e) {
+      setAccounts([]);
+    }
+  };
+
+  // Fetch day book entries from the API
+  const fetchDayBookEntries = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/accounting/journal-entries");
-      
+      let url = "/api/accounting/day-books";
+      const params = [];
+      if (selectedAccount) params.push(`account=${encodeURIComponent(selectedAccount)}`);
+      if (params.length > 0) url += `?${params.join("&")}`;
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error("Failed to fetch journal entries");
+        throw new Error("Failed to fetch day book entries");
       }
-      
       const data = await response.json();
-      
-      // Ensure journalEntries is an array, even if the API returns unexpected data
-      if (Array.isArray(data.journalEntries)) {
-        setJournalEntries(data.journalEntries);
-      } else if (data.journalEntries) {
-        console.warn("API returned journalEntries in unexpected format:", data.journalEntries);
-        // Try to convert to array if possible, otherwise use empty array
-        setJournalEntries(Array.isArray(data.journalEntries) ? data.journalEntries : []);
+      if (Array.isArray(data.dayBookEntries)) {
+        setJournalEntries(data.dayBookEntries);
+      } else if (data.dayBookEntries) {
+        setJournalEntries(Array.isArray(data.dayBookEntries) ? data.dayBookEntries : []);
       } else {
-        console.warn("No journalEntries found in API response:", data);
         setJournalEntries([]);
       }
     } catch (error) {
-      console.error("Error fetching journal entries:", error);
-      setError("Failed to load journal entries. Please try again later.");
+      setError("Failed to load day book entries. Please try again later.");
       setJournalEntries([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter journal entries based on search term
-  const filteredEntries = Array.isArray(journalEntries) 
-    ? journalEntries.filter((entry) => {
-        // Ensure entry and its properties exist before filtering
-        if (!entry || !entry.memo || !entry._id) return false;
-        
-        const matchesSearch = 
-          entry.memo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          entry._id.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        return matchesSearch;
-      })
+  // Filter day book entries based on search term
+  
+  const filteredEntries = Array.isArray(journalEntries)
+    ? journalEntries.map(group => ({
+        ...group,
+        entries: group.entries.filter(entry => {
+          if (!entry || !entry.memo || !entry._id) return false;
+          const matchesSearch =
+            entry.memo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            entry._id.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesSearch;
+        })
+      })).filter(group => group.entries.length > 0)
     : [];
 
   // Format date for display based on calendar type
@@ -120,6 +142,19 @@ export default function DayBookPage() {
                   {isNepaliCalendar ? "Nepali (BS)" : "English (AD)"}
                 </span>
               </div>
+              <Select value={selectedAccount} onValueChange={val => setSelectedAccount(val === 'all' ? '' : val)}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="All Accounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.path} value={acc.path}>
+                      {acc.name} ({acc.path})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 placeholder="Search day book entries..."
                 className="max-w-xs"
@@ -132,7 +167,7 @@ export default function DayBookPage() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center items-center h-40">
-              <p>Loading journal entries...</p>
+              <p>Loading day book entries...</p>
             </div>
           ) : error ? (
             <div className="flex justify-center items-center h-40 text-red-500">
@@ -143,38 +178,43 @@ export default function DayBookPage() {
               <p>No day book entries found.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Memo</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEntries.map((entry) => (
-                  <CustomTableRow key={entry._id}>
-                    <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
-                    <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
-                    <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
-                    <CustomTableCell className="text-right">
-                      ${calculateTotalAmount(entry).toFixed(2)}
-                    </CustomTableCell>
-                    <CustomTableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/accounting/reports/day-book/${entry._id}`)}
-                      >
-                        View
-                      </Button>
-                    </CustomTableCell>
-                  </CustomTableRow>
-                ))}
-              </TableBody>
-            </Table>
+            filteredEntries.map(group => (
+              <div key={group.date} className="mb-8">
+                <h2 className="text-xl font-semibold mb-2">{formatDateDisplay(group.date)}</h2>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Memo</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {group.entries.map((entry) => (
+                      <CustomTableRow key={entry._id}>
+                        <CustomTableCell>{formatDateDisplay(entry.datetime)}</CustomTableCell>
+                        <CustomTableCell>{entry._id ? entry._id.substring(0, 8) + "..." : "N/A"}</CustomTableCell>
+                        <CustomTableCell>{formatMemo(entry.memo)}</CustomTableCell>
+                        <CustomTableCell className="text-right">
+                          ${calculateTotalAmount(entry).toFixed(2)}
+                        </CustomTableCell>
+                        <CustomTableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/dashboard/accounting/reports/day-book/${entry._id}`)}
+                          >
+                            View
+                          </Button>
+                        </CustomTableCell>
+                      </CustomTableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>
