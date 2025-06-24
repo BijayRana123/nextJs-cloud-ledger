@@ -118,9 +118,10 @@ export async function PUT(request, context) {
     if (!salesOrder) {
       return NextResponse.json({ message: 'Sales voucher not found' }, { status: 404 });
     }
-    salesOrder.status = status;
+    // Only update other fields, not status
+    // ... update logic here ...
     await salesOrder.save();
-    return NextResponse.json({ message: 'Sales voucher status updated', salesVoucher: salesOrder }, { status: 200 });
+    return NextResponse.json({ message: 'Sales voucher updated', salesVoucher: salesOrder }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }

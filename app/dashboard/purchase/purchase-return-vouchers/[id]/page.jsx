@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useRouter } from 'next/navigation';
-import { getCookie } from '@/lib/utils';
+import { getCookieValue } from '@/utils/getCookieValue';
 import SupplierSection from "@/app/components/purchase/supplier-section";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable";
 import { Printer, FileEdit, Trash2, CheckCircle, MoreVertical, Mail, FileSpreadsheet, FileText } from "lucide-react";
@@ -35,7 +35,8 @@ export default function PurchaseReturnVoucherDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+      const authToken = getCookieValue('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+      console.log('authToken:', authToken); // Debug: check if token is present
       const response = await fetch(`/api/organization/purchase-return-vouchers/${id}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -61,7 +62,7 @@ export default function PurchaseReturnVoucherDetailPage() {
     setIsDeleting(true);
     setDeleteError(null);
     try {
-      const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
+      const authToken = getCookieValue('sb-mnvxxmmrlvjgpnhditxc-auth-token');
       const response = await fetch(`/api/organization/purchase-return-vouchers/${id}`, {
         method: 'DELETE',
         headers: {

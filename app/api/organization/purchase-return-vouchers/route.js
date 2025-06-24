@@ -49,9 +49,7 @@ export async function POST(request) {
       ...purchaseReturnData,
       referenceNo: generatedReferenceNo, // Use the generated reference number
       organization: organizationId,
-      createdAt: new Date(),
-      status: 'DRAFT',
-      billNumber: purchaseReturnData.billNumber || '',
+      createdAt: new Date()
     });
     await newPurchaseReturn.save();
     // Create journal voucher for purchase return
@@ -99,16 +97,13 @@ export async function PUT(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
     const data = await request.json();
-    const { id, status, billNumber } = data;
+    const { id, billNumber } = data;
     if (!id) {
       return NextResponse.json({ message: 'ID is required.' }, { status: 400 });
     }
     const purchaseReturn = await PurchaseReturnVoucher.findOne({ _id: id, organization: organizationId });
     if (!purchaseReturn) {
       return NextResponse.json({ message: 'Purchase return voucher not found' }, { status: 404 });
-    }
-    if (typeof status !== 'undefined') {
-      purchaseReturn.status = status;
     }
     if (typeof billNumber !== 'undefined') {
       purchaseReturn.billNumber = billNumber;

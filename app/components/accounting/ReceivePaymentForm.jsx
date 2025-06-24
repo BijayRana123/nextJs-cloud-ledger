@@ -103,14 +103,19 @@ export default function ReceivePaymentForm({ onSuccess, voucherNumber, setVouche
     };
 
     try {
-      // Use the organization API which already handles the accounting entries
-      const orgResponse = await fetch('/api/organization/transactions/receive-payment', {
+      // Use the new receipt voucher API which already handles the accounting entries
+      const orgResponse = await fetch('/api/organization/receipt-vouchers', {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(dataToSend),
+        body: JSON.stringify({
+          customerId: formData.customerId,
+          amount: parseFloat(formData.amount) || 0,
+          paymentMethod: formData.paymentMethod,
+          notes: formData.notes,
+        }),
       });
 
       const orgResult = await orgResponse.json();
@@ -126,13 +131,8 @@ export default function ReceivePaymentForm({ onSuccess, voucherNumber, setVouche
       });
 
       // Redirect to the new receipt voucher detail page if ID is available
-      if (orgResult && orgResult.journalId) {
-        router.push(`/dashboard/accounting/transactions/receive-payment/${orgResult.journalId}`);
-      } else if (orgResult && orgResult.receiptVoucherNumber) {
-        // Fallback: try to find the journal entry by voucher number
-        setTimeout(() => {
-          router.push(`/dashboard/accounting/transactions/receive-payment`);
-        }, 1500);
+      if (orgResult && orgResult.receiptVoucher && orgResult.receiptVoucher._id) {
+        router.push(`/dashboard/accounting/transactions/receive-payment/${orgResult.receiptVoucher._id}`);
       } else if (onSuccess) {
         onSuccess();
       } else {

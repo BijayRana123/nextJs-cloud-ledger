@@ -58,8 +58,15 @@ function downloadJournalEntryExcel(entry) {
 
 export default function JournalEntryListPage() {
   const router = useRouter();
-  const { data, error, isLoading } = useSWR('/api/accounting/journal-entries', fetcher, { refreshInterval: 10000 });
-  const entries = data?.journalEntries || [];
+  const { data, error, isLoading } = useSWR('/api/accounting/journal-vouchers', fetcher, { refreshInterval: 10000 });
+  const entries = data?.journalVouchers || [];
+
+  // Helper to get voucher number
+  const getVoucherNumber = (entry) => entry.referenceNo || entry.voucherNumber || entry._id;
+  // Helper to get date
+  const getDate = (entry) => entry.date || entry.datetime;
+  // Helper to get amount (sum of debit transactions)
+  const getAmount = (entry) => Array.isArray(entry.transactions) ? entry.transactions.filter(t => t.type === 'debit' || t.debit).reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : Number(t.amount) || 0), 0) : 0;
 
   // State for search, pagination, and rows count
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,7 +77,7 @@ export default function JournalEntryListPage() {
   const filteredEntries = useMemo(() => {
     return entries
       .filter(entry => {
-        const voucherNo = entry.voucherNumber || '';
+        const voucherNo = getVoucherNumber(entry) || '';
         const memo = entry.memo || '';
         return (
           searchQuery === "" ||
@@ -80,8 +87,8 @@ export default function JournalEntryListPage() {
       })
       .sort((a, b) => {
         // Sort by date descending first
-        const dateA = a.datetime ? new Date(a.datetime).getTime() : 0;
-        const dateB = b.datetime ? new Date(b.datetime).getTime() : 0;
+        const dateA = getDate(a) ? new Date(getDate(a)).getTime() : 0;
+        const dateB = getDate(b) ? new Date(getDate(b)).getTime() : 0;
         if (dateA !== dateB) {
           return dateB - dateA;
         }
@@ -91,7 +98,7 @@ export default function JournalEntryListPage() {
           const match = ref.match(/\d+/g);
           return match ? parseInt(match.join(''), 10) : 0;
         };
-        return getNum(b.voucherNumber) - getNum(a.voucherNumber);
+        return getNum(getVoucherNumber(b)) - getNum(getVoucherNumber(a));
       });
   }, [entries, searchQuery]);
 
@@ -165,15 +172,17 @@ export default function JournalEntryListPage() {
               <CustomTableHead>VOUCHER NO</CustomTableHead>
               <CustomTableHead>DATE</CustomTableHead>
               <CustomTableHead>MEMO</CustomTableHead>
+              <CustomTableHead>AMOUNT</CustomTableHead>
               <CustomTableHead>ACTIONS</CustomTableHead>
             </CustomTableRow>
           </CustomTableHeader>
           <CustomTableBody>
             {paginatedEntries.map((entry) => (
               <CustomTableRow key={entry._id} onClick={() => router.push(`/dashboard/accounting/journal-entries/${entry._id}`)} className="cursor-pointer hover:bg-gray-100">
-                <CustomTableCell>{entry.voucherNumber || entry._id}</CustomTableCell>
-                <CustomTableCell>{entry.datetime ? new Date(entry.datetime).toLocaleDateString() : 'N/A'}</CustomTableCell>
+                <CustomTableCell>{getVoucherNumber(entry)}</CustomTableCell>
+                <CustomTableCell>{getDate(entry) ? new Date(getDate(entry)).toLocaleDateString() : 'N/A'}</CustomTableCell>
                 <CustomTableCell>{entry.memo || ''}</CustomTableCell>
+                <CustomTableCell>{getAmount(entry)}</CustomTableCell>
                 <CustomTableCell>
                   <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); handlePrint(entry._id); }} title="Print"><Printer className="h-4 w-4" /></Button>
                   <Button variant="outline" size="icon" onClick={e => { e.stopPropagation(); downloadJournalEntryExcel(entry); }} title="Download Excel"><FileSpreadsheet className="h-4 w-4 text-green-700" /></Button>

@@ -1,0 +1,121 @@
+# Cloud Ledger System Architecture Map
+
+Based on my analysis of your codebase, here's a comprehensive map of how your NextJS Cloud Ledger application works from backend to frontend, including database interactions and utilities.
+
+## 1. Database Layer
+### MongoDB Database
+- Connection Management: `dbConnect.js` handles database connections with connection pooling and caching
+- Models: Defined in `models.js` and individual model files in the models directory
+
+### Core Data Models
+#### User & Organization Models
+- User: Authentication, roles, and permissions
+- Organization: Multi-tenant structure for the application
+- Roles & Permissions: Role-based access control system
+
+#### Accounting Models
+- ChartOfAccounts: `ChartOfAccounts.js` - Hierarchical account structure
+- AccountingJournal: `AccountingJournal.js` - Journal entries for transactions
+- AccountingTransaction: `AccountingTransaction.js` - Individual debit/credit entries
+
+#### Business Document Models
+- SalesVoucher: Sales transactions
+- PurchaseOrder: Purchase transactions
+- PaymentVoucher: `PaymentVoucher.js` - Payment records
+- Invoice/CreditNote: Billing documents
+- Customer/Supplier: Business partners
+
+#### Utility Models
+- Counter: `Counter.js` - Sequence generation for document numbers
+- Document/DocumentLink: File attachments and references
+
+## 2. Backend Services Layer
+### Core Services
+#### Authentication & Authorization
+- Auth Middleware: `auth.js`
+  - JWT token validation
+  - User authentication
+  - Organization context setting
+
+#### Accounting Engine
+- Accounting Service: `AccountingService.js`
+  - Double-entry bookkeeping implementation
+  - Journal entry creation
+  - Account balance calculation
+- Accounting Utilities: `accounting.js`
+  - Transaction creation helpers
+  - Voucher number generation
+  - Book instance management
+
+### Business Logic Services
+- Sales Processing: Sales voucher creation and management
+- Purchase Processing: Purchase order and bill management
+- Payment Processing: Payment vouchers and receipts
+
+## 3. API Layer
+### API Routes Structure
+#### Authentication APIs
+- /api/auth/* - Login, registration, password management
+
+#### Organization APIs
+- /api/organization/* - Organization management
+  - /sales-vouchers - `route.js`
+  - /purchase-orders - Purchase order management
+  - /transactions/* - Various transaction types
+
+#### Accounting APIs
+- /api/accounting/* - Core accounting functions
+  - /vouchers/* - Voucher management
+  - /journal-entries/* - Journal entry operations
+  - /day-books - Day book reports
+  - /counters/* - Document numbering
+
+### API Request Flow
+1. Request Received: Next.js route handler
+2. Database Connection: dbConnect() ensures MongoDB connection
+3. Authentication: protect() middleware validates JWT token
+4. Organization Context: Organization ID extracted from request
+5. Data Processing: Business logic applied
+6. Database Operations: CRUD operations on models
+7. Accounting Entries: Double-entry transactions created
+8. Response: JSON response returned to client
+
+## 4. Frontend Integration
+### Data Flow
+1. UI Components: React components in /app/components/
+2. API Calls: Frontend components make fetch requests to API endpoints
+3. State Management: React state and context for data management
+4. Rendering: Data displayed in UI components
+
+### Key Frontend Components
+- Dashboard Layout: Main application structure
+- Accounting Forms: Transaction entry interfaces
+- Reports: Financial reporting components
+
+## 5. Cross-Cutting Concerns
+### Utilities
+- Date Utilities: Date formatting and conversion
+- Auth Helpers: Authentication utility functions
+
+### Middleware
+- Authentication: JWT token validation
+- Organization Context: Multi-tenant request handling
+
+## 6. System Workflow Examples
+### Sales Voucher Creation Flow
+1. User submits sales form in frontend
+2. Request sent to /api/organization/sales-vouchers
+3. protect() middleware authenticates user
+4. Request validated and sales voucher created
+5. createSalesVoucherEntry() creates accounting entries
+6. Double-entry transactions recorded in accounting system
+7. Response returned to frontend
+
+### Financial Reporting Flow
+1. User requests financial report
+2. API endpoint queries accounting transactions
+3. Data aggregated and calculated
+4. Formatted report returned to frontend
+5. Report displayed in UI
+
+This architecture map provides a comprehensive overview of how your Cloud Ledger system works from backend to frontend, including database interactions and utilities. The system follows a well-structured approach with clear separation of concerns between data models, business logic, API endpoints, and frontend components.

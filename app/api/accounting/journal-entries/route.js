@@ -1,66 +1,86 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { connectToDatabase } from '@/lib/accounting';
 
-// This is a redirect endpoint to fix the mixed up logic between journal entries and day books
-// The frontend is looking for /api/accounting/journal-entries but the actual implementation is in /api/accounting/day-books
+const mongoConnectionString = process.env.MONGODB_URI || 'mongodb://localhost/medici_test';
+
+async function connectToDatabase() {
+  if (mongoose.connection.readyState === 1) return;
+  await mongoose.connect(mongoConnectionString);
+}
+
 export async function GET(request) {
+  await connectToDatabase();
+  const { searchParams } = new URL(request.url);
+  const limit = parseInt(searchParams.get('limit') || '100', 10);
+  const searchTerm = searchParams.get('searchTerm') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const skip = (page - 1) * limit;
+  const id = searchParams.get('_id');
+
+  // Get the journal and transaction models
+  const journalModel = mongoose.models.Medici_Journal || mongoose.model('Medici_Journal', new mongoose.Schema({
+    datetime: Date,
+    memo: String,
+    voided: Boolean,
+    void_reason: String,
+    book: String,
+    voucherNumber: String,
+    _transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Medici_Transaction' }]
+  }, { collection: 'medici_journals' }));
+  const transactionModel = mongoose.models.Medici_Transaction || mongoose.model('Medici_Transaction', new mongoose.Schema({
+    _journal: { type: mongoose.Schema.Types.ObjectId, ref: 'Medici_Journal' },
+    datetime: Date,
+    accounts: String,
+    book: String,
+    memo: String,
+    debit: Boolean,
+    credit: Boolean,
+    amount: Number,
+    voided: Boolean,
+    meta: Object
+  }, { collection: 'medici_transactions' }));
+
+  // Build query
+  let query = {};
+  if (id) {
+    query = { _id: new mongoose.Types.ObjectId(id) };
+  } else if (searchTerm) {
+    query.$or = [
+      { memo: { $regex: searchTerm, $options: 'i' } },
+      { voucherNumber: { $regex: searchTerm, $options: 'i' } }
+    ];
+  }
+
   try {
-    await connectToDatabase();
-    const db = mongoose.connection.db;
-    const journalCollection = db.collection('accounting_journals');
-    // Only fetch journal vouchers (voucherNumber starts with JV-)
-    const entries = await journalCollection
-      .find({ voucherNumber: { $regex: '^JV-', $options: 'i' } })
-      .sort({ datetime: -1 })
-      .toArray();
-    return NextResponse.json({ journalEntries: entries });
+    let entries;
+    let total = 0;
+    if (id) {
+      const journal = await journalModel.findOne(query).lean();
+      if (journal) {
+        const transactions = await transactionModel.find({ _journal: journal._id }).lean();
+        journal.transactions = transactions;
+        entries = [journal];
+        total = 1;
+      } else {
+        entries = [];
+        total = 0;
+      }
+    } else {
+      total = await journalModel.countDocuments(query);
+      const journals = await journalModel.find(query)
+        .sort({ datetime: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      entries = await Promise.all(journals.map(async (journal) => {
+        const transactions = await transactionModel.find({ _journal: journal._id }).lean();
+        journal.transactions = transactions;
+        return journal;
+      }));
+    }
+    return NextResponse.json({ journalEntries: entries, total });
   } catch (error) {
     console.error('Error fetching journal entries:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch journal entries', journalEntries: [] },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch journal entries', journalEntries: [] }, { status: 500 });
   }
-}
-
-// For POST requests, redirect to the day-books endpoint
-export async function POST(request) {
-  try {
-    // Clone the request to read the body
-    const clonedRequest = request.clone();
-    const body = await clonedRequest.json();
-    
-    // Get the original URL and create a new URL for the day-books endpoint
-    const originalUrl = new URL(request.url);
-    const dayBooksUrl = new URL(originalUrl);
-    
-    // Change the path from journal-entries to day-books
-    dayBooksUrl.pathname = dayBooksUrl.pathname.replace('/journal-entries', '/day-books');
-    
-    // Forward the request to the day-books endpoint
-    const response = await fetch(dayBooksUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to post journal voucher to day-books: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Return the response from the day-books endpoint
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error in journal-entries redirect API (POST) for journal voucher:', error);
-    return NextResponse.json(
-      { error: 'Failed to create journal voucher (via redirect)' },
-      { error: 'Failed to create journal entry' },
-      { status: 500 }
-    );
-  }
-}
+} 

@@ -64,7 +64,7 @@ export async function POST(request) {
       throw new Error('Failed to generate payment voucher number');
     }
 
-    // Create the accounting entry
+    // Create the accounting entry (this will create the journal entry in medici_journals)
     await createPaymentSentEntry({
       ...paymentDetails,
       amount,
@@ -74,45 +74,9 @@ export async function POST(request) {
       _id: paymentVoucher._id
     });
 
-    // Create the journal voucher
-    const journal = new AccountingJournal({
-      datetime: new Date(),
-      memo: `Payment to ${supplier.name}`,
-      book: 'cloud_ledger',
-      voucherNumber: paymentVoucher.paymentVoucherNumber,
-      organization: organizationId
-    });
-
-    await journal.save();
-
-    // Create the transactions
-    const transactions = [
-      {
-        journal: journal._id,
-        datetime: journal.datetime,
-        account_path: `Liabilities:Current Liabilities:Accounts Payable:${supplier.name}`,
-        debit: true,
-        credit: false,
-        amount: amount,
-        organization: organizationId
-      },
-      {
-        journal: journal._id,
-        datetime: journal.datetime,
-        account_path: 'Assets:Current Assets:Cash and Bank',
-        debit: false,
-        credit: true,
-        amount: amount,
-        organization: organizationId
-      }
-    ];
-
-    await AccountingTransaction.insertMany(transactions);
-
     return NextResponse.json({ 
       message: "Payment sent and accounting entry created successfully",
-      paymentVoucher,
-      journalId: journal._id
+      paymentVoucher
     }, { status: 201 });
 
   } catch (error) {

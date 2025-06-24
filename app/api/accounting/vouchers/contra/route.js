@@ -30,14 +30,11 @@ export async function POST(request) {
     }
     const contraVoucher = new ContraVoucher({
       ...data,
-      organization: organizationId,
-      status: data.status || 'DRAFT',
+      organization: organizationId
     });
     await contraVoucher.save();
-    // If status is APPROVED, create journal voucher
-    if (contraVoucher.status === 'APPROVED') {
-      await createContraEntry(contraVoucher);
-    }
+    // Always create journal voucher after saving
+    await createContraEntry(contraVoucher);
     return NextResponse.json({ message: 'Contra voucher created', contraVoucher }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create contra voucher', error: error.message }, { status: 500 });

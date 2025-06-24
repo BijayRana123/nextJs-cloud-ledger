@@ -4,6 +4,7 @@ import PaymentVoucher from '@/lib/models/PaymentVoucher';
 import AccountingJournal from '@/lib/models/AccountingJournal';
 import AccountingTransaction from '@/lib/models/AccountingTransaction';
 import { protect } from '@/lib/middleware/auth';
+import mongoose from 'mongoose';
 
 export async function GET(request, { params }) {
   try {
@@ -16,75 +17,50 @@ export async function GET(request, { params }) {
 
     const organizationId = request.headers.get('x-organization-id');
     if (!organizationId) {
-      return NextResponse.json(
-        { message: 'No organization context found' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'No organization context found' }, { status: 400 });
     }
 
     const { id } = await params;
-    if (!id) {
-      return NextResponse.json(
-        { message: 'Payment voucher ID is required' },
-        { status: 400 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: 'Invalid Payment Voucher ID' }, { status: 400 });
     }
 
-    // Find the payment voucher
-    const paymentVoucher = await PaymentVoucher.findOne({
-      _id: id,
-      organization: organizationId
-    }).populate('supplier', 'name email phoneNumber');
+    const paymentVoucher = await PaymentVoucher.findOne({ _id: id, organization: organizationId })
+      .populate('supplier', 'name email phoneNumber')
+      .lean();
 
     if (!paymentVoucher) {
-      return NextResponse.json(
-        { message: 'Payment voucher not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Payment voucher not found' }, { status: 404 });
     }
 
-    // Find the associated journal voucher
-    const journal = await AccountingJournal.findOne({
-      voucherNumber: paymentVoucher.paymentVoucherNumber,
-      organization: organizationId
+    const linkingTransaction = await mongoose.connection.db.collection('medici_transactions').findOne({
+      "meta.paymentVoucherId": new mongoose.Types.ObjectId(id)
     });
 
-    // Find the associated transactions
-    let transactions = journal ? await AccountingTransaction.find({
-      journal: journal._id,
-      organization: organizationId
-    }) : [];
+    let transactions = [];
+    if (linkingTransaction) {
+      const journalId = linkingTransaction._journal;
+      transactions = await mongoose.connection.db.collection('medici_transactions').find({ _journal: journalId }).toArray();
+    }
 
-    // Add type (Debit/Credit) and account name to each transaction
-    transactions = transactions.map(t => ({
-      ...t.toObject(),
-      type: t.debit ? 'Debit' : (t.credit ? 'Credit' : ''),
-      account: t.account_path || t.account || 'N/A'
-    }));
-
-    // Prepare supplier name and payment method for easy access
     const supplierName = paymentVoucher.supplier?.name || 'N/A';
-    const paymentMethod = paymentVoucher.paymentMethod || 'N/A';
-
-    // Memo with supplier name
     const memo = `Payment to ${supplierName}`;
 
     return NextResponse.json({
       paymentVoucher: {
-        ...paymentVoucher.toObject(),
+        ...paymentVoucher,
         supplierName,
-        paymentMethod,
-        memo
-      },
-      journal,
-      transactions
+        memo,
+        transactions: transactions.map(t => ({
+          account: t.accounts,
+          amount: t.amount,
+          type: t.debit ? 'Debit' : 'Credit'
+        })),
+      }
     });
   } catch (error) {
     console.error('Error fetching payment voucher:', error);
-    return NextResponse.json(
-      { message: 'Failed to fetch payment voucher details' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Failed to fetch payment voucher details' }, { status: 500 });
   }
 }
 
@@ -99,35 +75,30 @@ export async function DELETE(request, { params }) {
 
     const organizationId = request.headers.get('x-organization-id');
     if (!organizationId) {
-      return NextResponse.json(
-        { message: 'No organization context found' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'No organization context found' }, { status: 400 });
     }
 
     const { id } = await params;
-    if (!id) {
-      return NextResponse.json(
-        { message: 'Payment voucher ID is required' },
-        { status: 400 }
-      );
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: 'Invalid Payment Voucher ID' }, { status: 400 });
     }
 
-    const deleted = await PaymentVoucher.findOneAndDelete({ _id: id, organization: organizationId });
-    if (!deleted) {
-      return NextResponse.json(
-        { message: 'Payment voucher not found or already deleted' },
-        { status: 404 }
-      );
+    const linkingTransaction = await mongoose.connection.db.collection('medici_transactions').findOne({
+      "meta.paymentVoucherId": new mongoose.Types.ObjectId(id)
+    });
+
+    if (linkingTransaction) {
+      const journalId = linkingTransaction._journal;
+      await mongoose.connection.db.collection('medici_transactions').deleteMany({ _journal: journalId });
+      await mongoose.connection.db.collection('medici_journals').deleteOne({ _id: journalId });
     }
+
+    await PaymentVoucher.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'Payment voucher deleted successfully' });
   } catch (error) {
     console.error('Error deleting payment voucher:', error);
-    return NextResponse.json(
-      { message: 'Failed to delete payment voucher', error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Failed to delete payment voucher', error: error.message }, { status: 500 });
   }
 }
 
@@ -189,4 +160,54 @@ export async function PUT(request, { params }) {
       { status: 500 }
     );
   }
+}
+
+// --- BACKFILL SCRIPT (run manually if needed) ---
+// To use: import and call backfillPaymentVoucherJournalIds() in a script or dev route
+export async function backfillPaymentVoucherJournalIds() {
+  await dbConnect();
+  const PaymentVoucher = (await import('@/lib/models/PaymentVoucher')).default;
+  const mongoose_ = require('mongoose');
+  const MediciJournal = mongoose_.models.Medici_Journal || mongoose_.model('Medici_Journal', new mongoose_.Schema({
+    voucherNumber: String
+  }, { collection: 'medici_journals' }));
+  const vouchers = await PaymentVoucher.find({ journalId: { $exists: false } });
+  let updated = 0;
+  for (const voucher of vouchers) {
+    const journal = await MediciJournal.findOne({ voucherNumber: voucher.paymentVoucherNumber });
+    if (journal) {
+      voucher.journalId = journal._id;
+      await voucher.save();
+      updated++;
+    }
+  }
+  console.log(`Backfilled ${updated} payment vouchers with journalId.`);
+}
+
+// --- BACKFILL SCRIPT (run manually if needed) ---
+// To use: import and call backfillMediciJournalVoucherNumbers() in a script or dev route
+export async function backfillMediciJournalVoucherNumbers() {
+  await dbConnect();
+  const PaymentVoucher = (await import('@/lib/models/PaymentVoucher')).default;
+  const mongoose_ = require('mongoose');
+  const MediciJournal = mongoose_.models.Medici_Journal || mongoose_.model('Medici_Journal', new mongoose_.Schema({
+    voucherNumber: String,
+    memo: String,
+    datetime: Date
+  }, { collection: 'medici_journals' }));
+  const vouchers = await PaymentVoucher.find({ paymentVoucherNumber: { $exists: true } });
+  let updated = 0;
+  for (const voucher of vouchers) {
+    // Try to find a journal by close datetime and memo
+    const journal = await MediciJournal.findOne({
+      memo: { $regex: voucher.supplier ? voucher.supplier.toString() : '', $options: 'i' },
+      datetime: { $gte: new Date(voucher.date.getTime() - 60000), $lte: new Date(voucher.date.getTime() + 60000) }
+    });
+    if (journal && !journal.voucherNumber) {
+      journal.voucherNumber = voucher.paymentVoucherNumber;
+      await journal.save();
+      updated++;
+    }
+  }
+  console.log(`Backfilled ${updated} medici journals with voucherNumber.`);
 } 

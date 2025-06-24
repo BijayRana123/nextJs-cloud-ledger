@@ -32,18 +32,16 @@ export async function POST(request) {
       salesOrderData.salesVoucherNumber = `SV-${Date.now()}`;
     }
 
-    // Log the data being sent to the database
+    // Remove status from log and model
     console.log("Sales Order Data to save:", {
       ...salesOrderData,
-      organization: organizationId,
-      status: 'DRAFT'
+      organization: organizationId
     });
 
     const newSalesOrder = new SalesVoucher({
       ...salesOrderData,
       organization: organizationId, // Associate sales order with the user's organization
-      createdAt: new Date(), // Mongoose will handle timestamp if schema has timestamps: true
-      status: 'DRAFT', // Initial status
+      createdAt: new Date() // Mongoose will handle timestamp if schema has timestamps: true
     });
 
     await newSalesOrder.save();

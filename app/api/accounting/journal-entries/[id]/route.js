@@ -1,78 +1,85 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/accounting';
+import { JournalVoucher } from '@/lib/models';
 
-export async function GET(request, context) {
+export async function GET(request, { params }) {
   try {
     await connectToDatabase();
-    const params = await context.params;
-    const id = params?.id;
-    console.log('Fetching journal entry with id:', id, 'type:', typeof id);
 
+    // Await params if needed (for Next.js 13+)
+    const id = params?.id || (typeof params === 'function' ? (await params()).id : undefined);
     if (!id) {
-      return NextResponse.json(
-        { error: 'Journal entry ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Journal entry ID is required' }, { status: 400 });
     }
 
-    // Try as ObjectId
-    let entryId;
-    let journalEntry = null;
+    // Try to find a JournalVoucher first
+    let journalVoucher = null;
     try {
-      entryId = new mongoose.Types.ObjectId(id);
-      journalEntry = await mongoose.connection.db.collection('accounting_journals').findOne({ _id: entryId });
-      console.log('Result with ObjectId:', journalEntry);
-    } catch (error) {
-      console.log('Error converting to ObjectId or querying with ObjectId:', error);
+      journalVoucher = await JournalVoucher.findById(id).lean();
+    } catch (e) {}
+    if (journalVoucher) {
+      // Format to match frontend expectations
+      return NextResponse.json({
+        _id: journalVoucher._id,
+        voucherNumber: journalVoucher.referenceNo,
+        datetime: journalVoucher.date,
+        memo: journalVoucher.memo,
+        transactions: (journalVoucher.transactions || []).map(t => ({
+          ...t,
+          debit: t.type === 'debit',
+          credit: t.type === 'credit',
+        })),
+        notes: journalVoucher.notes,
+        status: journalVoucher.status,
+        type: 'JournalVoucher',
+      });
     }
 
-    // If not found, try as string
-    if (!journalEntry) {
-      journalEntry = await mongoose.connection.db.collection('accounting_journals').findOne({ _id: id });
-      console.log('Result with string id:', journalEntry);
+    // Fallback to Medici journal logic
+    const journalModel = mongoose.models.Medici_Journal || 
+      mongoose.model('Medici_Journal', new mongoose.Schema({
+        datetime: Date,
+        memo: String,
+        voided: Boolean,
+        void_reason: String,
+        book: String,
+        voucherNumber: String,
+        _transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Medici_Transaction' }]
+      }, { collection: 'medici_journals' }));
+
+    const transactionModel = mongoose.models.Medici_Transaction ||
+      mongoose.model('Medici_Transaction', new mongoose.Schema({
+        _journal: { type: mongoose.Schema.Types.ObjectId, ref: 'Medici_Journal' },
+        datetime: { type: Date, default: Date.now },
+        accounts: { type: String, required: true },
+        book: { type: String, default: 'cloud_ledger' },
+        memo: { type: String, default: '' },
+        debit: { type: Boolean, required: true },
+        credit: { type: Boolean, required: true },
+        amount: { type: Number, required: true },
+        voided: { type: Boolean, default: false },
+        meta: { type: Object, default: {} }
+      }, { collection: 'medici_transactions' }));
+
+    const journal = await journalModel.findById(id).lean();
+    if (!journal) {
+      return NextResponse.json({ error: 'Journal entry not found' }, { status: 404 });
     }
-
-    if (!journalEntry) {
-      return NextResponse.json(
-        { error: 'Journal entry not found' },
-        { status: 404 }
-      );
-    }
-
-    // Find transactions directly
-    const transactionCollection = mongoose.connection.db.collection('accounting_transactions');
-    const transactions = await transactionCollection.find({ journal: journalEntry._id }).toArray();
-    
-    // Process transactions to ensure proper formatting
-    const formattedTransactions = transactions.map(transaction => {
-      const transactionId = transaction._id.toString();
-      const numAmount = typeof transaction.amount === 'number' 
-        ? transaction.amount 
-        : Number(transaction.amount) || 0;
-      const account_path = transaction.account_path ? transaction.account_path.split(':') : [];
-      return {
-        ...transaction,
-        _id: transactionId,
-        amount: numAmount,
-        account_path: account_path,
-        debit: !!transaction.debit,
-        credit: !!transaction.credit
-      };
-    });
-
-    // Combine journal entry with its transactions
-    const result = {
-      ...journalEntry,
-      _id: journalEntry._id.toString(),
-      transactions: formattedTransactions,
+    const transactions = await transactionModel.find({ _journal: id }).lean();
+    const response = {
+      ...journal,
+      transactions: transactions.map(t => ({
+        ...t,
+        type: t.debit ? 'debit' : 'credit',
+      })),
+      type: 'MediciJournal',
     };
-
-    return NextResponse.json({ journalEntry: result });
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching journal entry:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch journal entry' },
+      { error: `Failed to fetch journal entry: ${error.message}` },
       { status: 500 }
     );
   }

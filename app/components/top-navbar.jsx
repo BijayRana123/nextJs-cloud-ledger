@@ -68,7 +68,7 @@ export function TopNavbar({ children }) {
           <Calendar className="h-5 w-5 mr-2" />
           <span>This Fiscal Year to Date</span>
         </Button>
-        <div className="flex items-center gap-2 bg-[#3a3f5a] p-2 rounded-md">
+        <div className="flex items-center gap-2 bg-[#fff] p-2 rounded-md">
           <span className="text-black text-sm">AD</span>
           <Switch 
             id="calendar-toggle" 

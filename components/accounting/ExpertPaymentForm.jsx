@@ -130,17 +130,41 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
           meta: { description: description || "" },
         };
       });
-      const response = await fetch("/api/accounting/journal-entries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          memo: memo || "Payment to Supplier (Expert Entry)",
-          transactions: formattedTransactions,
-          meta: { paymentVoucherNumber: voucherNumber, entryMode: 'expert' },
-        }),
-      });
+
+      let response;
+      if (mode === 'receive-payment') {
+        // Use the new receipt voucher API
+        const creditTxn = formattedTransactions.find(t => t.type === 'credit');
+        const debitTxn = formattedTransactions.find(t => t.type === 'debit');
+        
+        response = await fetch('/api/organization/receipt-vouchers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // The API expects customerId, amount, paymentMethod, and notes.
+            // We need to derive this from the expert form's transactions.
+            // This is a simplification; a more robust solution might require a customer selector.
+            customerId: creditTxn?.account.split(':')[1] || 'Unknown', // Simplification
+            amount: debitTxn?.amount || 0,
+            paymentMethod: debitTxn?.account.split(':')[1] || 'Cash', // Simplification
+            notes: memo,
+          }),
+        });
+      } else {
+        // Existing logic for other modes
+        response = await fetch("/api/accounting/journal-entries", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            memo: memo || "Payment to Supplier (Expert Entry)",
+            transactions: formattedTransactions,
+            meta: { paymentVoucherNumber: voucherNumber, entryMode: 'expert' },
+          }),
+        });
+      }
+
       if (!response.ok) {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {

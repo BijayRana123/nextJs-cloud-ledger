@@ -14,22 +14,12 @@ export default function PaymentVoucherDetailPage() {
   const [paymentVoucher, setPaymentVoucher] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [transactions, setTransactions] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchPaymentVoucher();
   }, [id]);
-
-  useEffect(() => {
-    if (paymentVoucher && paymentVoucher._id) {
-      fetch(`/api/organization/payment-vouchers/${paymentVoucher._id}`)
-        .then(res => res.json())
-        .then(data => setTransactions(data.transactions || []));
-    }
-  }, [paymentVoucher]);
 
   const fetchPaymentVoucher = async () => {
     setIsLoading(true);
@@ -88,7 +78,8 @@ export default function PaymentVoucherDetailPage() {
     amount,
     paymentMethod,
     notes,
-    memo
+    memo,
+    transactions
   } = paymentVoucher;
 
   return (
@@ -166,10 +157,10 @@ export default function PaymentVoucherDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t, idx) => (
+              {transactions?.map((t, idx) => (
                 <tr key={idx}>
                   <td className="border px-2 py-1">{t.account ? t.account.split(':').pop() : 'N/A'}</td>
-                  <td className="border px-2 py-1">{t.amount}</td>
+                  <td className="border px-2 py-1">{t.amount?.toFixed(2)}</td>
                   <td className="border px-2 py-1">{t.type}</td>
                 </tr>
               ))}

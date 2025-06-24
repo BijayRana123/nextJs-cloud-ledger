@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import AccountingService from '@/lib/services/AccountingService';
+import { JournalVoucher } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
-import mongoose from 'mongoose';
-import { getJournalEntries } from '@/lib/accounting';
+import { createJournalEntry } from '@/lib/accounting';
+import Counter from '@/lib/models/Counter';
 
+// Handler for POST requests - creating new journal vouchers
 export async function POST(request) {
+  await dbConnect();
   try {
-    await dbConnect();
     const authResult = await protect(request);
     if (authResult && authResult.status !== 200) {
       return authResult;
@@ -17,77 +18,61 @@ export async function POST(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const { memo, transactions } = await request.json();
-
-    if (!memo || !transactions || !Array.isArray(transactions) || transactions.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid journal voucher data. Memo and transactions are required.' },
-        { status: 400 }
-      );
+    const data = await request.json();
+    
+    // Validate required fields
+    if (!data.memo || !data.transactions || !Array.isArray(data.transactions) || data.transactions.length === 0) {
+      return NextResponse.json({ message: 'Memo and at least one transaction are required.' }, { status: 400 });
     }
 
-    // Validate all transaction amounts are proper numbers and positive
-    const hasInvalidAmount = transactions.some(t => {
-      const amount = Number(t.amount);
-      return isNaN(amount) || amount <= 0;
+    // Validate transactions
+    for (const txn of data.transactions) {
+      if (!txn.account || !txn.type || !txn.amount || txn.amount <= 0) {
+        return NextResponse.json({ message: 'Each transaction must have an account, type (debit/credit), and positive amount' }, { status: 400 });
+      }
+    }
+
+    // Calculate totals
+    const totalDebits = data.transactions
+      .filter(t => t.type === 'debit')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    
+    const totalCredits = data.transactions
+      .filter(t => t.type === 'credit')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    // Check if debits equal credits (allowing for small rounding differences)
+    if (Math.abs(totalDebits - totalCredits) > 0.01) {
+      return NextResponse.json({ message: 'Total debits must equal total credits' }, { status: 400 });
+    }
+
+    // Generate reference number if not provided
+    if (!data.referenceNo) {
+      data.referenceNo = await Counter.getNextSequence('journal_voucher', {
+        prefix: 'JV-',
+        paddingSize: 4,
+        startValue: 1
+      });
+    }
+
+    const journalVoucher = new JournalVoucher({
+      ...data,
+      organization: organizationId,
+      date: data.date || new Date()
     });
 
-    if (hasInvalidAmount) {
-      return NextResponse.json(
-        { error: 'All transaction amounts must be valid positive numbers.' },
-        { status: 400 }
-      );
-    }
-
-    // Convert all amounts to numbers for consistency
-    const validatedEntries = transactions.map(t => ({
-      ...t,
-      amount: parseFloat(t.amount) // Ensure amount is float
-    }));
-
-    // Check if debits equal credits
-    const totalDebits = validatedEntries
-      .filter(t => t.type === 'debit')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const totalCredits = validatedEntries
-      .filter(t => t.type === 'credit')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    if (Math.abs(totalDebits - totalCredits) > 0.001) { // Allow small rounding differences
-      return NextResponse.json(
-        { error: 'Debits must equal credits. Please check your transaction amounts.' },
-        { status: 400 }
-      );
-    }
-
-    // Prepare data for AccountingService.recordJournalVoucher
-    const entryData = {
-      memo,
-      entries: validatedEntries, // Map 'transactions' to 'entries'
-      date: new Date(), // Use current date for the voucher
-      organizationId: organizationId // Pass organization ID
-    };
-
-    const result = await AccountingService.recordJournalVoucher(entryData);
-
-    return NextResponse.json({
-      message: 'Journal voucher created successfully',
-      journalVoucher: result // 'result' contains the journal details including voucherNumber
-    }, { status: 201 });
-
+    await journalVoucher.save();
+    // Create Medici journal and transactions for this voucher
+    await createJournalEntry(journalVoucher);
+    return NextResponse.json({ message: 'Journal voucher created', journalVoucher }, { status: 201 });
   } catch (error) {
-    console.error('Error creating journal voucher:', error);
-    return NextResponse.json(
-      { error: 'Failed to create journal voucher: ' + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Failed to create journal voucher', error: error.message }, { status: 500 });
   }
 }
 
 export async function GET(request) {
+  await dbConnect();
   try {
-    await dbConnect();
     const authResult = await protect(request);
     if (authResult && authResult.status !== 200) {
       return authResult;
@@ -97,66 +82,12 @@ export async function GET(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const searchTerm = searchParams.get('searchTerm');
+    const vouchers = await JournalVoucher.find({ organization: organizationId })
+      .lean()
+      .sort({ date: -1 });
 
-    // Build query to fetch only general journal vouchers (those with JV- prefix)
-    const query = {
-      book: 'cloud_ledger',
-      voucherNumber: { $regex: '^JV-', $options: 'i' },
-      organization: organizationId
-    };
-
-    if (startDate && endDate) {
-      query.datetime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    } else if (startDate) {
-      query.datetime = { $gte: new Date(startDate) };
-    } else if (endDate) {
-      query.datetime = { $lte: new Date(endDate) };
-    }
-
-    if (searchTerm) {
-      query.memo = { $regex: searchTerm, $options: 'i' };
-    }
-
-    const options = {
-      page,
-      perPage: limit,
-    };
-
-    const journalVouchers = await getJournalEntries(query, options);
-
-    // Get total count for pagination
-    let totalCount = 0;
-    try {
-      const journalModel = mongoose.model('Medici_Journal');
-      totalCount = await journalModel.countDocuments(query);
-    } catch (countError) {
-      console.error('Error counting journal vouchers:', countError);
-    }
-
-    return NextResponse.json({
-      journalVouchers: journalVouchers,
-      pagination: {
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        currentPage: page,
-        perPage: limit,
-      },
-    });
-
+    return NextResponse.json({ journalVouchers: vouchers }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching journal vouchers:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch journal vouchers: ' + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Failed to fetch journal vouchers', error: error.message }, { status: 500 });
   }
 } 

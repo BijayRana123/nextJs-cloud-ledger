@@ -18,6 +18,10 @@ export async function POST(request) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
     const salesReturnData = await request.json();
+    // Validate customer field
+    if (!salesReturnData.customer || typeof salesReturnData.customer !== 'string' || salesReturnData.customer.trim() === '') {
+      return NextResponse.json({ message: 'Customer is required and must be a valid customer ID.' }, { status: 400 });
+    }
     if (!salesReturnData.referenceNo) {
       try {
         salesReturnData.referenceNo = await Counter.getNextSequence('sales_return_voucher', {
@@ -31,12 +35,11 @@ export async function POST(request) {
     const newSalesReturn = new SalesReturnVoucher({
       ...salesReturnData,
       organization: organizationId,
-      createdAt: new Date(),
-      status: 'DRAFT',
+      createdAt: new Date()
     });
     await newSalesReturn.save();
     // Create journal voucher for sales return
-    // await createSalesReturnEntry(newSalesReturn); // Commented out for now as createSalesReturnEntry is not implemented
+    await createSalesReturnEntry(newSalesReturn);
     return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: newSalesReturn }, { status: 201 });
   } catch (error) {
     let errorMessage = "Failed to create sales return voucher";
@@ -92,19 +95,18 @@ export async function PUT(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
-    const { id, status } = await request.json();
-    if (!id || !status) {
-      return NextResponse.json({ message: 'ID and status are required.' }, { status: 400 });
+    const { id } = await request.json();
+    if (!id) {
+      return NextResponse.json({ message: 'ID is required.' }, { status: 400 });
     }
     const salesReturn = await SalesReturnVoucher.findOne({ _id: id, organization: organizationId });
     if (!salesReturn) {
       return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
     }
-    salesReturn.status = status;
     await salesReturn.save();
-    return NextResponse.json({ message: 'Sales return voucher status updated', salesReturn: salesReturn }, { status: 200 });
+    return NextResponse.json({ message: 'Sales return voucher updated', salesReturn: salesReturn }, { status: 200 });
   } catch (error) {
-    console.error("Error updating sales return voucher status:", error);
+    console.error("Error updating sales return voucher:", error);
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }
