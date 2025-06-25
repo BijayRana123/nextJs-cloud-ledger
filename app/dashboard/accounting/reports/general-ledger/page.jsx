@@ -538,66 +538,59 @@ export default function GeneralLedgerPage() {
             />
           </div>
 
-          {filteredAccounts.length === 0 ? (
+          {/* Flat transaction table */}
+          {(!reportData.transactions || reportData.transactions.length === 0) ? (
             <Card>
               <CardContent className="py-8">
-                <p className="text-center text-gray-500">No accounts found matching your criteria.</p>
+                <p className="text-center text-gray-500">No transactions found matching your criteria.</p>
               </CardContent>
             </Card>
           ) : (
-            filteredAccounts.map((account) => (
-              <Card key={account.account} className="mb-4">
-                <CardHeader className="py-3 px-4 bg-gray-50 cursor-pointer" onClick={() => toggleAccountExpansion(account.account)}>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      {expandedAccounts[account.account] ? 
-                        <ChevronDown className="h-5 w-5 mr-2 text-gray-500" /> : 
-                        <ChevronRight className="h-5 w-5 mr-2 text-gray-500" />
-                      }
-                      <h3 className="text-lg font-medium">{account.account}</h3>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {formatCurrency(account.balance)}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                {expandedAccounts[account.account] && (
-                  <CardContent className="p-0">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-gray-50/30">
-                          <th className="py-2 px-4 text-left font-medium text-gray-600">Date</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-600">Description</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-600">Reference</th>
-                          <th className="py-2 px-4 text-right font-medium text-gray-600">Debit</th>
-                          <th className="py-2 px-4 text-right font-medium text-gray-600">Credit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {account.transactions.map((transaction, index) => (
-                          <tr key={index} className="border-b hover:bg-gray-50">
-                            <td className="py-2 px-4">{formatDisplayDate(transaction.date || transaction.datetime)}</td>
-                            <td className="py-2 px-4">{transaction.memo || "N/A"}</td>
-                            <td className="py-2 px-4">{transaction.journalId || transaction._journal || "N/A"}</td>
-                            <td className="py-2 px-4 text-right">
-                              {transaction.debit ? (
-                                <span className="text-red-600">{formatCurrency(transaction.amount)}</span>
-                              ) : ""}
-                            </td>
-                            <td className="py-2 px-4 text-right">
-                              {transaction.credit ? (
-                                <span className="text-green-600">{formatCurrency(transaction.amount)}</span>
-                              ) : ""}
-                            </td>
+            <Card>
+              <CardContent className="p-0">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-gray-50/30">
+                      <th className="py-2 px-4 text-left font-medium text-gray-600">Date</th>
+                      <th className="py-2 px-4 text-left font-medium text-gray-600">Account</th>
+                      <th className="py-2 px-4 text-left font-medium text-gray-600">Description</th>
+                      <th className="py-2 px-4 text-left font-medium text-gray-600">Reference</th>
+                      <th className="py-2 px-4 text-right font-medium text-gray-600">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.transactions
+                      .filter(tx => {
+                        // Filter by search query
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          (tx.account && tx.account.toLowerCase().includes(q)) ||
+                          (tx.memo && tx.memo.toLowerCase().includes(q)) ||
+                          (tx.journalId && tx.journalId.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((tx, idx) => {
+                        // Remove prefix from account (show only last part after colon)
+                        const accountName = tx.account ? tx.account.split(':').pop() : 'N/A';
+                        // Show voucher number with prefix if available, else N/A
+                        const reference = tx.voucherNumber || tx.journalId || 'N/A';
+                        // Color: green for credit, red for debit
+                        const amountColor = tx.credit ? 'text-green-600' : (tx.debit ? 'text-red-600' : '');
+                        return (
+                          <tr key={tx.id || idx} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-4">{formatDisplayDate(tx.date)}</td>
+                            <td className="py-2 px-4">{accountName}</td>
+                            <td className="py-2 px-4">{tx.memo || 'N/A'}</td>
+                            <td className="py-2 px-4">{reference}</td>
+                            <td className={`py-2 px-4 text-right ${amountColor}`}>{formatCurrency(tx.amount)}</td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </CardContent>
-                )}
-              </Card>
-            ))
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
