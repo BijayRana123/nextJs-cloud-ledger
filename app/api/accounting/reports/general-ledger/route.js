@@ -67,14 +67,24 @@ export async function POST(request) {
     const endDate = body.endDate ? new Date(body.endDate) : new Date();
     const account = body.account || null;
     
+    // Get organizationId from body, then request, then headers
+    let organizationId = body.organizationId || request.organizationId;
+    if (!organizationId && request.headers && request.headers.get) {
+      organizationId = request.headers.get('x-organization-id');
+    }
+    if (!organizationId) {
+      return NextResponse.json({ error: 'organizationId is required' }, { status: 400 });
+    }
+    
     // Create query to get transactions
+    let orgId = organizationId;
+    if (typeof orgId === 'string' || (orgId && orgId.constructor && orgId.constructor.name !== 'ObjectId')) {
+      orgId = new mongoose.Types.ObjectId(organizationId);
+    }
     const query = {
-      datetime: { 
-        $gte: startDate,
-        $lte: endDate 
-      },
-      voided: false
+      organizationId: orgId
     };
+    console.log('General Ledger API query:', query);
     
     // If account is specified, filter by that account
     if (account) {

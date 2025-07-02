@@ -1,6 +1,5 @@
-
 "use client"; // Add client directive for hooks
-import { useState, useEffect } from 'react'; // Import useState and useEffect
+import { useState, useEffect, Suspense } from 'react'; // Import useState, useEffect, and Suspense
 import { useSearchParams, useRouter } from 'next/navigation'; // Import useSearchParams and useRouter
 import Link from 'next/link'; // Import Link
 import Cookies from 'js-cookie'; // Import Cookies library
@@ -9,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false); // Add loading state
@@ -124,5 +123,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPage />
+    </Suspense>
   );
 }

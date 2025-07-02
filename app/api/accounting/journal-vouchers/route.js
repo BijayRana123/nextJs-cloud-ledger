@@ -63,7 +63,7 @@ export async function POST(request) {
 
     await journalVoucher.save();
     // Create Medici journal and transactions for this voucher
-    await createJournalEntry(journalVoucher);
+    await createJournalEntry(journalVoucher, organizationId);
     return NextResponse.json({ message: 'Journal voucher created', journalVoucher }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create journal voucher', error: error.message }, { status: 500 });

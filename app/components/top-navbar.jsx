@@ -27,6 +27,13 @@ export function TopNavbar({ children }) {
     Cookies.remove('sb-mnvxxmmrlvjgpnhditxc-auth-token');
     Cookies.remove('sb-mnvxxmmrlvjgpnhditxc-auth-token-array'); // Also remove the array format cookie for backward compatibility
 
+    // Clear organization-related localStorage keys
+    localStorage.removeItem('currentOrganizationId');
+    localStorage.removeItem('organizationId');
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('orgInfo_')) localStorage.removeItem(key);
+    });
+
     // TODO: If a backend logout API exists, call it here to invalidate the session server-side.
 
     // Redirect to the select organization page

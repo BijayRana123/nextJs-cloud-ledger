@@ -55,11 +55,10 @@ export async function POST(request) {
     await createPaymentReceivedEntry({
       ...receiptDetails,
       amount,
-      organizationId,
       customerName: customer.name,
       receiptVoucherNumber: receiptVoucher.receiptVoucherNumber,
       _id: receiptVoucher._id
-    });
+    }, organizationId);
 
     return NextResponse.json({ 
       message: "Receipt voucher created successfully",

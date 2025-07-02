@@ -50,7 +50,7 @@ export async function POST(request) {
               { status: 400 }
             );
           }
-          result = await createPaymentSentEntry(voucherData);
+          result = await createPaymentSentEntry(voucherData, voucherData.organizationId || request.organizationId);
           break;
 
         case 'receipt':
@@ -61,7 +61,7 @@ export async function POST(request) {
               { status: 400 }
             );
           }
-          result = await createPaymentReceivedEntry(voucherData);
+          result = await createPaymentReceivedEntry(voucherData, voucherData.organizationId || request.organizationId);
           break;
 
         case 'expense':
@@ -72,7 +72,7 @@ export async function POST(request) {
               { status: 400 }
             );
           }
-          result = await createExpenseEntry(voucherData);
+          result = await createExpenseEntry(voucherData, voucherData.organizationId || request.organizationId);
           break;
 
         case 'income':
@@ -83,7 +83,7 @@ export async function POST(request) {
               { status: 400 }
             );
           }
-          result = await createOtherIncomeEntry(voucherData);
+          result = await createOtherIncomeEntry(voucherData, voucherData.organizationId || request.organizationId);
           break;
 
         case 'owner-investment':
@@ -187,9 +187,11 @@ export async function GET(request) {
     }
 
     // Options for pagination
+    const organizationId = request.organizationId;
     const options = {
       page,
       perPage: limit,
+      organizationId,
     };
 
     // Get journal entries

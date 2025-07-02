@@ -39,7 +39,7 @@ export async function POST(request) {
     });
     await newSalesReturn.save();
     // Create journal voucher for sales return
-    await createSalesReturnEntry(newSalesReturn);
+    await createSalesReturnEntry(newSalesReturn, organizationId);
     return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: newSalesReturn }, { status: 201 });
   } catch (error) {
     let errorMessage = "Failed to create sales return voucher";

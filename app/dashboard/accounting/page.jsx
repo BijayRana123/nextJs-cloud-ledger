@@ -53,6 +53,12 @@ export default function AccountingPage() {
       icon: "📒"
     },
     {
+      title: "Chart of Accounts",
+      description: "View and manage your accounts",
+      path: "/dashboard/accounting/chart-of-accounts",
+      icon: "📂"
+    },
+    {
       title: "Income Statement",
       description: "View profit and loss over a period",
       path: "/dashboard/accounting/reports/income-statement",

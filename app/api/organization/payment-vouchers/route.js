@@ -68,11 +68,10 @@ export async function POST(request) {
     await createPaymentSentEntry({
       ...paymentDetails,
       amount,
-      organizationId,
       supplierName: supplier.name,
       paymentVoucherNumber: paymentVoucher.paymentVoucherNumber,
       _id: paymentVoucher._id
-    });
+    }, organizationId);
 
     return NextResponse.json({ 
       message: "Payment sent and accounting entry created successfully",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import ItemsSection from "@/app/components/purchase/items-section";
 import CalculationSection from "@/app/components/purchase/calculation-section";
 import { useOrganization } from '@/lib/context/OrganizationContext';
 
-export default function AddSalesReturnPage() {
+export function AddSalesReturnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const organizationId = useOrganization();
@@ -209,5 +209,13 @@ export default function AddSalesReturnPage() {
       {/* Calculation Section */}
       <CalculationSection items={formData.items} />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddSalesReturnPage />
+    </Suspense>
   );
 }

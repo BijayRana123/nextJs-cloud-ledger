@@ -53,7 +53,7 @@ export async function POST(request) {
     });
     await newPurchaseReturn.save();
     // Create journal voucher for purchase return
-    await createPurchaseReturnEntry(newPurchaseReturn);
+    await createPurchaseReturnEntry(newPurchaseReturn, organizationId);
     return NextResponse.json({ message: 'Purchase Return Voucher created successfully', purchaseReturnVoucher: newPurchaseReturn }, { status: 201 });
   } catch (error) {
     let errorMessage = 'Failed to create purchase return voucher';

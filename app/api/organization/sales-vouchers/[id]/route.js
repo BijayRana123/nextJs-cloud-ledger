@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { SalesVoucher } from '@/lib/models';
+import { SalesVoucher2 } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request, context) {
@@ -32,7 +32,7 @@ export async function GET(request, context) {
     console.log("For organization ID:", organizationId);
 
     // Fetch the sales voucher by ID and populate the customer details
-    const salesOrder = await SalesVoucher.findOne({ 
+    const salesOrder = await SalesVoucher2.findOne({ 
       _id: id, 
       organization: organizationId 
     })
@@ -76,7 +76,7 @@ export async function DELETE(request, context) {
     const id = params.id;
 
     // Find the sales voucher by ID and organization ID
-    const salesOrder = await SalesVoucher.findOne({ _id: id, organization: organizationId });
+    const salesOrder = await SalesVoucher2.findOne({ _id: id, organization: organizationId });
 
     if (!salesOrder) {
       return NextResponse.json({ message: "Sales voucher not found" }, { status: 404 });
@@ -88,7 +88,7 @@ export async function DELETE(request, context) {
     }
 
     // Delete the sales voucher
-    await SalesVoucher.deleteOne({ _id: id, organization: organizationId });
+    await SalesVoucher2.deleteOne({ _id: id, organization: organizationId });
 
     return NextResponse.json({ message: "Sales voucher deleted successfully" }, { status: 200 });
   } catch (error) {
@@ -114,7 +114,7 @@ export async function PUT(request, context) {
     if (!status) {
       return NextResponse.json({ message: 'Status is required.' }, { status: 400 });
     }
-    const salesOrder = await SalesVoucher.findOne({ _id: id, organization: organizationId });
+    const salesOrder = await SalesVoucher2.findOne({ _id: id, organization: organizationId });
     if (!salesOrder) {
       return NextResponse.json({ message: 'Sales voucher not found' }, { status: 404 });
     }

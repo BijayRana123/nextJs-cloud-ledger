@@ -13,6 +13,7 @@ import { Printer, Download, RefreshCw, ChevronDown, ChevronRight, Search } from 
 import { Input } from "@/components/ui/input";
 import { getCookie } from '@/lib/utils';
 import { toast } from "@/components/ui/use-toast";
+import { useOrganization } from "@/lib/context/OrganizationContext";
 
 export default function GeneralLedgerPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function GeneralLedgerPage() {
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [cashAccounts, setCashAccounts] = useState([]);
+  const { currentOrganization } = useOrganization();
 
   // List of accounts for the select dropdown
   const accounts = [
@@ -186,6 +188,7 @@ export default function GeneralLedgerPage() {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         account: selectedAccount !== 'all' ? selectedAccount : null,
+        organizationId: currentOrganization?._id || null,
       };
 
       // Add class and subclass filters if selected

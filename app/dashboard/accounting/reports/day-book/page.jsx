@@ -127,28 +127,11 @@ export default function DayBookPage() {
     }
   };
 
-  // Filter day book entries based on search term (client-side filtering)
-  const filteredEntries = Array.isArray(journalEntries)
-    ? journalEntries.map(group => ({
-        ...group,
-        entries: group.entries.filter(entry => {
-          if (!entry || !entry.memo || !entry._id) return false;
-          const matchesSearch =
-            (entry.memo?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (entry.voucherNumber?.toLowerCase().includes(searchTerm.toLowerCase()));
-          return matchesSearch;
-        })
-      })).filter(group => group.entries.length > 0)
+  // No client-side filtering: display all entries returned from the backend
+  const flatEntries = Array.isArray(journalEntries)
+    ? journalEntries.flatMap(group => group.entries.map(entry => ({ ...entry, groupDate: group.date })))
     : [];
-
-  // Pagination is now handled by the backend. The frontend just displays what it gets.
-  // We can flatten the groups for easier rendering if needed.
-  const flatEntries = filteredEntries.flatMap(group => 
-    group.entries.map(entry => ({ ...entry, groupDate: group.date }))
-  );
   
-  // No more client-side pagination logic needed here
-
   // Format date for display based on calendar type
   const formatDateDisplay = (dateString) => {
     if (!dateString) return "N/A";

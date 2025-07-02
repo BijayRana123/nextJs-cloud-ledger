@@ -55,7 +55,7 @@ export async function POST(request) {
     await newPurchaseOrder.save();
 
     // Create accounting entry for the purchase order
-    await createPurchaseEntry(newPurchaseOrder);
+    await createPurchaseEntry(newPurchaseOrder, organizationId);
 
     console.log("New Purchase Order saved:", newPurchaseOrder);
 

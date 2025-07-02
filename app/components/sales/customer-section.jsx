@@ -405,14 +405,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
           {counterType === 'sales' && (
             <div>
               <Label htmlFor="billNumber">Sales Voucher No</Label>
-              <Input
-                id="billNumber"
-                value={voucherNumber || ''}
-                placeholder="Auto-generated when customer selected"
-                disabled
-                readOnly
-                className="bg-gray-50"
-              />
+              <div className="text-gray-500 text-sm bg-gray-50 rounded px-3 py-2 border border-gray-200">Sales Voucher No will be generated after saving.</div>
             </div>
           )}
           {/* Only show Sales Return Voucher No. for sales returns, not for sales vouchers */}

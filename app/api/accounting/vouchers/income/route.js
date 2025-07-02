@@ -37,7 +37,7 @@ export async function POST(request) {
 
     // Create journal voucher
     try {
-      const result = await createOtherIncomeEntry(data);
+      const result = await createOtherIncomeEntry(data, data.organizationId || request.organizationId);
       
       return NextResponse.json({
         message: 'Income voucher created successfully',

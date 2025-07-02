@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,12 @@ import ItemsSection from "@/app/components/purchase/items-section";
 import CalculationSection from "@/app/components/purchase/calculation-section";
 import { useOrganization } from '@/lib/context/OrganizationContext';
 
-export default function AddSalesBillPage() {
+export function AddSalesBillPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const organizationId = useOrganization();
+  const { currentOrganization } = useOrganization();
+  const organizationId = currentOrganization?._id;
+  const organizationName = currentOrganization?.name;
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -31,7 +33,6 @@ export default function AddSalesBillPage() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
-  const [nextSalesVoucherRefNo, setNextSalesVoucherRefNo] = useState('');
 
   useEffect(() => {
     const salesVoucherId = searchParams.get('id');
@@ -75,45 +76,6 @@ export default function AddSalesBillPage() {
       };
       fetchSalesVoucher();
     } else {
-      // Fetch next unique sales voucher reference number for new voucher (for preview only)
-      const fetchNextUniqueSalesVoucherRefNo = async () => {
-        let baseNumber = 0;
-        let candidate = '';
-        let isUnique = false;
-        try {
-          const response = await fetch('/api/accounting/counters/next?type=salesvoucher');
-          let nextNumber = 'SV-1001';
-          if (response.ok) {
-            const data = await response.json();
-            nextNumber = data.nextNumber.startsWith('SV-') ? data.nextNumber : `SV-${data.nextNumber}`;
-          }
-          // Extract numeric part for incrementing
-          const match = nextNumber.match(/SV-(\d+)/);
-          baseNumber = match ? parseInt(match[1], 10) : 1001;
-        } catch (err) {
-          baseNumber = 1001;
-        }
-        // Try to find a unique number
-        while (!isUnique) {
-          candidate = `SV-${baseNumber.toString().padStart(4, '0')}`;
-          // Check uniqueness via backend
-          try {
-            const checkRes = await fetch(`/api/organization/sales-vouchers/check-number?number=${candidate}`);
-            const checkData = await checkRes.json();
-            if (checkRes.ok && checkData.unique) {
-              isUnique = true;
-            } else {
-              baseNumber++;
-            }
-          } catch (e) {
-            // If check fails, assume unique to avoid infinite loop
-            isUnique = true;
-          }
-        }
-        setNextSalesVoucherRefNo(candidate);
-        setFormData((prev) => ({ ...prev, billNumber: candidate }));
-      };
-      fetchNextUniqueSalesVoucherRefNo();
       if (formData.items.length === 0) {
         setFormData((prev) => ({
           ...prev,
@@ -140,7 +102,7 @@ export default function AddSalesBillPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!organizationId) {
+    if (!organizationId || !organizationName) {
       return;
     }
     const salesVoucherId = searchParams.get('id');
@@ -157,12 +119,12 @@ export default function AddSalesBillPage() {
     const validSalesVoucherItems = salesVoucherItems.filter(item => item.item);
     const dataToSend = {
       organization: organizationId,
+      organizationName,
       date: formData.billDate,
       customer: formData.customerName,
       items: validSalesVoucherItems,
       totalAmount: totalAmount,
       ...(isEditing ? { referenceNo: formData.referenceNo } : {}),
-      salesVoucherNumber: formData.billNumber,
       dueDate: formData.dueDate,
       customerInvoiceReferenceNo: formData.customerInvoiceReferenceNo,
       currency: 'NPR',
@@ -256,5 +218,13 @@ export default function AddSalesBillPage() {
       {/* Calculation Section */}
       <CalculationSection items={formData.items} />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddSalesBillPage />
+    </Suspense>
   );
 }

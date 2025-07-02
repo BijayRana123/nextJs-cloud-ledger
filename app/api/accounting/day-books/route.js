@@ -70,6 +70,13 @@ export async function GET(request) {
       // Skip auth check for now to ensure data can be displayed
     }
 
+    // Get organizationId from request or headers
+    let organizationId = request.organizationId;
+    if (!organizationId && request.headers && request.headers.get) {
+      organizationId = request.headers.get('x-organization-id');
+    }
+    console.log('Day Book API: organizationId used:', organizationId);
+
     // Get search parameters from the request
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -81,29 +88,8 @@ export async function GET(request) {
     const voucherType = searchParams.get('voucherType');
 
     // Build query object
-    const query = {};
-    
-    // Add date range filters if provided
-    if (startDate && endDate) {
-      query.datetime = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    } else if (startDate) {
-      query.datetime = { $gte: new Date(startDate) };
-    } else if (endDate) {
-      query.datetime = { $lte: new Date(endDate) };
-    }
-
-    // Add search term filter if provided
-    if (searchTerm) {
-      query.memo = { $regex: searchTerm, $options: 'i' };
-    }
-
-    // Add account filter if provided
-    if (accountFilter) {
-      query['transactions.accounts'] = { $regex: accountFilter, $options: 'i' };
-    }
+    const query = {}; // No filters
+    console.log('Day Book API query:', query);
 
     // Options for pagination
     const options = {
@@ -113,7 +99,7 @@ export async function GET(request) {
 
     try {
       // Use our custom journal entries function instead of book.ledger()
-      let dayBookEntries = await getJournalEntries(query, options);
+      let dayBookEntries = await getJournalEntries(query, { ...options, organizationId });
       
       // Get the models we need for populating data
       const Customer = mongoose.models.Customer;

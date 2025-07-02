@@ -34,7 +34,7 @@ export async function POST(request) {
     });
     await contraVoucher.save();
     // Always create journal voucher after saving
-    await createContraEntry(contraVoucher);
+    await createContraEntry(contraVoucher, organizationId);
     return NextResponse.json({ message: 'Contra voucher created', contraVoucher }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create contra voucher', error: error.message }, { status: 500 });

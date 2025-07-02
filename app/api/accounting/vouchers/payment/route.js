@@ -31,7 +31,7 @@ export async function POST(request) {
 
     // Create journal voucher
     try {
-      const result = await createPaymentSentEntry(data);
+      const result = await createPaymentSentEntry(data, data.organizationId || request.organizationId);
       
       return NextResponse.json({
         message: 'Payment voucher created successfully',

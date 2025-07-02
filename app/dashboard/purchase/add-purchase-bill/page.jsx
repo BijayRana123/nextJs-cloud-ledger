@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,8 +17,7 @@ import CalculationSection from "@/app/components/purchase/calculation-section";
 // Import the useOrganization hook
 import { useOrganization } from '@/lib/context/OrganizationContext';
 
-
-export default function AddPurchaseBillPage() {
+export function AddPurchaseBillPage() {
   const router = useRouter(); // Initialize router
   const searchParams = useSearchParams(); // Get search params
   const organizationId = useOrganization(); // Get organizationId from context
@@ -281,5 +280,13 @@ export default function AddPurchaseBillPage() {
       <CalculationSection items={formData.items} />
 
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AddPurchaseBillPage />
+    </Suspense>
   );
 }

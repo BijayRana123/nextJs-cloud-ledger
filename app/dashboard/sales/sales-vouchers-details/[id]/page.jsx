@@ -255,7 +255,7 @@ export default function SalesOrderDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Sales Voucher No:</span>
-                  <div>{salesOrder.salesVoucherNumber || 'N/A'}</div>
+                  <div>{salesOrder.salesVoucherNumber ? salesOrder.salesVoucherNumber : <span className="text-gray-400">Not generated yet</span>}</div>
                 </div>
               </div>
             </div>
