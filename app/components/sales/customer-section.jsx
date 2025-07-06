@@ -327,10 +327,10 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
         const data = await response.json();
         setNextSalesRefNo(data.nextNumber);
       } else {
-        setNextSalesRefNo(counterType === 'salesreturn' ? 'SRV-1001' : 'SV-1001'); // fallback
+        setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SV-1001'); // fallback
       }
     } catch (err) {
-      setNextSalesRefNo(counterType === 'salesreturn' ? 'SRV-1001' : 'SV-1001'); // fallback
+      setNextSalesRefNo(counterType === 'salesreturn' ? 'SR-1001' : 'SV-1001'); // fallback
     }
   };
 
@@ -412,14 +412,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
           {counterType === 'salesreturn' && (
             <div>
               <Label htmlFor="referenceNo">Sales Return Voucher No.</Label>
-              <Input
-                id="referenceNo"
-                value={formData.referenceNo || nextSalesRefNo || ''}
-                placeholder="Auto-generated when customer selected"
-                disabled
-                readOnly
-                className="bg-gray-50"
-              />
+              <div className="text-gray-500 text-sm bg-gray-50 rounded px-3 py-2 border border-gray-200">Sales Return Voucher No will be generated after saving.</div>
             </div>
           )}
 

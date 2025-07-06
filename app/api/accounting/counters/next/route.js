@@ -53,7 +53,7 @@ export async function GET(request) {
         break;
       case 'salesreturn':
         counterConfig.name = 'sales_return_voucher';
-        counterConfig.prefix = 'SRV-';
+        counterConfig.prefix = 'SR-';
         break;
       case 'purchasereturn':
         counterConfig.name = 'purchase_return_voucher';

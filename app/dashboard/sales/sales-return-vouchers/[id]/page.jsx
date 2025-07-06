@@ -218,7 +218,7 @@ export default function SalesReturnVoucherDetailPage() {
   // Extract data from the salesReturnVoucher object
   const {
     customer,
-    referenceNo: salesReturnNumber, // Use referenceNo as salesReturnNumber
+    referenceNo, // Use referenceNo as the voucher number
     date,
     dueDate,
     billNumber,
@@ -311,7 +311,7 @@ export default function SalesReturnVoucherDetailPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Sales Return Voucher No:</span>
-                  <div>{salesReturnNumber || 'N/A'}</div>
+                  <div>{referenceNo || 'N/A'}</div>
                 </div>
                 {billNumber && (
                   <div className="flex justify-between">
@@ -460,10 +460,10 @@ export default function SalesReturnVoucherDetailPage() {
             setPdfUrl(null);
           }}
           to={salesReturnVoucher?.customer?.email || ''}
-          subject={`Sales Return Voucher - ${salesReturnVoucher?.salesReturnNumber || 'N/A'}`}
-          body={`Dear ${salesReturnVoucher?.customer?.name || 'Customer'},\n\nPlease find attached the sales return voucher ${salesReturnVoucher?.salesReturnNumber || 'N/A'}.\n\nThank you for your business.\n\nRegards,\nYour Company`}
+          subject={`Sales Return Voucher - ${referenceNo || 'N/A'}`}
+          body={`Dear ${salesReturnVoucher?.customer?.name || 'Customer'},\n\nPlease find attached the sales return voucher ${referenceNo || 'N/A'}.\n\nThank you for your business.\n\nRegards,\nYour Company`}
           pdfPreviewUrl={pdfUrl}
-          pdfFileName={`SalesReturnVoucher-${salesReturnVoucher?.salesReturnNumber || id}.pdf`}
+          pdfFileName={`SalesReturnVoucher-${referenceNo || id}.pdf`}
           orderId={id}
           type="sales-return-voucher"
           onEmailSent={() => alert('Email sent successfully!')}

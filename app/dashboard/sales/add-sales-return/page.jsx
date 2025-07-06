@@ -15,7 +15,9 @@ import { useOrganization } from '@/lib/context/OrganizationContext';
 export function AddSalesReturnPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const organizationId = useOrganization();
+  const { currentOrganization } = useOrganization();
+  const organizationId = currentOrganization?._id;
+  const organizationName = currentOrganization?.name;
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -114,7 +116,7 @@ export function AddSalesReturnPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!organizationId) {
+    if (!organizationId || !organizationName) {
       return;
     }
     const salesReturnId = searchParams.get('id');
@@ -131,6 +133,7 @@ export function AddSalesReturnPage() {
     const validSalesReturnItems = salesReturnItems.filter(item => item.item);
     const dataToSend = {
       organization: organizationId,
+      organizationName,
       date: formData.billDate,
       customer: formData.customerName,
       items: validSalesReturnItems,

@@ -4,6 +4,7 @@ import { SalesReturnVoucher, User } from '@/lib/models'; // Import User and new 
 import { protect } from '@/lib/middleware/auth';
 import { createSalesReturnEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
+import Organization from '@/lib/models/Organization';
 
 export async function POST(request) {
   await dbConnect();
@@ -17,30 +18,37 @@ export async function POST(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
+    // Fetch organization name from DB for consistency
+    const orgDoc = await Organization.findById(organizationId).lean();
+    if (!orgDoc || !orgDoc.name) {
+      return NextResponse.json({ message: 'Organization not found or missing name.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
     const salesReturnData = await request.json();
     // Validate customer field
     if (!salesReturnData.customer || typeof salesReturnData.customer !== 'string' || salesReturnData.customer.trim() === '') {
       return NextResponse.json({ message: 'Customer is required and must be a valid customer ID.' }, { status: 400 });
     }
-    if (!salesReturnData.referenceNo) {
-      try {
-        salesReturnData.referenceNo = await Counter.getNextSequence('sales_return_voucher', {
-          prefix: 'SRV-',
-          paddingSize: 4
-        });
-      } catch (err) {
-        salesReturnData.referenceNo = `SRV-${Date.now()}`;
-      }
-    }
+    // Remove manual referenceNo generation. Let createSalesReturnEntry handle it.
     const newSalesReturn = new SalesReturnVoucher({
       ...salesReturnData,
       organization: organizationId,
       createdAt: new Date()
     });
     await newSalesReturn.save();
-    // Create journal voucher for sales return
-    await createSalesReturnEntry(newSalesReturn, organizationId);
-    return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: newSalesReturn }, { status: 201 });
+    // Generate and assign the correct voucher number
+    let generatedVoucherNumber = null;
+    try {
+      generatedVoucherNumber = await createSalesReturnEntry(newSalesReturn, organizationId, organizationName);
+      const updateResult = await SalesReturnVoucher.updateOne(
+        { _id: newSalesReturn._id },
+        { referenceNo: generatedVoucherNumber }
+      );
+      const updatedSalesReturn = await SalesReturnVoucher.findById(newSalesReturn._id).lean();
+      return NextResponse.json({ message: "Sales Return Voucher created successfully", salesReturnVoucher: updatedSalesReturn, voucherNumber: generatedVoucherNumber }, { status: 201 });
+    } catch (err) {
+      return NextResponse.json({ message: "Failed to generate voucher number", error: err.message }, { status: 500 });
+    }
   } catch (error) {
     let errorMessage = "Failed to create sales return voucher";
     if (error.name === 'ValidationError') {
