@@ -66,6 +66,10 @@ export async function GET(request) {
         );
     }
 
+    if (counterConfig.name === 'payment_voucher') {
+      counterConfig.prefix = 'PaV-';
+    }
+
     // Peek at the next number without incrementing it
     const counter = await Counter.findOne({ name: counterConfig.name });
     

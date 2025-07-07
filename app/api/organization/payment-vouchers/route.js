@@ -6,6 +6,8 @@ import PaymentVoucher from '@/lib/models/PaymentVoucher';
 import AccountingJournal from '@/lib/models/AccountingJournal';
 import AccountingTransaction from '@/lib/models/AccountingTransaction';
 import Supplier from '@/lib/models/Supplier';
+import Organization from '@/lib/models/Organization';
+import Counter from '@/lib/models/Counter';
 
 export async function POST(request) {
   await dbConnect();
@@ -46,37 +48,63 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Supplier not found.' }, { status: 404 });
     }
 
-    // Create the payment voucher document
+    // Fetch organization name using organizationId
+    const orgDoc = await Organization.findById(organizationId);
+    if (!orgDoc) {
+      return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
+
+    // Create the payment voucher document (use ObjectId for organization)
     const paymentVoucher = new PaymentVoucher({
       supplier: paymentDetails.supplierId,
       amount: amount,
       paymentMethod: paymentDetails.paymentMethod,
       notes: paymentDetails.notes,
-      organization: organizationId,
-      date: new Date(),
-      status: 'APPROVED'
+      organization: organizationId, // ObjectId here
+      date: new Date()
     });
 
-    // Save the payment voucher (this will trigger the pre-save hook to generate the voucher number)
+    // Generate the payment voucher number using organizationName for the counter
+    const counter = await Counter.findOneAndUpdate(
+      { name: 'payment_voucher', organization: organizationName },
+      { $inc: { value: 1 } },
+      { new: true, upsert: true }
+    );
+    if (!counter) {
+      throw new Error('Failed to generate payment voucher counter');
+    }
+    const paymentVoucherNumber = `PaV-${counter.value.toString().padStart(5, '0')}`;
+    paymentVoucher.paymentVoucherNumber = paymentVoucherNumber;
+
+    // Save the payment voucher
     await paymentVoucher.save();
 
-    if (!paymentVoucher.paymentVoucherNumber) {
-      throw new Error('Failed to generate payment voucher number');
+    // Ensure organizationId is a string (hex) for accounting logic
+    let orgIdString = organizationId;
+    if (typeof orgIdString === 'object' && orgIdString !== null) {
+      if (orgIdString._id) {
+        orgIdString = orgIdString._id.toString();
+      } else if (orgIdString.toString) {
+        orgIdString = orgIdString.toString();
+      }
     }
 
-    // Create the accounting entry (this will create the journal entry in medici_journals)
+    // Create the accounting entry (use organizationName for counter logic)
     await createPaymentSentEntry({
       ...paymentDetails,
       amount,
       supplierName: supplier.name,
-      paymentVoucherNumber: paymentVoucher.paymentVoucherNumber,
+      paymentVoucherNumber: paymentVoucherNumber,
       _id: paymentVoucher._id
-    }, organizationId);
+    }, orgIdString, organizationName);
 
-    return NextResponse.json({ 
-      message: "Payment sent and accounting entry created successfully",
-      paymentVoucher
-    }, { status: 201 });
+    // Fetch the saved payment voucher with populated fields
+    const savedVoucher = await PaymentVoucher.findById(paymentVoucher._id)
+      .populate('supplier')
+      .populate('organization');
+
+    return NextResponse.json(savedVoucher, { status: 201 });
 
   } catch (error) {
     console.error("Error creating payment sent entry:", error);

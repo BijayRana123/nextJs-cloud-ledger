@@ -4,6 +4,8 @@ import { protect } from '@/lib/middleware/auth';
 import { createPaymentReceivedEntry } from '@/lib/accounting';
 import ReceiptVoucher from '@/lib/models/ReceiptVoucher';
 import Customer from '@/lib/models/Customer';
+import Organization from '@/lib/models/Organization';
+import Counter from '@/lib/models/Counter';
 
 export async function POST(request) {
   await dbConnect();
@@ -37,6 +39,25 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Customer not found.' }, { status: 404 });
     }
 
+    // Fetch organization name using organizationId
+    const orgDoc = await Organization.findById(organizationId);
+    if (!orgDoc) {
+      return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
+
+    // Generate the receipt voucher number using organizationName for the counter
+    const counter = await Counter.findOneAndUpdate(
+      { name: 'receipt_voucher', organization: organizationName },
+      { $inc: { value: 1 } },
+      { new: true, upsert: true }
+    );
+    if (!counter) {
+      throw new Error('Failed to generate receipt voucher counter');
+    }
+    const receiptVoucherNumber = `RcV-${counter.value.toString().padStart(5, '0')}`;
+
+    // Create the receipt voucher document (use ObjectId for organization)
     const receiptVoucher = new ReceiptVoucher({
       customer: receiptDetails.customerId,
       amount: amount,
@@ -44,6 +65,7 @@ export async function POST(request) {
       notes: receiptDetails.notes,
       organization: organizationId,
       date: new Date(),
+      receiptVoucherNumber
     });
 
     await receiptVoucher.save();
@@ -58,10 +80,11 @@ export async function POST(request) {
       customerName: customer.name,
       receiptVoucherNumber: receiptVoucher.receiptVoucherNumber,
       _id: receiptVoucher._id
-    }, organizationId);
+    }, organizationId, organizationName);
 
     return NextResponse.json({ 
       message: "Receipt voucher created successfully",
+      _id: receiptVoucher._id,
       receiptVoucher
     }, { status: 201 });
 

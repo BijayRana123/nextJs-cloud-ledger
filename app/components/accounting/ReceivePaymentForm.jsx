@@ -175,15 +175,8 @@ export default function ReceivePaymentForm({ onSuccess, voucherNumber, setVouche
             </div>
             
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="receiptVoucherNumber">Receipt Voucher Number *</Label>
-              <Input
-                id="receiptVoucherNumber"
-                value={voucherNumber}
-                placeholder="RcV-XXXX"
-                readOnly
-                disabled
-                autoComplete="off"
-              />
+              <Label>Receipt Voucher Number</Label>
+              <div className="text-gray-500 text-sm">Voucher number will be generated after saving.</div>
             </div>
             
             <div className="flex flex-col space-y-1.5">

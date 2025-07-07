@@ -22,7 +22,9 @@ export async function GET(request) {
         break;
       case 'bill':
         counterConfig.name = 'payment_voucher';
-        counterConfig.prefix = 'PaV-';
+        if (counterConfig.name === 'payment_voucher') {
+          counterConfig.prefix = 'PaV-';
+        }
         break;
       // Add other types as needed
       default:

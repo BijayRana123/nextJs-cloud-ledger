@@ -181,7 +181,11 @@ export default function GeneralLedgerPage() {
 
   // Generate ledger report
   const generateReport = async () => {
-    setIsLoading(true);
+    if (!currentOrganization || !currentOrganization._id) {
+      console.warn("No current organization selected, skipping report generation.");
+      setIsLoading(false);
+      return;
+    }
     try {
       // Build report query parameters
       const reportParams = {
@@ -190,6 +194,7 @@ export default function GeneralLedgerPage() {
         account: selectedAccount !== 'all' ? selectedAccount : null,
         organizationId: currentOrganization?._id || null,
       };
+      console.log('General Ledger Report Params:', reportParams);
 
       // Add class and subclass filters if selected
       if (selectedClass !== 'all') {
@@ -304,8 +309,10 @@ export default function GeneralLedgerPage() {
 
   // Generate report on mount or when parameters change
   useEffect(() => {
-    generateReport();
-  }, [startDate, endDate, selectedAccount, selectedClass, selectedSubclass]);
+    if (currentOrganization && currentOrganization._id) {
+      generateReport();
+    }
+  }, [startDate, endDate, selectedAccount, selectedClass, selectedSubclass, currentOrganization]);
 
   // Add this helper function
   const formatDateForInput = (date) => {

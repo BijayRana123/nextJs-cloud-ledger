@@ -202,6 +202,7 @@ export default function DayBookPage() {
     if (voucherNumber.startsWith("SV-")) return "Sales Voucher";
     if (voucherNumber.startsWith("SR-")) return "Sales Return Voucher";
     if (voucherNumber.startsWith("PV-")) return "Purchase Voucher";
+    if (voucherNumber.startsWith("PRV-")) return "Purchase Return Voucher";
     if (voucherNumber.startsWith("PR-")) return "Purchase Return Voucher";
     if (voucherNumber.startsWith("PaV-")) return "Payment Voucher";
     if (voucherNumber.startsWith("RcV-")) return "Receipt Voucher";

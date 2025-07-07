@@ -129,15 +129,18 @@ export function AddPurchaseReturnPage() {
     }));
     const validPurchaseReturnItems = purchaseReturnItems.filter(item => item.item);
     const dataToSend = {
-      organization: organizationId,
+      organization: typeof organizationId === 'object' && organizationId._id ? organizationId._id : organizationId,
       date: formData.billDate,
       supplier: formData.supplierName,
       items: validPurchaseReturnItems,
       totalAmount: totalAmount,
-      referenceNo: formData.referenceNo,
       billNumber: formData.billNumber,
       isExport: formData.isExport,
     };
+    // Only add referenceNo if editing
+    if (isEditing) {
+      dataToSend.referenceNo = formData.referenceNo;
+    }
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing ? `/api/organization/purchase-return-vouchers` : '/api/organization/purchase-return-vouchers';
     try {
@@ -191,15 +194,16 @@ export function AddPurchaseReturnPage() {
         </div>
         <div className="flex flex-col space-y-1.5">
           <Label htmlFor="referenceNo">Purchase Return Voucher Reference No</Label>
-          <input
+          {/* <input
             id="referenceNo"
             name="referenceNo"
             type="text"
-            className="w-full border rounded px-3 py-2 bg-gray-100"
-            placeholder="Auto-generated purchase return voucher reference number"
+            className="w-full border rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
+            placeholder="Purchase Return Voucher Reference No will be generated after saving."
             value={formData.referenceNo}
             readOnly
-          />
+          /> */}
+          <div className="text-xs text-gray-500">Purchase Return Voucher Reference No will be generated after saving.</div>
         </div>
       </SupplierSection>
 

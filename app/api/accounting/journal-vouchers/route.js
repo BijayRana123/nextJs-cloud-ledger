@@ -46,13 +46,40 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Total debits must equal total credits' }, { status: 400 });
     }
 
-    // Generate reference number if not provided
+    // Fetch organization name using organizationId
+    const Organization = (await import('@/lib/models/Organization')).default;
+    const orgDoc = await Organization.findById(organizationId);
+    if (!orgDoc) {
+      return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
+
+    // Generate reference number if not provided, with retry for uniqueness
     if (!data.referenceNo) {
-      data.referenceNo = await Counter.getNextSequence('journal_voucher', {
-        prefix: 'JV-',
-        paddingSize: 4,
-        startValue: 1
-      });
+      const maxRetries = 5;
+      let retryCount = 0;
+      let uniqueReferenceNo = null;
+      while (retryCount < maxRetries && !uniqueReferenceNo) {
+        const counter = await Counter.findOneAndUpdate(
+          { name: 'journal_voucher', organization: organizationName },
+          { $inc: { value: 1 } },
+          { new: true, upsert: true }
+        );
+        if (!counter) {
+          throw new Error('Failed to generate journal voucher counter');
+        }
+        const candidateRef = `JV-${counter.value.toString().padStart(4, '0')}`;
+        const exists = await JournalVoucher.findOne({ referenceNo: candidateRef });
+        if (!exists) {
+          uniqueReferenceNo = candidateRef;
+        } else {
+          retryCount++;
+        }
+      }
+      if (!uniqueReferenceNo) {
+        return NextResponse.json({ message: 'Failed to generate unique reference number after multiple retries.' }, { status: 500 });
+      }
+      data.referenceNo = uniqueReferenceNo;
     }
 
     const journalVoucher = new JournalVoucher({
@@ -63,8 +90,8 @@ export async function POST(request) {
 
     await journalVoucher.save();
     // Create Medici journal and transactions for this voucher
-    await createJournalEntry(journalVoucher, organizationId);
-    return NextResponse.json({ message: 'Journal voucher created', journalVoucher }, { status: 201 });
+    await createJournalEntry(journalVoucher, organizationId, organizationName);
+    return NextResponse.json({ message: 'Journal voucher created', _id: journalVoucher._id, journalVoucher }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ message: 'Failed to create journal voucher', error: error.message }, { status: 500 });
   }

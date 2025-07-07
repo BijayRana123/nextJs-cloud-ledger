@@ -25,7 +25,7 @@ async function fixCounter() {
       name: 'payment_voucher',
       prefix: 'PaV-',
       paddingSize: 4,
-      value: 0,
+      seq: 0,
       organization: ''
     });
 

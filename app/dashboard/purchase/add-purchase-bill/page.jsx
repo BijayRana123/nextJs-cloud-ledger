@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation'; // Import useRouter and useSearchParams
 import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
+import { Input } from "@/components/ui/input"; // Added Input import
 
 // Import the new components
 import SupplierSection from "@/app/components/purchase/supplier-section";
@@ -223,18 +224,17 @@ export function AddPurchaseBillPage() {
             onChange={handleInputChange}
           />
         </div>
+        {/* Reference Number Field - Make readonly and show message like sales voucher */}
         <div className="flex flex-col space-y-1.5">
           <Label htmlFor="referenceNo">Purchase Voucher Reference No</Label>
-          <input
+          {/* <Input
             id="referenceNo"
-            name="referenceNo"
-            type="text"
-            className="w-full border rounded px-3 py-2 bg-gray-100"
-            placeholder="Auto-generated purchase voucher reference number"
             value={formData.referenceNo}
-            onChange={handleInputChange}
             readOnly
-          />
+            placeholder="Purchase Voucher Reference No will be generated after saving."
+            className="bg-gray-100 cursor-not-allowed"
+          /> */}
+          <div className="text-xs text-gray-500">Purchase Voucher Reference No will be generated after saving.</div>
         </div>
       </SupplierSection>
 

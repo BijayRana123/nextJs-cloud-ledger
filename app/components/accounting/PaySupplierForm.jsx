@@ -114,7 +114,9 @@ export default function PaySupplierForm({ onSuccess, voucherNumber, initialData,
         const result = await response.json();
         if (onSuccess) onSuccess();
         // Redirect to the payment voucher detail page
-        if (result && result.paymentVoucher && result.paymentVoucher._id) {
+        if (result && result._id) {
+          router.push(`/dashboard/accounting/transactions/pay-supplier/${result._id}`);
+        } else if (result && result.paymentVoucher && result.paymentVoucher._id) {
           router.push(`/dashboard/accounting/transactions/pay-supplier/${result.paymentVoucher._id}`);
         } else {
           router.push('/dashboard/accounting/transactions/pay-supplier');
@@ -150,15 +152,8 @@ export default function PaySupplierForm({ onSuccess, voucherNumber, initialData,
             </div>
             
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="paymentVoucherNumber">Payment Voucher Number *</Label>
-              <Input
-                id="paymentVoucherNumber"
-                value={voucherNumber}
-                placeholder="PaV-XXXX"
-                readOnly
-                disabled
-                autoComplete="off"
-              />
+              <Label>Payment Voucher Number</Label>
+              <div className="text-gray-500 text-sm">Voucher number will be generated after saving.</div>
             </div>
             
             <div className="flex flex-col space-y-1.5">

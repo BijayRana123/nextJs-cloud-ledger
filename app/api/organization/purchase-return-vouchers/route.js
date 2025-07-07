@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { PurchaseReturnVoucher } from '@/lib/models';
+import { PurchaseReturnVoucher, Organization } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 import { createPurchaseReturnEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
@@ -12,11 +12,23 @@ export async function POST(request) {
     if (authResult && authResult.status !== 200) {
       return authResult;
     }
-    const organizationId = request.organizationId;
+    let organizationId = request.organizationId;
+    // Defensive extraction if organizationId is an object
+    if (typeof organizationId === 'object' && organizationId !== null) {
+      if (organizationId._id) {
+        organizationId = organizationId._id;
+      } else if (organizationId.currentOrganization && organizationId.currentOrganization._id) {
+        organizationId = organizationId.currentOrganization._id;
+      } else {
+        // Try to extract from nested fields or fallback
+        organizationId = organizationId.toString();
+      }
+    }
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
     const purchaseReturnData = await request.json();
+    console.error('Incoming purchaseReturnData:', purchaseReturnData);
 
     // Explicitly remove referenceNo from incoming data to ensure backend generates it
     delete purchaseReturnData.referenceNo;
@@ -29,7 +41,8 @@ export async function POST(request) {
       try {
         generatedReferenceNo = await Counter.getNextSequence('purchase_return_voucher', {
           prefix: 'PRV-',
-          paddingSize: 4
+          paddingSize: 4,
+          organization: organizationId
         });
       } catch (err) {
         console.error(`Failed to get next sequence for purchase_return_voucher (Attempt ${retryCount + 1}/${maxRetries}):`, err);
@@ -52,10 +65,25 @@ export async function POST(request) {
       createdAt: new Date()
     });
     await newPurchaseReturn.save();
+    // Fetch organization name using organizationId
+    const orgDoc = await Organization.findById(organizationId);
+    if (!orgDoc) {
+      return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
     // Create journal voucher for purchase return
-    await createPurchaseReturnEntry(newPurchaseReturn, organizationId);
-    return NextResponse.json({ message: 'Purchase Return Voucher created successfully', purchaseReturnVoucher: newPurchaseReturn }, { status: 201 });
+    const generatedVoucherNumber = await createPurchaseReturnEntry(newPurchaseReturn, organizationId, organizationName);
+    // Update the PurchaseReturnVoucher with the generated voucher number
+    await PurchaseReturnVoucher.updateOne(
+      { _id: newPurchaseReturn._id },
+      { referenceNo: generatedVoucherNumber }
+    );
+    // Fetch the updated purchase return voucher
+    const updatedPurchaseReturn = await PurchaseReturnVoucher.findById(newPurchaseReturn._id).populate('supplier');
+    return NextResponse.json({ message: 'Purchase Return Voucher created successfully', purchaseReturnVoucher: updatedPurchaseReturn }, { status: 201 });
   } catch (error) {
+    console.error('Error in POST /purchase-return-vouchers:', error);
+    if (error.stack) console.error(error.stack);
     let errorMessage = 'Failed to create purchase return voucher';
     if (error.name === 'ValidationError') {
       const validationErrors = Object.keys(error.errors).map(field => {

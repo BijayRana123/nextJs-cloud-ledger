@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { PurchaseOrder, User } from '@/lib/models'; // Import User model
+import { PurchaseOrder, User, Organization } from '@/lib/models'; // Import Organization model
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 import { createPurchaseEntry } from '@/lib/accounting'; // Import accounting function
 
@@ -23,6 +23,13 @@ export async function POST(request) {
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
+
+    // Fetch organization name using organizationId
+    const orgDoc = await Organization.findById(organizationId);
+    if (!orgDoc) {
+      return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
+    }
+    const organizationName = orgDoc.name;
 
 
     const purchaseOrderData = await request.json();
@@ -55,11 +62,18 @@ export async function POST(request) {
     await newPurchaseOrder.save();
 
     // Create accounting entry for the purchase order
-    await createPurchaseEntry(newPurchaseOrder, organizationId);
+    const generatedVoucherNumber = await createPurchaseEntry(newPurchaseOrder, organizationId, organizationName);
+    // Update the PurchaseOrder with the generated voucher number
+    await PurchaseOrder.updateOne(
+      { _id: newPurchaseOrder._id },
+      { referenceNo: generatedVoucherNumber }
+    );
+    // Fetch the updated purchase order
+    const updatedPurchaseOrder = await PurchaseOrder.findById(newPurchaseOrder._id).populate('supplier');
 
     console.log("New Purchase Order saved:", newPurchaseOrder);
 
-    return NextResponse.json({ message: "Purchase Order created successfully", purchaseOrder: newPurchaseOrder }, { status: 201 });
+    return NextResponse.json({ message: "Purchase Order created successfully", purchaseOrder: updatedPurchaseOrder }, { status: 201 });
   } catch (error) {
     console.error("Error creating purchase order:", error);
     
