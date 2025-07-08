@@ -18,7 +18,7 @@ import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { accounts } from "@/lib/accountingClient";
 import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
 
-export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber }) {
+export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber, setVoucherNumber }) {
   const router = useRouter();
   const [memo, setMemo] = useState("");
   const [transactions, setTransactions] = useState([
@@ -29,6 +29,10 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
   const [errorMessage, setErrorMessage] = useState("");
   const [accountOptions, setAccountOptions] = useState([]);
   const [paymentVoucherNumber, setPaymentVoucherNumber] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedSupplier, setSelectedSupplier] = useState("");
 
   // Sync voucher number from prop
   useEffect(() => {
@@ -46,6 +50,42 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
     });
     setAccountOptions(options);
   }, []);
+
+  useEffect(() => {
+    if (mode === 'receive-payment') {
+      // Fetch customers for receive-payment mode
+      const fetchCustomers = async () => {
+        try {
+          const response = await fetch('/api/organization/customers');
+          const data = await response.json();
+          if (response.ok) {
+            setCustomers(data.customers || []);
+          }
+        } catch (error) {
+          // ignore
+        }
+      };
+      fetchCustomers();
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode === 'pay-supplier') {
+      // Fetch suppliers for pay-supplier mode
+      const fetchSuppliers = async () => {
+        try {
+          const response = await fetch('/api/organization/suppliers');
+          const data = await response.json();
+          if (response.ok) {
+            setSuppliers(data.suppliers || []);
+          }
+        } catch (error) {
+          // ignore
+        }
+      };
+      fetchSuppliers();
+    }
+  }, [mode]);
 
   const addTransaction = () => {
     setTransactions([...transactions, { account: null, amount: "", type: "debit", meta: {} }]);
@@ -141,12 +181,22 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // The API expects customerId, amount, paymentMethod, and notes.
-            // We need to derive this from the expert form's transactions.
-            // This is a simplification; a more robust solution might require a customer selector.
-            customerId: creditTxn?.account.split(':')[1] || 'Unknown', // Simplification
+            customerId: selectedCustomer, // Use the dropdown value
             amount: debitTxn?.amount || 0,
-            paymentMethod: debitTxn?.account.split(':')[1] || 'Cash', // Simplification
+            paymentMethod: debitTxn?.account?.split(':')[1] || 'Cash', // Simplification
+            notes: memo,
+          }),
+        });
+      } else if (mode === 'pay-supplier') {
+        // Use the new payment voucher API
+        const debitTxn = formattedTransactions.find(t => t.type === 'debit');
+        response = await fetch('/api/organization/payment-vouchers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            supplierId: selectedSupplier, // Use the dropdown value
+            amount: debitTxn?.amount || 0,
+            paymentMethod: ['Cash', 'Bank', 'Check', 'CreditCard'].includes(debitTxn?.account?.split(':')[1]) ? debitTxn?.account?.split(':')[1] : 'Cash',
             notes: memo,
           }),
         });
@@ -167,6 +217,9 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
 
       if (!response.ok) {
         const contentType = response.headers.get("content-type");
+        if (response.status === 405) {
+          throw new Error("Invalid API endpoint or method. Please contact support.");
+        }
         if (contentType && contentType.includes("application/json")) {
           const data = await response.json();
           throw new Error(data.error || "Failed to create payment entry");
@@ -215,13 +268,26 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
         setErrorMessage("Received invalid response after creating payment entry");
       }
       if (mode === 'receive-payment') {
-        if (data && data.journalId) {
-          router.push(`/dashboard/accounting/transactions/receive-payment/${data.journalId}`);
+        if (data && data._id) {
+          router.push(`/dashboard/accounting/transactions/receive-payment/${data._id}`);
           return;
-        } else if (data && data.receiptVoucherNumber) {
-          setTimeout(() => {
-            router.push(`/dashboard/accounting/transactions/receive-payment`);
-          }, 1500);
+        } else if (data && data.receiptVoucher && data.receiptVoucher._id) {
+          router.push(`/dashboard/accounting/transactions/receive-payment/${data.receiptVoucher._id}`);
+          return;
+        } else {
+          setErrorMessage("Received invalid response after creating payment entry");
+          return;
+        }
+      }
+      if (mode === 'pay-supplier') {
+        if (data && data._id) {
+          router.push(`/dashboard/accounting/transactions/pay-supplier/${data._id}`);
+          return;
+        } else if (data && data.paymentVoucher && data.paymentVoucher._id) {
+          router.push(`/dashboard/accounting/transactions/pay-supplier/${data.paymentVoucher._id}`);
+          return;
+        } else {
+          setErrorMessage("Received invalid response after creating payment entry");
           return;
         }
       }
@@ -243,26 +309,43 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-col md:flex-row gap-4">
+            {mode === 'receive-payment' && (
+              <div className="flex flex-col space-y-1.5 md:w-1/2">
+                <Label htmlFor="customerId">Customer *</Label>
+                <Select id="customerId" value={selectedCustomer} onValueChange={setSelectedCustomer} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(customer => (
+                      <SelectItem key={customer._id} value={customer._id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {mode === 'pay-supplier' && (
+              <div className="flex flex-col space-y-1.5 md:w-1/2">
+                <Label htmlFor="supplierId">Supplier *</Label>
+                <Select id="supplierId" value={selectedSupplier} onValueChange={setSelectedSupplier} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map(supplier => (
+                      <SelectItem key={supplier._id} value={supplier._id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="flex flex-col space-y-1.5 md:w-1/2">
-              <Label htmlFor="paymentVoucherNumber">Payment Voucher Number *</Label>
-              <Input
-                id="paymentVoucherNumber"
-                value={voucherNumber}
-                placeholder="PaV-XXXX"
-                readOnly
-                disabled
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-col space-y-1.5 md:w-1/2">
-              <Label htmlFor="memo">Description/Memo</Label>
-              <Textarea
-                id="memo"
-                placeholder="Enter a description for this payment"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-                required
-              />
+              <Label>Receipt Voucher Number</Label>
+              <div className="text-gray-500 text-sm">Voucher number will be generated after saving.</div>
             </div>
           </div>
           <Table>
@@ -363,6 +446,17 @@ export default function ExpertPaymentForm({ mode = "pay-supplier", voucherNumber
               {errorMessage}
             </div>
           )}
+          {/* Description/Memo field below the table */}
+          <div className="flex flex-col space-y-1.5 mt-6">
+            <Label htmlFor="memo">Description / Memo *</Label>
+            <Textarea
+              id="memo"
+              placeholder="Enter a description for this payment"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              required
+            />
+          </div>
         </CardContent>
       </Card>
       <div className="flex justify-end space-x-4">

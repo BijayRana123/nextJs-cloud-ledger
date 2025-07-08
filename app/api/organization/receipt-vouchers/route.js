@@ -31,6 +31,12 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Invalid amount.' }, { status: 400 });
     }
 
+    // Validate customerId is a valid ObjectId
+    const isValidObjectId = (id) => typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id);
+    if (!isValidObjectId(receiptDetails.customerId)) {
+      return NextResponse.json({ message: 'Invalid customerId. Please select a valid customer.' }, { status: 400 });
+    }
+
     const customer = await Customer.findOne({
       _id: receiptDetails.customerId,
       organization: organizationId
