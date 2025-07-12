@@ -37,6 +37,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import EmailModal from "@/app/components/email-modal";
 import { ConditionalDatePicker } from '../../../../components/ConditionalDatePicker';
+import { useOrganization } from '@/lib/context/OrganizationContext';
 
 const VOUCHER_TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
@@ -72,6 +73,7 @@ export default function DayBookPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [voucherType, setVoucherType] = useState('all');
+  const { currentOrganization } = useOrganization();
 
   useEffect(() => {
     fetchAccounts();
@@ -107,7 +109,17 @@ export default function DayBookPage() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       if (voucherType && voucherType !== 'all') params.append('voucherType', voucherType);
-      const response = await fetch(`/api/accounting/day-books?${params.toString()}`);
+      // Only fetch if organization is selected
+      if (!currentOrganization || !currentOrganization._id) {
+        setError("No organization selected. Please select an organization.");
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(`/api/accounting/day-books?${params.toString()}`, {
+        headers: {
+          'x-organization-id': currentOrganization._id,
+        },
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch day book entries");
       }
