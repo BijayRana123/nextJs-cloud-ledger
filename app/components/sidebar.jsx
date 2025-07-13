@@ -15,6 +15,7 @@ import {
   Package,
   Settings,
   MenuIcon,
+  Book,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateNewModal } from "./create-new-modal";
@@ -93,6 +94,7 @@ export function Sidebar() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [accountsOpen, setAccountsOpen] = useState(false);
 
   useEffect(() => {
     // Determine expanded state based on the current route
@@ -113,6 +115,48 @@ export function Sidebar() {
     { component: <PurchaseMenu key="purchase" isExpanded={isExpanded} /> },
     // Replace Accounting menu with AccountingMenu component, pass isExpanded prop
     { component: <AccountingMenu key="accounting" isExpanded={isExpanded} /> },
+    // --- Insert Accounts menu here ---
+    {
+      key: "accounts",
+      isCustom: true,
+      render: () => (
+        <li className="border-b last:border-b-0">
+          <button
+            className={`flex items-center gap-3 px-4 py-3 w-full text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}
+            onClick={() => setAccountsOpen((open) => !open)}
+            aria-expanded={accountsOpen}
+            aria-controls="accounts-submenu"
+          >
+            <Book className="h-5 w-5" />
+            {isExpanded && <span>Accounts</span>}
+            {isExpanded && (
+              <span className="ml-auto">{accountsOpen ? '▾' : '▸'}</span>
+            )}
+          </button>
+          {/* Sub-menu */}
+          {isExpanded && accountsOpen && (
+            <ul id="accounts-submenu" className="ml-8 mt-1 space-y-1">
+              <li>
+                <Link href="/dashboard/accounting/ledger" className="block px-2 py-1 text-gray-700 hover:bg-gray-200 rounded">
+                  Ledger Group
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard/accounting/ledger" className="block px-2 py-1 text-gray-700 hover:bg-gray-200 rounded">
+                  Ledgers
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard/accounting/chart-of-accounts" className="block px-2 py-1 text-gray-700 hover:bg-gray-200 rounded">
+                  Chart of Accounts
+                </Link>
+              </li>
+            </ul>
+          )}
+        </li>
+      ),
+    },
+    // --- End Accounts menu ---
     // Replace Reports menu with ReportsMenu component, pass isExpanded prop
     { component: <ReportsMenu key="reports" isExpanded={isExpanded} /> },
     {
@@ -170,18 +214,18 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto">
           <ul>
             {menuItems.map((item, index) => (
-              item.component ? (
-                // Render the component if it exists, passing isExpanded
-                React.cloneElement(item.component, { isExpanded: isExpanded, key: item.key || index })
-              ) : (
-                // Render a regular link if no component
-                <li key={item.key || index} className="border-b last:border-b-0">
-                  <Link href={item.href} className={`flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}> {/* Adjust alignment when collapsed */}
-                    {item.icon}
-                    {isExpanded && <span>{item.label}</span>} {/* Conditionally render label */}
-                  </Link>
-                </li>
-              )
+              item.isCustom
+                ? item.render()
+                : item.component
+                  ? React.cloneElement(item.component, { isExpanded: isExpanded, key: item.key || index })
+                  : (
+                    <li key={item.key || index} className="border-b last:border-b-0">
+                      <Link href={item.href} className={`flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}>
+                        {item.icon}
+                        {isExpanded && <span>{item.label}</span>}
+                      </Link>
+                    </li>
+                  )
             ))}
           </ul>
         </nav>
