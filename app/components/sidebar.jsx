@@ -119,8 +119,8 @@ export function Sidebar() {
     {
       key: "accounts",
       isCustom: true,
-      render: () => (
-        <li className="border-b last:border-b-0">
+      render: ({ key }) => (
+        <li key={key} className="border-b last:border-b-0">
           <button
             className={`flex items-center gap-3 px-4 py-3 w-full text-gray-700 hover:bg-gray-100 ${!isExpanded ? 'justify-center' : ''}`}
             onClick={() => setAccountsOpen((open) => !open)}
@@ -137,7 +137,7 @@ export function Sidebar() {
           {isExpanded && accountsOpen && (
             <ul id="accounts-submenu" className="ml-8 mt-1 space-y-1">
               <li>
-                <Link href="/dashboard/accounting/ledger" className="block px-2 py-1 text-gray-700 hover:bg-gray-200 rounded">
+                <Link href="/dashboard/accounting/ledger-group" className="block px-2 py-1 text-gray-700 hover:bg-gray-200 rounded">
                   Ledger Group
                 </Link>
               </li>
@@ -215,7 +215,7 @@ export function Sidebar() {
           <ul>
             {menuItems.map((item, index) => (
               item.isCustom
-                ? item.render()
+                ? item.render({ key: item.key || index })
                 : item.component
                   ? React.cloneElement(item.component, { isExpanded: isExpanded, key: item.key || index })
                   : (

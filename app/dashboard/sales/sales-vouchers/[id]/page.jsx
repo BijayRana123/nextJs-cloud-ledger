@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useRouter } from 'next/navigation';
 import { getCookie } from '@/lib/utils';
-import CustomerSection from "@/app/components/sales/customer-section";
+import CustomerSection from "@/components/sales/customer-section";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable";
 import { Printer, FileEdit, Trash2, CheckCircle, MoreVertical, FileSpreadsheet, FileText, Mail } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { Rocket } from "lucide-react";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 import SalesVoucherPdfDownload from "@/components/sales/SalesVoucherPdfDownload";
 import SalesVoucherExcelDownload from "@/components/sales/SalesVoucherExcelDownload";
 
@@ -216,6 +216,7 @@ export default function SalesVoucherDetailPage() {
   })) || [];
 
   const customerName = typeof customer === 'object' ? customer.name : customer;
+  const isCashSale = !customer;
 
   return (
     <div className="container mx-auto py-6">
@@ -300,8 +301,23 @@ export default function SalesVoucherDetailPage() {
                 )}
               </div>
             </div>
-            <div>
-              <h3 className="font-medium mb-2">Customer Information</h3>
+            {/* Payment/Cash or Customer Info */}
+            {isCashSale ? (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Payment Method</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-semibold text-green-700">Cash</div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Customer Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Customer:</span>
@@ -327,6 +343,9 @@ export default function SalesVoucherDetailPage() {
                 )}
               </div>
             </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
           {isExport && (
             <div className="mt-6">

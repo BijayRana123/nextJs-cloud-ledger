@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect, Suspense } from 'react';
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../../../../components/ui/button";
+import { Label } from "../../../../components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/ui/card";
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
-import CustomerSection from "@/app/components/sales/customer-section";
-import ItemsSection from "@/app/components/purchase/items-section";
-import CalculationSection from "@/app/components/purchase/calculation-section";
+import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
+import CustomerSection from "@/components/sales/customer-section";
+import ItemsSection from "@/components/purchase/items-section";
+import CalculationSection from "@/components/purchase/calculation-section";
 import { useOrganization } from '@/lib/context/OrganizationContext';
+import AddCustomerModal from "@/components/sales/add-customer-modal";
 
 export function AddSalesBillPage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export function AddSalesBillPage() {
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
 
   useEffect(() => {
     const salesVoucherId = searchParams.get('id');
@@ -157,6 +159,13 @@ export function AddSalesBillPage() {
     }
   };
 
+  // Add handler for when a new customer is created from the modal
+  const handleCustomerCreated = (customer) => {
+    setFormData((prev) => ({ ...prev, customerName: customer._id }));
+    setIsAddCustomerModalOpen(false);
+    // Optionally: trigger a refresh in CustomerSection if needed
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
@@ -166,7 +175,13 @@ export function AddSalesBillPage() {
           <Button variant="ghost" size="icon"><XIcon className="h-5 w-5" /></Button>
         </div>
       </div>
-
+      {/* Add New Customer Button
+      <div className="mb-4">
+        <Button variant="outline" onClick={() => setIsAddCustomerModalOpen(true)}>
+          + Add New Customer
+        </Button>
+      </div> */}
+      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setIsAddCustomerModalOpen(false)} onCustomerCreated={handleCustomerCreated} />
       {/* Customer Section with Sales Voucher No at top right */}
       <Card className="mb-6">
         <CardHeader>

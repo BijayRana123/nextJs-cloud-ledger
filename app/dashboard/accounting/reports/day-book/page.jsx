@@ -35,7 +35,7 @@ import { Plus, ChevronLeft, ChevronRight, Rocket, X, Search, Printer, Mail, File
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 import { ConditionalDatePicker } from '../../../../components/ConditionalDatePicker';
 import { useOrganization } from '@/lib/context/OrganizationContext';
 

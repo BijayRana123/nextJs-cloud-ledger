@@ -10,6 +10,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Check, ChevronsUpDown, PlusCircle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getCookie } from '@/lib/utils';
+import CreateNewProductModal from "@/components/create-new-product-modal";
+import { useOrganization } from '@/lib/context/OrganizationContext';
 
 // Custom table components
 export function CustomTable({ children, className }) {
@@ -56,6 +58,7 @@ export function CustomTableCell({ children, className }) {
 }
 
 const ItemsSection = ({ formData, setFormData, updateTotals }) => {
+  const { currentOrganization } = useOrganization();
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -67,6 +70,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
     tax: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   // Fetch all items when the component mounts
   useEffect(() => {
@@ -78,18 +82,20 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
     try {
       // Retrieve the JWT from the cookie
       const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      
+      const headers = {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      };
+      if (currentOrganization && currentOrganization._id) {
+        headers['x-organization-id'] = currentOrganization._id;
+      }
       // Make the API call with the authentication token
       const response = await fetch('/api/organization/items', {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Fetched items:", result.items);
         
         // Format items for the combobox
         const formattedOptions = result.items.map(item => ({
@@ -116,7 +122,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
     if (!selectedOption) return;
 
     const newItem = {
-      item: selectedId,
+      item: selectedItemId, // Fixed: was using selectedId instead of selectedItemId
       itemName: selectedOption.label,
       quantity: parseFloat(itemDetails.quantity) || 1,
       price: parseFloat(itemDetails.price) || 0,
@@ -177,6 +183,27 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
     }
   };
 
+  // Handler for when a new product is created
+  const handleProductCreated = (newProduct) => {
+    
+    // Add the new product to the options and select it
+    const newOption = {
+      value: newProduct._id,
+      label: newProduct.name,
+      itemData: newProduct
+    };
+    
+    setOptions((prev) => {
+      const updatedOptions = [...prev, newOption];
+      return updatedOptions;
+    });
+    
+    setSelectedItemId(newProduct._id);
+    setIsProductModalOpen(false);
+    
+    fetchItems(); // Refresh the item list from the backend
+  };
+
   // Filter options based on input value
   const filteredOptions = React.useMemo(() => {
     if (!inputValue) return options;
@@ -187,7 +214,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
 
   // Limit displayed options to maximum 4
   const displayedOptions = React.useMemo(() => {
-    return filteredOptions.slice(0, 4);
+    return filteredOptions;
   }, [filteredOptions]);
 
   return (
@@ -213,7 +240,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" style={{ maxHeight: 300, overflowY: 'auto' }}>
                 <Command shouldFilter={false}>
                   <CommandInput 
                     placeholder="Search item..." 
@@ -223,7 +250,7 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
                   {displayedOptions.length === 0 && inputValue !== "" ? (
                     <CommandEmpty>No item found.</CommandEmpty>
                   ) : (
-                    <CommandGroup>
+                    <CommandGroup style={{ maxHeight: 220, overflowY: 'auto' }}>
                       {displayedOptions.map((option) => (
                         <CommandItem
                           key={option.value || Math.random().toString()}
@@ -246,6 +273,11 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
                     </CommandGroup>
                   )}
                 </Command>
+                <div className="p-2 border-t">
+                  <Button variant="outline" className="w-full" onClick={() => setIsProductModalOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Product/Service
+                  </Button>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -359,6 +391,11 @@ const ItemsSection = ({ formData, setFormData, updateTotals }) => {
           </CustomTableBody>
         </CustomTable>
       </CardContent>
+      <CreateNewProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onProductCreated={handleProductCreated}
+      />
     </Card>
   );
 };

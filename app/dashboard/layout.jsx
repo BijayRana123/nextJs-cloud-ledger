@@ -1,8 +1,8 @@
 "use client"; // Add client directive
 
 import React from 'react'; // Remove useState and useEffect
-import { Sidebar } from '@/app/components/sidebar'; // Import Sidebar component
-import { TopNavbar } from '@/app/components/top-navbar'; // Import TopNavbar component
+import { Sidebar } from '../components/sidebar'; // Import Sidebar component
+import { TopNavbar } from '../components/top-navbar'; // Import TopNavbar component
 import { OrganizationProvider } from '@/lib/context/OrganizationContext'; // Import OrganizationProvider
 import { CalendarProvider } from '@/lib/context/CalendarContext'; // Import CalendarProvider
 

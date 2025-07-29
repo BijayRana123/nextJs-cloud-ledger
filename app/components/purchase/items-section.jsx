@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "../../../components/ui/CustomTable";
 import { XIcon, PlusCircleIcon } from "lucide-react";
-import { Combobox } from "@/components/ui/combobox";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import CreateNewProductModal from "@/app/components/create-new-product-modal"; // Import the new product modal
-import ProductDetailsModal from "@/app/components/product-details-modal";
+import { Combobox } from "../../../components/ui/combobox";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
+import CreateNewProductModal from "@/components/create-new-product-modal"; // Import the new product modal
+import ProductDetailsModal from "@/components/product-details-modal";
 import useSWR from 'swr';
 
 export default function ItemsSection({ formData, setFormData }) {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useCalendar } from "@/lib/context/CalendarContext"
-import { Label } from "@/components/ui/label"
+import { Label } from "../../components/ui/label"
 import { Input } from "@/components/ui/input"
 import { convertADtoBS, formatDateForInput } from "@/lib/utils/dateUtils"
 import { NepaliDatePicker } from "nepali-datepicker-reactjs"

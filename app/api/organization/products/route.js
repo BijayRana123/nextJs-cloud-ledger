@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { Item, User } from '@/lib/models'; // Import Item and User models
+import { Item, User, StockEntry, Warehouse } from '@/lib/models'; // Import Item, User, StockEntry, and Warehouse models
 import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 
 export async function GET(request) {
@@ -24,7 +24,7 @@ export async function GET(request) {
     }
 
     const products = await Item.find({ organization: organizationId })
-      .select('_id name code defaultQty defaultRate defaultDiscount defaultTax availableForSale')
+      .select('_id name code type category categoryLabel tax primaryUnit primaryUnitLabel defaultQty defaultRate defaultDiscount defaultTax availableForSale openingStock')
       .lean();
 
     return NextResponse.json({ products }, { status: 200 });
@@ -54,8 +54,12 @@ export async function POST(request) {
       return NextResponse.json({ message: 'User or organization not found' }, { status: 404 });
     }
 
-    // Assuming the user is associated with one organization for products
-    const organizationId = user.organizations[0]._id;
+    // Try to get organizationId from x-organization-id header
+    let organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      // Fallback to user's first organization
+      organizationId = user.organizations[0]._id;
+    }
 
     const newProductData = await request.json();
 
@@ -68,11 +72,67 @@ export async function POST(request) {
       defaultDiscount: newProductData.defaultDiscount !== undefined ? newProductData.defaultDiscount : 0,
       defaultTax: newProductData.defaultTax !== undefined ? newProductData.defaultTax : 0,
       availableForSale: newProductData.availableForSale !== undefined ? newProductData.availableForSale : true,
+      openingStock: newProductData.openingStock !== undefined ? Number(newProductData.openingStock) : 0,
     });
 
     const savedProduct = await productToSave.save();
 
     console.log("New product saved:", savedProduct);
+
+    // --- Create item ledger under Inventory ---
+    const { Ledger, LedgerGroup } = await import('@/lib/models');
+    // Find or create the Inventory group for this organization
+    let inventoryGroup = await LedgerGroup.findOne({ name: /inventory/i, organization: organizationId });
+    if (!inventoryGroup) {
+      inventoryGroup = await LedgerGroup.create({ name: 'Inventory', organization: organizationId });
+    }
+    // Ledger path: Assets:Inventory:Item Name
+    const ledgerPath = `Assets:Inventory:${savedProduct.name}`;
+    // Check for existing ledger by name/org
+    let existingLedger = await Ledger.findOne({ name: savedProduct.name, organization: organizationId });
+    if (!existingLedger) {
+      await Ledger.create({
+        name: savedProduct.name,
+        group: inventoryGroup._id,
+        organization: organizationId,
+        path: ledgerPath,
+        description: `Item: ${savedProduct.name}`
+      });
+    }
+    // --- End item ledger creation ---
+
+    // --- Handle opening stock for Goods ---
+    if (savedProduct.type === 'Goods' && savedProduct.openingStock > 0) {
+      // Find or create a default warehouse for this organization
+      let defaultWarehouse = await Warehouse.findOne({ 
+        name: 'Main Warehouse', 
+        organization: organizationId 
+      });
+      
+      if (!defaultWarehouse) {
+        defaultWarehouse = await Warehouse.create({
+          name: 'Main Warehouse',
+          location: 'Default Location',
+          organization: organizationId
+        });
+      }
+
+      // Create stock entry for opening stock
+      await StockEntry.create({
+        item: savedProduct._id,
+        warehouse: defaultWarehouse._id,
+        quantity: savedProduct.openingStock,
+        date: new Date(),
+        organization: organizationId,
+        transactionType: 'opening',
+        referenceId: savedProduct._id,
+        referenceType: 'Item',
+        notes: 'Opening stock entry'
+      });
+
+      console.log(`Created opening stock entry: ${savedProduct.openingStock} units for ${savedProduct.name}`);
+    }
+    // --- End opening stock handling ---
 
     return NextResponse.json({ message: "Product created successfully", product: savedProduct }, { status: 201 });
   } catch (error) {

@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 
 export default function SalesReturnVouchersPage() {
   const [salesReturnVouchers, setSalesReturnVouchers] = useState([]);

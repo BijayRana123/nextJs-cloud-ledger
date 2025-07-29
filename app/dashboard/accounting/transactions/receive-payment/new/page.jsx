@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ReceivePaymentForm from '@/app/components/accounting/ReceivePaymentForm';
+import ReceivePaymentForm from '@/components/accounting/ReceivePaymentForm';
 import ExpertPaymentForm from '@/components/accounting/ExpertPaymentForm';
 
 export default function AddReceiptVoucherPage() {

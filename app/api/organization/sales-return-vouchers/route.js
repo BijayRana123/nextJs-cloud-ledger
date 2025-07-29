@@ -25,9 +25,9 @@ export async function POST(request) {
     }
     const organizationName = orgDoc.name;
     const salesReturnData = await request.json();
-    // Validate customer field
-    if (!salesReturnData.customer || typeof salesReturnData.customer !== 'string' || salesReturnData.customer.trim() === '') {
-      return NextResponse.json({ message: 'Customer is required and must be a valid customer ID.' }, { status: 400 });
+    // Handle cash sales return: if customer is 'CASH' or empty, remove the customer field
+    if (salesReturnData.customer === 'CASH' || !salesReturnData.customer) {
+      delete salesReturnData.customer;
     }
     // Remove manual referenceNo generation. Let createSalesReturnEntry handle it.
     const newSalesReturn = new SalesReturnVoucher({

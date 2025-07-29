@@ -40,24 +40,27 @@ export async function POST(request) {
       delete salesOrderData.salesVoucherNumber;
     }
 
-    // Remove status from log and model
-    console.log("Sales Order Data to save:", {
-      ...salesOrderData,
-      organization: organizationId
-    });
+    // If isCashSale or customer is 'CASH', do not set customer field
+    let docData = { ...salesOrderData, organization: organizationId, createdAt: new Date() };
+    if (salesOrderData.isCashSale || salesOrderData.customer === 'CASH' || !salesOrderData.customer) {
+      delete docData.customer
+    }
 
-    const newSalesOrder = new SalesVoucher2({
-      ...salesOrderData,
-      organization: organizationId, // Associate sales order with the user's organization
-      createdAt: new Date() // Mongoose will handle timestamp if schema has timestamps: true
-    });
+    // Remove status from log and model
+    console.log("Sales Order Data to save:", docData);
+
+    const newSalesOrder = new SalesVoucher2(docData);
 
     await newSalesOrder.save();
 
     // Try/catch for voucher number generation and save
     let generatedVoucherNumber = null;
     try {
-      generatedVoucherNumber = await createSalesVoucherEntry(newSalesOrder, organizationId, organizationName);
+      generatedVoucherNumber = await createSalesVoucherEntry(
+        { ...newSalesOrder.toObject(), isCashSale: salesOrderData.isCashSale },
+        organizationId,
+        organizationName
+      );
       // Use plain updateOne to guarantee persistence
       console.log('Generated voucher number:', generatedVoucherNumber);
       const updateResult = await SalesVoucher2.updateOne(

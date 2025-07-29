@@ -1,10 +1,10 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { Card, CardContent } from "../../components/ui/card";
+import { Label } from "../../components/ui/label";
 import { XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 export default function ProductDetailsModal({ isOpen, onClose, product }) {
   if (!product) {

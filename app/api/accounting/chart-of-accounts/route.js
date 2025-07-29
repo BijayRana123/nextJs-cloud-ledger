@@ -1,44 +1,62 @@
-import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import ChartOfAccount from '@/lib/models/ChartOfAccounts';
-import { protect } from '@/lib/middleware/auth';
+import { Ledger, LedgerGroup } from '@/lib/models';
+import { NextResponse } from 'next/server';
+import AccountingTransaction from '@/lib/models/AccountingTransaction';
 
 export async function GET(request) {
   await dbConnect();
-  try {
-    const authResult = await protect(request);
-    if (authResult && authResult.status !== 200) {
-      return authResult;
-    }
+  const orgId = request.headers.get('x-organization-id');
+  if (!orgId) return NextResponse.json({ error: 'Organization required' }, { status: 400 });
 
-    const accounts = await ChartOfAccount.find({ active: true }).sort({ code: 1 });
+  // Fetch all groups and ledgers
+  const groups = await LedgerGroup.find({ organization: orgId }).lean();
+  const ledgers = await Ledger.find({ organization: orgId }).populate('group').lean();
     
-    // Simple transformation for hierarchical view
-    const accountMap = {};
-    const rootAccounts = [];
-
-    accounts.forEach(account => {
-      const acc = account.toObject();
-      acc.children = [];
-      accountMap[acc.code] = acc;
-
-      if (acc.parent) {
-        if (accountMap[acc.parent]) {
-          accountMap[acc.parent].children.push(acc);
-        } else {
-          // Parent not processed yet, should be rare with sorted accounts
-          rootAccounts.push(acc);
-        }
-      } else {
-        rootAccounts.push(acc);
-      }
-    });
-
-    return NextResponse.json({ success: true, data: rootAccounts });
-
-  } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  // Helper to build the full account path for a ledger
+  function buildLedgerPath(ledger, groups) {
+    let pathParts = [];
+    let currentGroup = groups.find(g => g._id.toString() === (ledger.group?._id?.toString() || ledger.group?.toString()));
+    while (currentGroup) {
+      pathParts.unshift(currentGroup.name);
+      currentGroup = groups.find(g => g._id.toString() === (currentGroup.parent ? currentGroup.parent.toString() : null));
+    }
+    pathParts.push(ledger.name);
+    return pathParts.join(":");
   }
+
+  // Compute balances for each ledger
+  const ledgersWithBalances = await Promise.all(ledgers.map(async (ledger) => {
+    const accountPath = ledger.path || buildLedgerPath(ledger, groups);
+    const transactions = await AccountingTransaction.find({
+      account_path: accountPath,
+      organization: orgId
+    });
+    let balance = 0;
+    for (const txn of transactions) {
+      if (txn.debit) {
+        balance += txn.amount;
+      } else if (txn.credit) {
+        balance -= txn.amount;
+      }
+    }
+    console.log('Ledger:', ledger.name, 'Path:', accountPath, 'Balance:', balance);
+    return { ...ledger, path: accountPath, balance };
+  }));
+
+  // Compute balances for each group (sum of all child ledgers' balances)
+  const groupBalances = {};
+  for (const group of groups) {
+    // Find all ledgers whose path starts with this group's name
+    const groupPath = group.name;
+    const childLedgers = ledgersWithBalances.filter(l => l.path && l.path.startsWith(groupPath + ':'));
+    const groupBalance = childLedgers.reduce((sum, l) => sum + (l.balance || 0), 0);
+    groupBalances[group._id] = groupBalance;
+    console.log('Group:', group.name, 'ID:', group._id, 'Balance:', groupBalance, 'Child ledgers:', childLedgers.map(l => l.name));
+  }
+  console.log('Final groupBalances:', groupBalances);
+
+  // Return both groups (with balances) and ledgers with balances for frontend rendering
+  return NextResponse.json({ success: true, groups: groups.map(g => ({ ...g, balance: groupBalances[g._id] || 0 })), ledgers: ledgersWithBalances });
 }
 
 export async function POST(request) {

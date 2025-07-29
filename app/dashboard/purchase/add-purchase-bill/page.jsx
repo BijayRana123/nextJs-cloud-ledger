@@ -7,13 +7,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation'; // Import useRouter and useSearchParams
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
+import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
 import { Input } from "@/components/ui/input"; // Added Input import
 
 // Import the new components
-import SupplierSection from "@/app/components/purchase/supplier-section";
-import ItemsSection from "@/app/components/purchase/items-section";
-import CalculationSection from "@/app/components/purchase/calculation-section";
+import SupplierSection from "@/components/purchase/supplier-section";
+import ItemsSection from "@/components/purchase/items-section";
+import CalculationSection from "@/components/purchase/calculation-section";
 
 // Import the useOrganization hook
 import { useOrganization } from '@/lib/context/OrganizationContext';

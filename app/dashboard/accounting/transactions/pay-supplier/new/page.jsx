@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import PaySupplierForm from '@/app/components/accounting/PaySupplierForm';
+import PaySupplierForm from '@/components/accounting/PaySupplierForm';
 import ExpertPaymentForm from '@/components/accounting/ExpertPaymentForm';
 
 export default function AddPaymentVoucherPage() {

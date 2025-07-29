@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
-import SupplierSection from "@/app/components/purchase/supplier-section";
-import ItemsSection from "@/app/components/purchase/items-section";
-import CalculationSection from "@/app/components/purchase/calculation-section";
+import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
+import SupplierSection from "@/components/purchase/supplier-section";
+import ItemsSection from "@/components/purchase/items-section";
+import CalculationSection from "@/components/purchase/calculation-section";
 import { useOrganization } from '@/lib/context/OrganizationContext';
 
 export function AddPurchaseReturnPage() {

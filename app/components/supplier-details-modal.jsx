@@ -1,10 +1,10 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // Assuming Dialog components are available
-import { Card, CardContent } from "@/components/ui/card"; // Assuming Card components are available
-import { Label } from "@/components/ui/label"; // Assuming Label component is available
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog"; // Assuming Dialog components are available
+import { Card, CardContent } from "../../components/ui/card"; // Assuming Card components are available
+import { Label } from "../../components/ui/label"; // Assuming Label component is available
 import { XIcon } from "lucide-react"; // Assuming XIcon is available
-import { Button } from "@/components/ui/button"; // Assuming Button is available
+import { Button } from "../../components/ui/button"; // Assuming Button is available
 
 export default function SupplierDetailsModal({ isOpen, onClose, supplier }) {
   if (!supplier) {

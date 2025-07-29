@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import SalesVoucher from '@/lib/models/SalesVoucher';
+// import SalesVoucher from '@/lib/models/SalesVoucher';
 
 export async function GET(req) {
   await dbConnect();

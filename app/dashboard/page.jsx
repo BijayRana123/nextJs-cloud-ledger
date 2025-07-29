@@ -14,24 +14,27 @@ import { getCurrentDate } from "@/lib/utils/dateUtils"
 // import { Sidebar } from "../components/sidebar"
 // import { TopNavbar } from "../components/top-navbar"
 import { MobileSidebar } from "../components/mobile-sidebar" // Assuming MobileSidebar is needed
+import AddCustomerModal from '@/components/sales/add-customer-modal';
+import CreateNewProductModal from '@/components/create-new-product-modal';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("sales")
   const { isNepaliCalendar } = useCalendar()
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
 
   const quickLinks = [
-    { title: "Tasks", category: "", icon: <List className="h-4 w-4" /> },
-    { title: "Customer Payment", category: "Sales", icon: <CreditCard className="h-4 w-4" /> },
-    { title: "Customers", category: "Sales", icon: <Users className="h-4 w-4" /> },
-    { title: "Quotations", category: "Sales", icon: <FileText className="h-4 w-4" /> },
-    { title: "Contact Group", category: "CRM", icon: <Users className="h-4 w-4" /> },
-    { title: "Leads", category: "CRM", icon: <Users className="h-4 w-4" /> },
-    { title: "Units Of Measurement", category: "Inventory", icon: <Package className="h-4 w-4" /> },
-    { title: "Debit Notes", category: "Purchase", icon: <FileText className="h-4 w-4" /> },
-    { title: "Purchase Order", category: "Purchase", icon: <ShoppingCart className="h-4 w-4" /> },
-    { title: "Allocate Customer Payments", category: "Sales", icon: <CreditCard className="h-4 w-4" /> },
-    { label: "Journal report", category: "Reports", icon: <BarChart2 className="h-4 w-4" /> }, // Changed from title to label to match image
-  ]
+    {
+      title: 'Add Customer',
+      icon: <Users className="h-4 w-4" />,
+      onClick: () => setIsAddCustomerModalOpen(true),
+    },
+    {
+      title: 'Add Item',
+      icon: <Package className="h-4 w-4" />,
+      onClick: () => setIsAddItemModalOpen(true),
+    },
+  ];
 
   return (
     <div className="flex h-screen flex-col"> {/* This flex-col is likely redundant with layout */}
@@ -54,7 +57,9 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {quickLinks.map((link, index) => (
-              <QuickLinkCard key={index} title={link.title || link.label} category={link.category} icon={link.icon} /> // Use title or label
+              <div key={index} onClick={link.onClick} style={{ cursor: 'pointer' }}>
+                <QuickLinkCard title={link.title} icon={link.icon} />
+              </div>
             ))}
           </div>
 
@@ -149,6 +154,8 @@ export default function Dashboard() {
           </Tabs>
         </main>
       </div>
+      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setIsAddCustomerModalOpen(false)} />
+      <CreateNewProductModal isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} />
     </div>
   )
 }

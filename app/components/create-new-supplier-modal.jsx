@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'; // Import useEffect
 import { useRouter } from 'next/navigation'; // Import useRouter
 import Cookies from 'js-cookie'; // Import Cookies library
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"; // Assuming Dialog components are available
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Assuming Tabs components are available
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../components/ui/dialog"; // Assuming Dialog components are available
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs"; // Assuming Tabs components are available
 
 export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCreated }) { // Added onSupplierCreated prop
   const router = useRouter(); // Call useRouter at the top level

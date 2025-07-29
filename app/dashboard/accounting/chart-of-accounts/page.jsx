@@ -6,136 +6,147 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PlusCircle, ArrowLeft, Edit, Trash, Plus } from 'lucide-react';
 import { toast } from "@/components/ui/use-toast";
+import { useOrganization } from '@/lib/context/OrganizationContext';
+import { Switch } from '@/components/ui/switch';
 
-
-// Recursive component to render account rows
-function AccountRow({ account, level = 0, onAddSubAccount, onEdit, onDelete }) {
-    const router = useRouter();
-
-    const handleNavigate = () => {
-        router.push(`/dashboard/accounting/ledger/${account._id}`);
-    };
-
-    return (
-        <div className="flex items-center justify-between p-2 border-b hover:bg-gray-50/70 group">
-            <div 
-                className="flex-grow flex items-center cursor-pointer"
-                onClick={handleNavigate}
-            >
-                <div style={{ marginLeft: `${level * 20}px` }} className="flex items-center">
-                    <span className="font-mono text-sm text-gray-500 w-24">{account.code}</span>
-                    <span className="group-hover:underline">{account.name}</span>
-                </div>
-            </div>
-            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="sm" onClick={() => onAddSubAccount(account)}>
-                    <Plus className="h-4 w-4 mr-1" /> Add Sub-Account
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => onEdit(account)}>
-                    <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(account)} className="text-red-500 hover:text-red-600">
-                    <Trash className="h-4 w-4" />
-                </Button>
-            </div>
-        </div>
-    );
+function LedgerBalance({ balance }) {
+  if (balance > 0) {
+    return <span className="text-green-600 font-semibold">{balance.toLocaleString()}</span>;
+  } else if (balance < 0) {
+    return <span className="text-red-600 font-semibold">{balance.toLocaleString()}</span>;
+  } else {
+    return <span className="text-gray-500">0</span>;
+  }
 }
 
-function AccountList({ accounts, onAddSubAccount, onEdit, onDelete, onSeed }) {
-    if (accounts.length === 0) {
-        return (
-            <div className="text-center py-10">
-                <p className="text-gray-500 mb-4">Your Chart of Accounts is empty.</p>
-                <Button onClick={onSeed}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Seed Default Accounts
-                </Button>
-            </div>
-        )
-    }
-
-    return (
-        <div>
-            {accounts.map(account => (
-                <React.Fragment key={account.code}>
-                    <AccountRow account={account} onAddSubAccount={onAddSubAccount} onEdit={onEdit} onDelete={onDelete} />
-                    {account.children && account.children.length > 0 && (
-                        <div className="pl-4">
-                           <AccountList accounts={account.children} onAddSubAccount={onAddSubAccount} onEdit={onEdit} onDelete={onDelete} />
-                        </div>
-                    )}
-                </React.Fragment>
+function LedgerTree({ groups, ledgers, parent = null, level = 0, getLedgerBalance, getGroupBalance }) {
+  const router = useRouter();
+  
+  const handleLedgerClick = (ledger) => {
+    // Navigate to the ledger page using the ledger ID
+    router.push(`/dashboard/accounting/ledger/${ledger._id}`);
+  };
+  
+  return (
+    <ul className={level === 0 ? "" : "ml-6 border-l pl-4"}>
+      {groups.filter(g => (g.parent ? g.parent.toString() : null) === (parent ? parent.toString() : null)).map(group => (
+        <li key={group._id} className="mb-2">
+          <div className="font-semibold text-gray-800 flex items-center" style={{ marginLeft: level * 12 }}>{group.name} {getGroupBalance && <span className="ml-2 text-blue-600">{getGroupBalance(group)}</span>}</div>
+          {/* List ledgers under this group */}
+          <ul>
+            {ledgers.filter(l => l.group && l.group._id === group._id).map(ledger => (
+              <li 
+                key={ledger._id} 
+                className="ml-4 text-gray-700 flex items-center gap-2 hover:text-blue-600 cursor-pointer hover:bg-gray-50 p-1 rounded"
+                onClick={() => handleLedgerClick(ledger)}
+              >
+                - {ledger.name} <LedgerBalance balance={getLedgerBalance(ledger)} />
+              </li>
             ))}
-        </div>
-    );
+          </ul>
+          {/* Recursively render sub-groups */}
+          <LedgerTree groups={groups} ledgers={ledgers} parent={group._id} level={level + 1} getLedgerBalance={getLedgerBalance} getGroupBalance={getGroupBalance} />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
+function FlatAccountList({ groups, ledgers, getLedgerBalance, getGroupBalance }) {
+  const router = useRouter();
+  
+  // Build a flat list with indentation
+  function buildList(parent = null, level = 0) {
+    let rows = [];
+    groups.filter(g => (g.parent ? g.parent.toString() : null) === (parent ? parent.toString() : null)).forEach(group => {
+      rows.push({ type: 'group', group, level });
+      // Ledgers under this group
+      ledgers.filter(l => l.group && l.group._id === group._id).forEach(ledger => {
+        rows.push({ type: 'ledger', ledger, level: level + 1 });
+      });
+      // Recurse for sub-groups
+      rows = rows.concat(buildList(group._id, level + 1));
+    });
+    return rows;
+  }
+  
+  const handleLedgerClick = (ledger) => {
+    // Navigate to the ledger page using the ledger ID
+    router.push(`/dashboard/accounting/ledger/${ledger._id}`);
+  };
+  
+  const rows = buildList();
+  return (
+    <table className="min-w-full border">
+      <thead>
+        <tr className="bg-gray-100">
+          <th className="px-4 py-2 border text-left">Name</th>
+          <th className="px-4 py-2 border text-left">Type</th>
+          <th className="px-4 py-2 border text-left">Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, idx) => (
+          <tr 
+            key={row.type === 'group' ? row.group._id : row.ledger._id}
+            className={row.type === 'ledger' ? 'hover:bg-gray-50 cursor-pointer' : ''}
+            onClick={row.type === 'ledger' ? () => handleLedgerClick(row.ledger) : undefined}
+          >
+            <td className="px-4 py-2 border" style={{ paddingLeft: `${row.level * 24}px` }}>
+              {row.type === 'group' ? 
+                <span className="font-semibold text-gray-800">{row.group.name}</span> : 
+                <span className="text-gray-700 hover:text-blue-600">{row.ledger.name}</span>
+              }
+            </td>
+            <td className="px-4 py-2 border">{row.type === 'group' ? 'Group' : 'Ledger'}</td>
+            <td className="px-4 py-2 border">{row.type === 'ledger' ? <LedgerBalance balance={getLedgerBalance(row.ledger)} /> : <span className="text-blue-600">{getGroupBalance(row.group)}</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 export default function ChartOfAccountsPage() {
-  const router = useRouter();
-  const [accounts, setAccounts] = useState([]);
+  const { currentOrganization } = useOrganization();
+  const [groups, setGroups] = useState([]);
+  const [ledgers, setLedgers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const fetchAccounts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/accounting/chart-of-accounts');
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch accounts');
-      }
-      setAccounts(result.data);
-    } catch (err) {
-      setError(err.message);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [treeView, setTreeView] = useState(false);
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const handleSeedAccounts = async () => {
-    try {
-        const response = await fetch('/api/accounting/seed-accounts', { method: 'POST' });
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.message || 'Failed to seed accounts');
-        }
-
-        toast({ title: "Success", description: result.message });
-        fetchAccounts(); // Refresh the list
-    } catch (err) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleDelete = async (account) => {
-    if (!confirm(`Are you sure you want to delete the account "${account.name}"? This cannot be undone.`)) {
-        return;
-    }
-      
-    try {
-        const response = await fetch(`/api/accounting/chart-of-accounts/${account._id}`, {
-            method: 'DELETE',
+    const fetchData = async () => {
+      if (!currentOrganization || !currentOrganization._id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/accounting/chart-of-accounts`, {
+          headers: { 'x-organization-id': currentOrganization._id },
         });
-
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to delete account');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setGroups(data.groups);
+          setLedgers(data.ledgers);
+        } else {
+          setError(data.error || 'Failed to fetch data');
         }
+      } catch (e) {
+        setError('Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentOrganization]);
 
-        toast({ title: "Success", description: "Account deleted successfully." });
-        fetchAccounts(); // Refresh the list
-
-    } catch (err) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+  // Helper to get balance for a ledger
+  function getLedgerBalance(ledger) {
+    return ledger.balance || 0;
+  }
+  // Helper to get balance for a group
+  function getGroupBalance(group) {
+    return group.balance || 0;
   }
 
   return (
@@ -143,35 +154,24 @@ export default function ChartOfAccountsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Chart of Accounts</h1>
         <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => router.push('/dashboard/accounting')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Accounting
-            </Button>
-            <Button onClick={() => router.push('/dashboard/accounting/chart-of-accounts/new')}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add New Account
-            </Button>
+          <span className="text-sm">Tree View</span>
+          <Switch checked={treeView} onCheckedChange={setTreeView} />
         </div>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle>All Accounts</CardTitle>
-          <CardDescription>View, create, and manage your accounts.</CardDescription>
+          <CardDescription>View your chart of accounts, grouped by ledger group. Toggle between flat and tree view. Balances are shown for each ledger.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p>Loading accounts...</p>
           ) : error ? (
             <p className="text-red-500">{error}</p>
+          ) : treeView ? (
+            <LedgerTree groups={groups} ledgers={ledgers} getLedgerBalance={getLedgerBalance} getGroupBalance={getGroupBalance} />
           ) : (
-            <AccountList 
-                accounts={accounts}
-                onAddSubAccount={(parent) => router.push(`/dashboard/accounting/chart-of-accounts/new?parent=${parent.code}`)}
-                onEdit={(account) => router.push(`/dashboard/accounting/chart-of-accounts/${account._id}/edit`)}
-                onDelete={handleDelete}
-                onSeed={handleSeedAccounts}
-            />
+            <FlatAccountList groups={groups} ledgers={ledgers} getLedgerBalance={getLedgerBalance} getGroupBalance={getGroupBalance} />
           )}
         </CardContent>
       </Card>

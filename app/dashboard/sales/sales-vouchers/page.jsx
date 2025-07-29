@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 
 export default function SalesBillsPage() { // Keep the component name as SalesBillsPage
   const [salesOrders, setSalesOrders] = useState([]); // State to hold sales orders
@@ -312,7 +312,9 @@ export default function SalesBillsPage() { // Keep the component name as SalesBi
                       router.push(`/dashboard/sales/sales-vouchers/${order._id}`);
                     }}
                   >
-                    <CustomTableCell>{order.customer?.name || 'N/A'}</CustomTableCell>
+                    <CustomTableCell>
+                      {order.customer?.name || order.customer || (order.customer === null || order.customer === undefined ? 'Cash' : 'N/A')}
+                    </CustomTableCell>
                     <CustomTableCell>{order.salesVoucherNumber || 'N/A'}</CustomTableCell>
                     <CustomTableCell>{formatDateDisplay(order.date)}</CustomTableCell>
                     <CustomTableCell>{order.totalAmount?.toFixed(2) || '0.00'}</CustomTableCell>

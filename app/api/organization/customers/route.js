@@ -56,6 +56,45 @@ export async function POST(request) {
 
     await newCustomer.save();
 
+    // --- Create customer ledger under Accounts Receivable ---
+    // Import Ledger and LedgerGroup models
+    const { Ledger, LedgerGroup } = await import('@/lib/models');
+    // Find or create the Accounts Receivable group for this organization
+    let arGroup = await LedgerGroup.findOne({ name: /accounts receivable/i, organization: organizationId });
+    if (!arGroup) {
+      arGroup = await LedgerGroup.create({ name: 'Accounts Receivable', organization: organizationId });
+    }
+    // Ledger path: Assets:Accounts Receivable:Customer Name
+    const ledgerPath = `Assets:Accounts Receivable:${newCustomer.name}`;
+    // Check for existing ledger by name/org
+    let existingLedger = await Ledger.findOne({ name: newCustomer.name, organization: organizationId });
+    if (!existingLedger) {
+      await Ledger.create({
+        name: newCustomer.name,
+        group: arGroup._id,
+        organization: organizationId,
+        path: ledgerPath
+      });
+    }
+    // --- End customer ledger creation ---
+
+    // --- Create customer ChartOfAccount under Accounts Receivable ---
+    const ChartOfAccount = (await import('@/lib/models/ChartOfAccounts')).default;
+    const coaPath = `Assets:Accounts Receivable:${newCustomer.name}`;
+    let existingCoa = await ChartOfAccount.findOne({ path: coaPath, organization: organizationId });
+    if (!existingCoa) {
+      await ChartOfAccount.create({
+        code: coaPath.replace(/:/g, ''),
+        name: newCustomer.name,
+        type: 'asset',
+        subtype: 'current',
+        path: coaPath,
+        organization: organizationId,
+        active: true
+      });
+    }
+    // --- End customer ChartOfAccount creation ---
+
     return NextResponse.json({ 
       message: "Customer created successfully", 
       customer: newCustomer 

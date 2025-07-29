@@ -2,20 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; // Import useRouter
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Combobox } from "@/components/ui/combobox";
+import { Label } from "../../../components/ui/label";
+import { Input } from "../../../components/ui/input";
+import { Combobox } from "../../../components/ui/combobox";
 import { SearchIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";import {
+import { Card, CardContent } from "../../../components/ui/card";
+import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-  } from "@/components/ui/select"
+  } from "../../../components/ui/select"
   
-import CreateNewSupplierModal from "@/app/components/create-new-supplier-modal";
-import SupplierDetailsModal from "@/app/components/supplier-details-modal";
+import CreateNewSupplierModal from "@/components/create-new-supplier-modal";
+import SupplierDetailsModal from "@/components/supplier-details-modal";
 
 // Function to get the authentication token from cookies
 const getCookie = (name) => {
