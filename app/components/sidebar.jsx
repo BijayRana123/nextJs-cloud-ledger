@@ -23,9 +23,12 @@ import { SalesMenu } from "./SalesMenu";
 import { PurchaseMenu } from "./PurchaseMenu";
 import { AccountingMenu } from "./AccountingMenu";
 import { ReportsMenu } from "./ReportsMenu";
+import AddCustomerModal from "./sales/add-customer-modal";
+import CreateNewProductModal from "./create-new-product-modal";
+import CreateNewSupplierModal from "./create-new-supplier-modal";
 
 // SidebarCreateNewMenu: Submenu for Create New icon in collapsed sidebar
-function SidebarCreateNewMenu({ onNavigate }) {
+function SidebarCreateNewMenu({ onNavigate, onOpenCustomerModal, onOpenSupplierModal, onOpenProductModal }) {
   const router = require('next/navigation').useRouter();
   const categories = [
     {
@@ -46,9 +49,6 @@ function SidebarCreateNewMenu({ onNavigate }) {
     },
   ];
   const routeMap = {
-    'Customer': '/dashboard',
-    'Supplier': '/dashboard',
-    'Products': '/dashboard',
     'Accounts': '/dashboard/accounting/ledger',
     'Sales Voucher': '/dashboard/sales/add-sales-voucher',
     'Sales Return': '/dashboard/sales/add-sales-return',
@@ -60,10 +60,21 @@ function SidebarCreateNewMenu({ onNavigate }) {
     'Payment Voucher': '/dashboard/accounting/transactions/pay-supplier/new',
   };
   const handleClick = (item) => {
-    const route = routeMap[item];
-    if (route) {
-      router.push(route);
+    if (item === 'Customer') {
+      onOpenCustomerModal();
       if (onNavigate) onNavigate();
+    } else if (item === 'Supplier') {
+      onOpenSupplierModal();
+      if (onNavigate) onNavigate();
+    } else if (item === 'Products') {
+      onOpenProductModal();
+      if (onNavigate) onNavigate();
+    } else {
+      const route = routeMap[item];
+      if (route) {
+        router.push(route);
+        if (onNavigate) onNavigate();
+      }
     }
   };
   return (
@@ -95,6 +106,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
   const [accountsOpen, setAccountsOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   useEffect(() => {
     // Determine expanded state based on the current route
@@ -195,7 +209,12 @@ export function Sidebar() {
             {/* Submenu for collapsed sidebar, show on hover */}
             {!isExpanded && (
               <div className="absolute left-full top-0 z-50 w-72 bg-white border rounded-md shadow-lg hidden group-hover:block">
-                <SidebarCreateNewMenu onNavigate={() => setIsCreateModalOpen(false)} />
+                <SidebarCreateNewMenu 
+                  onNavigate={() => setIsCreateModalOpen(false)} 
+                  onOpenCustomerModal={() => setIsCustomerModalOpen(true)}
+                  onOpenSupplierModal={() => setIsSupplierModalOpen(true)}
+                  onOpenProductModal={() => setIsProductModalOpen(true)}
+                />
               </div>
             )}
           </div>
@@ -231,7 +250,25 @@ export function Sidebar() {
         </nav>
       </aside>
 
-      <CreateNewModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+      <CreateNewModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)}
+        onOpenCustomerModal={() => setIsCustomerModalOpen(true)}
+        onOpenSupplierModal={() => setIsSupplierModalOpen(true)}
+        onOpenProductModal={() => setIsProductModalOpen(true)}
+      />
+      <AddCustomerModal 
+        isOpen={isCustomerModalOpen} 
+        onClose={() => setIsCustomerModalOpen(false)} 
+      />
+      <CreateNewSupplierModal 
+        isOpen={isSupplierModalOpen} 
+        onClose={() => setIsSupplierModalOpen(false)} 
+      />
+      <CreateNewProductModal 
+        isOpen={isProductModalOpen} 
+        onClose={() => setIsProductModalOpen(false)} 
+      />
     </>
   );
 }
