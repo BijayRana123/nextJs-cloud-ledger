@@ -19,7 +19,7 @@ export async function POST(request) {
     const authResult = await protect(request);
     if (authResult && authResult.status !== 200) {
       // Skip auth check for now to ensure data can be displayed
-      console.log('Warning: Authentication check failed but proceeding anyway for diagnostic purposes');
+
     }
 
     // Parse request body to get the as-of date
@@ -90,7 +90,7 @@ export async function POST(request) {
     
     // Helper function to get account balance
     async function getAccountBalance(accountPrefix) {
-      console.log(`Querying account balance for: ${accountPrefix}`);
+
       const result = await transactionModel.aggregate([
         { 
           $match: { 
@@ -114,7 +114,7 @@ export async function POST(request) {
         }
       ]);
       
-      console.log(`Results for ${accountPrefix}:`, result);
+
       return result;
     }
     

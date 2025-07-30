@@ -14,11 +14,11 @@ export async function POST(req) {
 
   try {
     const { newOrganizationId } = await req.json();
-    console.log('Switch Org API: Received newOrganizationId:', newOrganizationId); // Log received org ID
+
 
     // Get user ID from the authenticated request
     const userId = req.user._id;
-    console.log('Switch Org API: Authenticated userId:', userId); // Log authenticated user ID
+
 
 
     // Find the user and populate organizations to check membership
@@ -27,15 +27,15 @@ export async function POST(req) {
        // This case should ideally not happen if protect middleware is successful
       return NextResponse.json({ message: 'User not found after authentication' }, { status: 404 });
     }
-    console.log('Switch Org API: User organizations after populate:', user.organizations); // Log populated organizations
+
 
 
     // Check if the user belongs to the new organization
     const organizationExists = user.organizations.some(org => {
-        console.log(`Switch Org API: Comparing org ID ${org._id.toString()} with target ID ${newOrganizationId}`); // Log comparison
+
         return org._id.toString() === newOrganizationId;
     });
-    console.log('Switch Org API: Organization existence check result:', organizationExists); // Log check result
+
 
 
     if (!organizationExists) {
@@ -52,7 +52,7 @@ export async function POST(req) {
 
     // Ensure JWT_SECRET is a string and not undefined (same as in login route)
     const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
-    console.log('Switch Org API: Using JWT_SECRET:', jwtSecret);
+
     
     const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
     

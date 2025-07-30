@@ -35,7 +35,7 @@ const Customer = mongoose.model('Customer', customerSchema, 'customers');
 
 async function run() {
   await mongoose.connect(MONGODB_URI);
-  console.log('Connected to MongoDB');
+
   // Find all inventory groups
   const inventoryGroups = await LedgerGroup.find({ name: /inventory/i });
   const groupIds = inventoryGroups.map(g => g._id.toString());
@@ -60,12 +60,12 @@ async function run() {
           ledger.path = ledger.path.replace(oldName, item.name);
         }
         await ledger.save();
-        console.log(`Updated ledger ${ledger._id}: ${oldName} -> ${item.name}`);
+
         count++;
       }
     }
   }
-  console.log(`Updated ${count} inventory ledgers.`);
+
 
   // Fix customer ledgers (Accounts Receivable)
   const arGroups = await LedgerGroup.find({ name: /accounts receivable/i });
@@ -89,12 +89,12 @@ async function run() {
           ledger.path = ledger.path.replace(oldName, customer.name);
         }
         await ledger.save();
-        console.log(`Updated customer ledger ${ledger._id}: ${oldName} -> ${customer.name}`);
+
         arCount++;
       }
     }
   }
-  console.log(`Updated ${arCount} customer ledgers.`);
+
 
   // NEW: Fix customer ledgers under Assets group (not just Accounts Receivable)
   const assetsGroups = await LedgerGroup.find({ name: /assets/i });
@@ -124,12 +124,12 @@ async function run() {
           ledger.path = ledger.path.replace(oldName, customer.name);
         }
         await ledger.save();
-        console.log(`Moved asset ledger ${ledger._id} to Accounts Receivable: ${oldName} -> ${customer.name}`);
+
         assetCount++;
       }
     }
   }
-  console.log(`Updated and moved ${assetCount} asset-ledger customers to Accounts Receivable.`);
+
 
   process.exit(0);
 }

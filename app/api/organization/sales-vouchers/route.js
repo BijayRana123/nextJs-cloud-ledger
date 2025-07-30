@@ -6,7 +6,7 @@ import { protect } from '@/lib/middleware/auth'; // Import protect middleware
 import { createSalesVoucherEntry } from '@/lib/accounting'; // Import accounting function
 
 // DEBUG: Log schema paths at runtime
-console.log('SalesVoucher2 model schema paths:', Object.keys(SalesVoucher2.schema.paths));
+
 
 export async function POST(request) {
   
@@ -47,7 +47,7 @@ export async function POST(request) {
     }
 
     // Remove status from log and model
-    console.log("Sales Order Data to save:", docData);
+
 
     const newSalesOrder = new SalesVoucher2(docData);
 
@@ -62,27 +62,25 @@ export async function POST(request) {
         organizationName
       );
       // Use plain updateOne to guarantee persistence
-      console.log('Generated voucher number:', generatedVoucherNumber);
+
       const updateResult = await SalesVoucher2.updateOne(
         { _id: newSalesOrder._id },
         { salesVoucherNumber: generatedVoucherNumber }
       );
-      console.log('Update result:', updateResult);
+
       const updatedVoucher = await SalesVoucher2.findById(newSalesOrder._id);
-      console.log('Updated voucher after plain update:', updatedVoucher);
+
     } catch (err) {
-      console.error("Failed to generate or save salesVoucherNumber:", err);
       // Optionally: delete the voucher if you want to enforce atomicity
       // await SalesVoucher2.deleteOne({ _id: newSalesOrder._id });
       return NextResponse.json({ message: "Failed to generate voucher number", error: err.message }, { status: 500 });
     }
 
     const updatedSalesOrder = await SalesVoucher2.findById(newSalesOrder._id).lean();
-    console.log("New Sales Voucher saved:", updatedSalesOrder);
+
 
     return NextResponse.json({ message: "Sales Voucher created successfully", salesVoucher: updatedSalesOrder, voucherNumber: generatedVoucherNumber }, { status: 201 });
   } catch (error) {
-    console.error("Error creating sales voucher:", error);
     
     // Provide more detailed error message
     let errorMessage = "Failed to create sales voucher";

@@ -275,7 +275,7 @@ export default function ItemsSection({ formData, setFormData }) {
         isOpen={isNewProductModalOpen}
         onClose={() => setIsNewProductModalOpen(false)}
         onProductCreated={(newProduct) => {
-          console.log("New product created:", newProduct);
+
           // Add the new product to the options
           setProductOptions((prevOptions) => [
             ...prevOptions,

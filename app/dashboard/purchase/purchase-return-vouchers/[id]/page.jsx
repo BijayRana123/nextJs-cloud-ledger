@@ -36,7 +36,7 @@ export default function PurchaseReturnVoucherDetailPage() {
     setError(null);
     try {
       const authToken = getCookieValue('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-      console.log('authToken:', authToken); // Debug: check if token is present
+
       const response = await fetch(`/api/organization/purchase-return-vouchers/${id}`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,

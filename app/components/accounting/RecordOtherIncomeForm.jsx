@@ -59,7 +59,7 @@ export default function RecordOtherIncomeForm() {
       amount: parseFloat(formData.amount) || 0, // Ensure amount is a number
     };
 
-    console.log("Submitting Other Income:", dataToSend);
+
 
     try {
       // Use the organization API which already handles the accounting entries

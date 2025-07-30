@@ -48,7 +48,7 @@ const Journal = mongoose.model('AccountingJournal', journalSchema, 'accountingjo
 
 async function backfill() {
   await mongoose.connect(MONGODB_URI);
-  console.log('Connected to MongoDB');
+
 
   const ledgers = await Ledger.find({ openingBalance: { $ne: 0 } }).lean();
   const allGroups = await LedgerGroup.find({}).lean();
@@ -101,10 +101,10 @@ async function backfill() {
       meta: { openingBalance: true, backfill: true }
     });
     count++;
-    console.log(`Backfilled opening balance transaction for ledger '${ledger.name}' (${accountPath})`);
+
   }
 
-  console.log(`Backfill complete. ${count} opening balance transactions created.`);
+
   await mongoose.disconnect();
 }
 

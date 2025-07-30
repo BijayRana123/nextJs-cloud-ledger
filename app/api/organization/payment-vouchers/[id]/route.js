@@ -181,7 +181,7 @@ export async function backfillPaymentVoucherJournalIds() {
       updated++;
     }
   }
-  console.log(`Backfilled ${updated} payment vouchers with journalId.`);
+
 }
 
 // --- BACKFILL SCRIPT (run manually if needed) ---
@@ -209,5 +209,5 @@ export async function backfillMediciJournalVoucherNumbers() {
       updated++;
     }
   }
-  console.log(`Backfilled ${updated} medici journals with voucherNumber.`);
+
 } 

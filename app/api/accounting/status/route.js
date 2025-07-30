@@ -18,7 +18,7 @@ export async function GET() {
     // Try a direct MongoDB connection test if not already connected
     if (mongoose.connection.readyState !== 1) {
       try {
-        console.log('Testing direct MongoDB connection...');
+
         const uri = process.env.MONGODB_URI || 'mongodb://localhost/medici_test';
         await mongoose.connect(uri, {
           serverSelectionTimeoutMS: 5000 // 5 second timeout

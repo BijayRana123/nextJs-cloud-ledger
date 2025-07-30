@@ -128,17 +128,13 @@ export default function LedgerFilter() {
 
   // Add a debug function to log date information
   const logDateInfo = () => {
-    console.log("Date Range:", dateRange);
-    console.log("First few journal entries:", allJournalEntries.slice(0, 3).map(e => ({
-      id: e._id,
-      date: e.datetime,
-      memo: e.memo
-    })));
+
+
   };
 
   // Modify the date handling to fix filtering issues
   const handleDateChange = (name, value) => {
-    console.log(`Setting ${name} date to:`, value);
+
     setDateRange(prev => ({ ...prev, [name]: value }));
   };
 

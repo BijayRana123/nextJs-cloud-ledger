@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
       return;
     }
     // Simulate password reset success
-    console.log("Resetting password...");
+
     // Redirect to login page with a placeholder email and the new password as query params
     // In a real app, the email would likely come from a token or context
     const placeholderEmail = "user@example.com"; // Placeholder email

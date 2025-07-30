@@ -38,7 +38,7 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("User created successfully:", data);
+
         // Redirect to login page or dashboard upon successful registration
         router.push('/auth/login');
       } else {

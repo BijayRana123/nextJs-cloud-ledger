@@ -18,7 +18,7 @@ async function main() {
     ]
   });
 
-  console.log(`Found ${vouchers.length} sales vouchers missing voucher number.`);
+
 
   for (const voucher of vouchers) {
     // Try to find the corresponding journal by meta.salesVoucherId first
@@ -39,14 +39,14 @@ async function main() {
     if (journal && journal.voucherNumber) {
       voucher.salesVoucherNumber = journal.voucherNumber;
       await voucher.save();
-      console.log(`Updated voucher ${voucher._id} with number ${journal.voucherNumber}`);
+
     } else {
       console.warn(`No journal found for sales voucher ${voucher._id}`);
     }
   }
 
   await mongoose.disconnect();
-  console.log('Done!');
+
 }
 
 main().catch(err => {

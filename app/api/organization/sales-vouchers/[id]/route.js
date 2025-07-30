@@ -4,7 +4,7 @@ import { SalesVoucher2 } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request, context) {
-  console.log("Entering GET function for [id] sales vouchers API route");
+
   await dbConnect();
 
   try {
@@ -28,8 +28,7 @@ export async function GET(request, context) {
     const params = await context.params;
     const id = params.id;
 
-    console.log("Fetching sales voucher with ID:", id);
-    console.log("For organization ID:", organizationId);
+
 
     // Fetch the sales voucher by ID and populate the customer details
     const salesOrder = await SalesVoucher2.findOne({ 

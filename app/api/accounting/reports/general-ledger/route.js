@@ -84,7 +84,7 @@ export async function POST(request) {
     const query = {
       organizationId: orgId
     };
-    console.log('General Ledger API query:', query);
+
     
     // If account is specified, filter by that account
     if (account) {

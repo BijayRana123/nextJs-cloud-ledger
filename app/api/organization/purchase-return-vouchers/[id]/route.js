@@ -4,7 +4,7 @@ import { PurchaseReturnVoucher } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request, context) {
-  console.log('--- Purchase Return Voucher API HIT ---');
+
 
   await dbConnect();
   try {
@@ -17,7 +17,7 @@ export async function GET(request, context) {
     const id = params.id;
     // Fetch the purchase return voucher by ID and populate supplier and items.item
     const query = { _id: id };
-    console.log(id,query);
+
     if (organizationId) query.organization = organizationId;
     const purchaseReturn = await PurchaseReturnVoucher.findOne(query)
       .populate('supplier')
@@ -28,7 +28,7 @@ export async function GET(request, context) {
     }
     return NextResponse.json({ purchaseReturn }, { status: 200 });
   } catch (error) {
-    console.log(error);
+
     return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }

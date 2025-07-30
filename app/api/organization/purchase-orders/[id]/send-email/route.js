@@ -7,11 +7,7 @@ export async function POST(request, { params }) {
   try {
     const { to, replyTo, subject, body } = await request.json();
 
-    console.log(`Received request to send email for Purchase Order ID: ${id}`);
-    console.log('To:', to);
-    console.log('Reply To:', replyTo);
-    console.log('Subject:', subject);
-    console.log('Body:', body);
+
 
     // TODO: Implement actual email sending logic here
     // You would typically use a library like Nodemailer or integrate with an email service (e.g., SendGrid, Mailgun)

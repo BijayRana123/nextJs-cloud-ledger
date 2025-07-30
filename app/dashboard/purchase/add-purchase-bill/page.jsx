@@ -39,7 +39,7 @@ export function AddPurchaseBillPage() {
 
   // Log the organizationId from context whenever it changes
   useEffect(() => {
-    console.log("AddPurchaseBillPage: organizationId from context:", organizationId);
+
   }, [organizationId]);
 
 
@@ -169,7 +169,7 @@ export function AddPurchaseBillPage() {
       isImport: formData.isImport,
     };
 
-    console.log("Submitting Purchase Order:", dataToSend);
+
 
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing ? `/api/organization/purchase-orders/${purchaseOrderId}` : '/api/organization/purchase-orders';
@@ -186,7 +186,7 @@ export function AddPurchaseBillPage() {
       const result = await response.json();
 
       if (response.ok) {
-        console.log("Purchase Order saved successfully:", result.purchaseOrder);
+
         // Redirect to the purchase order detail page
         router.push(`/dashboard/purchase/purchase-orders/${result.purchaseOrder._id}`);
       } else {

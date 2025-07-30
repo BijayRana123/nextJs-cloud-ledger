@@ -137,7 +137,7 @@ export default function CreateNewProductModal({ isOpen, onClose, onProductCreate
     }
     
     // Implement API call to create new product
-    console.log("Submitting New Product:", formData);
+
 
     try {
       const headers = {
@@ -167,7 +167,7 @@ export default function CreateNewProductModal({ isOpen, onClose, onProductCreate
       const result = await response.json();
 
       if (response.ok) {
-        console.log("Product created successfully:", result.product);
+
         // Call the onProductCreated prop with the new product data from the API
         if (onProductCreated) {
           onProductCreated(result.product);

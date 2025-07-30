@@ -116,7 +116,7 @@ export default function NewJournalEntryPage() {
     }
 
     try {
-      console.log('Submitting journal voucher:', { memo, transactions });
+
       
       const response = await fetch("/api/accounting/journal-vouchers", {
         method: "POST",
@@ -128,7 +128,7 @@ export default function NewJournalEntryPage() {
 
       // Log the raw response for debugging
       const responseText = await response.text();
-      console.log('Raw response:', responseText);
+
 
       let data;
       try {

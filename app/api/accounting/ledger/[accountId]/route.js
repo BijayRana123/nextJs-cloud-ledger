@@ -163,7 +163,7 @@ export async function GET(request, { params }) {
         try {
             authResult = await protect(request);
         } catch (authError) {
-            console.log("Auth error (continuing without auth):", authError.message);
+
             // Continue without authentication for now
         }
 
@@ -217,16 +217,16 @@ export async function GET(request, { params }) {
                 const balanceResult = await book.balance(balanceQuery);
                 if (balanceResult.balance !== 0) {
                     openingBalance = balanceResult.balance;
-                    console.log(`Found opening balance ${openingBalance} for path: ${balancePath}`);
+
                     break;
                 }
             } catch (error) {
-                console.log(`Balance calculation failed for path ${balancePath}:`, error.message);
+
             }
         }
 
         // Debug: Print ChartOfAccount path and transaction query
-        console.log('ChartOfAccount path:', account.path);
+
         
         // Build possible account paths to search for
         const possiblePaths = [
@@ -250,7 +250,7 @@ export async function GET(request, { params }) {
         });
         possiblePaths.push(...capitalizedPaths);
         
-        console.log('Possible paths to search:', possiblePaths);
+
         
         // Build the main query with possible paths
         let transactionQuery = {
@@ -271,7 +271,7 @@ export async function GET(request, { params }) {
                 }).lean();
                 
                 if (customer) {
-                    console.log('Found customer:', customer.name, 'with ID:', customer._id);
+
                     
                     // Add additional query for generic Accounts Receivable transactions that have this customer ID
                     transactionQuery.$or.push({
@@ -285,9 +285,9 @@ export async function GET(request, { params }) {
                         'meta.customerId': customer._id
                     });
                     
-                    console.log('Added customer-specific query for customer:', customerName, 'with ID:', customer._id);
+
                 } else {
-                    console.log('Customer not found:', customerName);
+
                 }
             } catch (error) {
                 console.error('Error finding customer:', error);
@@ -300,45 +300,33 @@ export async function GET(request, { params }) {
         }
         if (startDate) transactionQuery.datetime = { $gte: new Date(startDate) };
         if (endDate) transactionQuery.datetime = { ...transactionQuery.datetime, $lte: new Date(endDate) };
-        console.log('Transaction query with regex patterns:', possiblePaths.map(path => `^${path}`));
+
 
         const transactionModel = mongoose.model('Medici_Transaction');
         const journalModel = mongoose.model('Medici_Journal');
         
         let transactions = await transactionModel.find(transactionQuery).sort({ datetime: 1, timestamp: 1 }).lean();
         
-        console.log(`Found ${transactions.length} transactions`);
-        if (transactions.length > 0) {
-            console.log('Sample transaction accounts:', transactions.slice(0, 3).map(tx => tx.accounts));
-        }
+
         
         // If no transactions found, let's try a broader search to see what's actually in the database
         if (transactions.length === 0) {
-            console.log('No transactions found, trying broader search...');
             const broadQuery = { organizationId: account.organization };
             const allTransactions = await transactionModel.find(broadQuery).sort({ datetime: -1 }).limit(15).lean();
-            console.log('Sample of all transactions in org (most recent first):', allTransactions.map(tx => ({ 
-                accounts: tx.accounts, 
-                amount: tx.amount, 
-                datetime: tx.datetime,
-                meta: tx.meta,
-                debit: tx.debit,
-                credit: tx.credit 
-            })));
             
             // Let's also check what customer the transactions actually belong to
             const uniqueCustomerIds = [...new Set(allTransactions
                 .filter(tx => tx.meta?.customerId)
                 .map(tx => tx.meta.customerId.toString()))];
             
-            console.log('Unique customer IDs in transactions:', uniqueCustomerIds);
+
             
             // Look up these customers
             try {
                 const Customer = mongoose.models.Customer || mongoose.model('Customer');
                 for (const customerId of uniqueCustomerIds) {
                     const customer = await Customer.findById(customerId).lean();
-                    console.log(`Customer ${customerId}:`, customer ? customer.name : 'Not found');
+
                 }
             } catch (error) {
                 console.error('Error looking up customers:', error);

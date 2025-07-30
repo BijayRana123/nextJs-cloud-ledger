@@ -46,7 +46,7 @@ export default function SalesReturnVoucherDetailPage() {
         throw new Error(`Failed to fetch sales return voucher: ${response.status}`);
       }
       const data = await response.json();
-      console.log("Sales Return Voucher Data:", data.salesReturnVoucher);
+
       setSalesReturnVoucher(data.salesReturnVoucher);
     } catch (err) {
       console.error("Error fetching sales return voucher:", err);
@@ -56,9 +56,7 @@ export default function SalesReturnVoucherDetailPage() {
     }
   };
 
-  useEffect(() => {
-    console.log("Sales Return Voucher state updated:", salesReturnVoucher);
-  }, [salesReturnVoucher]);
+
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this sales return voucher?")) {

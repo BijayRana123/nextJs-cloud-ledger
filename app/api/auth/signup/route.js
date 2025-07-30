@@ -25,7 +25,7 @@ export async function POST(req) {
       // organization will be linked in a separate step
     });
 
-    console.log('Signup API: User object created:', user); // Temporary log
+
 
     return NextResponse.json({ message: 'User created successfully', user: user._id }, { status: 201 });
 

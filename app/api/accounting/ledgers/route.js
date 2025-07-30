@@ -12,7 +12,17 @@ export async function GET(request) {
   const group = searchParams.get('group');
   const filter = { organization: orgId };
   if (group) filter.group = group;
-  const ledgers = await Ledger.find(filter).populate('group').lean();
+  
+  // Get all ledgers and filter out inventory items
+  const allLedgers = await Ledger.find(filter).populate('group').lean();
+  
+  // Filter out inventory ledgers (those with group name containing 'inventory')
+  const ledgers = allLedgers.filter(ledger => {
+    if (ledger.group && ledger.group.name) {
+      return !ledger.group.name.toLowerCase().includes('inventory');
+    }
+    return true;
+  });
 
   // Helper to build the full account path for a ledger
   function buildLedgerPath(ledger, groups) {
@@ -57,7 +67,7 @@ export async function GET(request) {
     accounts: { $regex: /Assets:Accounts Receivable:/ } 
   }).limit(3);
   if (customerTransactions.length > 0) {
-    console.log('[DEBUG] Found customer-specific transactions using customer IDs');
+
   }
 
   // Compute balances for each ledger
@@ -141,9 +151,9 @@ export async function GET(request) {
     
     // Debug for specific ledgers that should have balances
     if (balance !== 0 || ledger.name === 'barsha' || ledger.name === 'prashant' || ledger.name === 'Sales Revenue') {
-      console.log(`[BALANCE] ${ledger.name}: path="${accountPath}", transactions=${transactions.length}, balance=${balance}`);
+
       if (transactions.length > 0) {
-        console.log(`[BALANCE] Found via: ${transactions[0].accounts}`);
+
       }
     }
     return { ...ledger, path: accountPath, balance, availableStock, itemName };

@@ -19,7 +19,7 @@ async function main() {
     path: { $regex: /^(Assets:)?Accounts Receivable:/ }
   });
 
-  console.log('Found customer ChartOfAccount entries:', customerAccounts.length);
+
   let updated = 0;
   for (const account of customerAccounts) {
     const customerName = account.name;
@@ -30,11 +30,11 @@ async function main() {
         path: newPath,
         code: newPath.replace(/:/g, '')
       });
-      console.log(`Updated: ${oldPath} -> ${newPath}`);
+
       updated++;
     }
   }
-  console.log(`Done. Updated ${updated} ChartOfAccount entries.`);
+
   await mongoose.disconnect();
 }
 

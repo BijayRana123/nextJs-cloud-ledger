@@ -60,8 +60,7 @@ export default function PurchaseOrderDetailPage() {
       const result = await response.json();
 
       if (response.ok) {
-        console.log("API Response:", result);
-        console.log("Purchase Order Data:", result.purchaseOrder);
+
         setPurchaseOrder(result.purchaseOrder);
       } else {
         console.error("API Error:", result);
@@ -81,10 +80,7 @@ export default function PurchaseOrderDetailPage() {
     }
   }, [id]); // Refetch if ID changes
 
-  // Log purchaseOrder state after it's updated
-  useEffect(() => {
-    console.log("Purchase Order state updated:", purchaseOrder);
-  }, [purchaseOrder]);
+
 
   useEffect(() => {
     import('@/app/dashboard/sales/sales-vouchers-details/[id]/print/generatePdfBase64')

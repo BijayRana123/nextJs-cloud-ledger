@@ -194,7 +194,7 @@ export default function GeneralLedgerPage() {
         account: selectedAccount !== 'all' ? selectedAccount : null,
         organizationId: currentOrganization?._id || null,
       };
-      console.log('General Ledger Report Params:', reportParams);
+
 
       // Add class and subclass filters if selected
       if (selectedClass !== 'all') {

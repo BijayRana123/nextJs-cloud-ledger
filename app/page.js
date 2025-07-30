@@ -44,7 +44,7 @@ export function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Login successful:", data);
+
         // Store the JWT in the specified cookie
         // The middleware expects the token as the first element of a JSON array string
         Cookies.set('sb-mnvxxmmrlvjgpnhditxc-auth-token', JSON.stringify([data.token, null, null, null, null]), { expires: 7 }); // Store for 7 days

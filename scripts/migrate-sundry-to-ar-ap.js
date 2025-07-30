@@ -48,7 +48,7 @@ const AccountingTransaction = mongoose.model('AccountingTransaction', transactio
 
 async function migrate() {
   await mongoose.connect(MONGODB_URI);
-  console.log('Connected to MongoDB');
+
 
   // 1. Rename Ledger Groups
   const groupRenames = [
@@ -58,7 +58,7 @@ async function migrate() {
   for (const { old, new: newName } of groupRenames) {
     const group = await LedgerGroup.findOne({ name: old });
     if (group) {
-      console.log(`Renaming group '${old}' to '${newName}'`);
+
       group.name = newName;
       await group.save();
       // 2. Update Ledgers in this group
@@ -80,7 +80,7 @@ async function migrate() {
     pathParts.push(ledger.name);
     const newPath = pathParts.join(':');
     if (ledger.path !== newPath) {
-      console.log(`Updating ledger path for '${ledger.name}': '${ledger.path}' -> '${newPath}'`);
+
       await Ledger.updateOne({ _id: ledger._id }, { $set: { path: newPath } });
       // Update transactions
       await AccountingTransaction.updateMany({ account_path: ledger.path }, { $set: { account_path: newPath } });
@@ -95,13 +95,13 @@ async function migrate() {
     const affected = await ChartOfAccount.find({ path: { $regex: old } });
     for (const acc of affected) {
       const newPath = acc.path.replaceAll(old, newName);
-      console.log(`Updating ChartOfAccount path: '${acc.path}' -> '${newPath}'`);
+
       acc.path = newPath;
       await acc.save();
     }
   }
 
-  console.log('Migration complete.');
+
   await mongoose.disconnect();
 }
 

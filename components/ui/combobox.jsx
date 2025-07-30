@@ -45,9 +45,9 @@ export function Combobox({ options, value, onValueChange, placeholder = "Select 
   
   // Debug the filtering
   React.useEffect(() => {
-    console.log("Input value:", inputValue);
-    console.log("Filtered options:", filteredOptions);
-    console.log("Displayed options:", displayedOptions);
+
+
+
   }, [inputValue, filteredOptions, displayedOptions]);
   
   return (

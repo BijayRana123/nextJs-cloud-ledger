@@ -162,7 +162,7 @@ export function Sidebar() {
     {
       icon: <Package className="h-5 w-5" />,
       label: "Inventory",
-      href: "#",
+      href: "/dashboard/inventory",
     },
     {
       icon: <Settings className="h-5 w-5" />,

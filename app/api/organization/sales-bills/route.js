@@ -30,12 +30,7 @@ export async function POST(request) {
       salesBillData.referenceNo = `SB-${Date.now()}`;
     }
 
-    // Log the data being sent to the database
-    console.log("Sales Bill Data to save:", {
-      ...salesBillData,
-      organization: organizationId,
-      status: 'DRAFT'
-    });
+
 
     const newSalesBill = new SalesBill({
       ...salesBillData,
@@ -46,7 +41,7 @@ export async function POST(request) {
 
     await newSalesBill.save();
 
-    console.log("New Sales Bill saved:", newSalesBill);
+
 
     return NextResponse.json({ message: "Sales Bill created successfully", salesBill: newSalesBill }, { status: 201 });
   } catch (error) {

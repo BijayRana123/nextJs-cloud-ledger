@@ -77,7 +77,7 @@ export async function POST(request) {
 
     const savedProduct = await productToSave.save();
 
-    console.log("New product saved:", savedProduct);
+
 
     // --- Create item ledger under Inventory ---
     const { Ledger, LedgerGroup } = await import('@/lib/models');
@@ -102,35 +102,11 @@ export async function POST(request) {
     // --- End item ledger creation ---
 
     // --- Handle opening stock for Goods ---
+    // Note: We no longer create separate stock entries for opening stock
+    // The opening stock is stored directly in the item.openingStock field
+    // and is used as the starting point for stock calculations
     if (savedProduct.type === 'Goods' && savedProduct.openingStock > 0) {
-      // Find or create a default warehouse for this organization
-      let defaultWarehouse = await Warehouse.findOne({ 
-        name: 'Main Warehouse', 
-        organization: organizationId 
-      });
-      
-      if (!defaultWarehouse) {
-        defaultWarehouse = await Warehouse.create({
-          name: 'Main Warehouse',
-          location: 'Default Location',
-          organization: organizationId
-        });
-      }
 
-      // Create stock entry for opening stock
-      await StockEntry.create({
-        item: savedProduct._id,
-        warehouse: defaultWarehouse._id,
-        quantity: savedProduct.openingStock,
-        date: new Date(),
-        organization: organizationId,
-        transactionType: 'opening',
-        referenceId: savedProduct._id,
-        referenceType: 'Item',
-        notes: 'Opening stock entry'
-      });
-
-      console.log(`Created opening stock entry: ${savedProduct.openingStock} units for ${savedProduct.name}`);
     }
     // --- End opening stock handling ---
 

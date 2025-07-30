@@ -22,8 +22,8 @@ import SupplierDetailsModal from "@/components/supplier-details-modal";
 const getCookie = (name) => {
   if (typeof document === 'undefined') return null; // Ensure document is available
   
-  console.log('getCookie: Searching for cookie:', name);
-  console.log('getCookie: All cookies:', document.cookie); // Log all cookies for debugging
+
+
   
   // Standard cookie parsing approach
   const value = `; ${document.cookie}`;
@@ -33,38 +33,38 @@ const getCookie = (name) => {
     // Get the raw cookie value and decode it from URL encoding
     const rawCookieValue = parts.pop().split(';').shift();
     const cookieValue = decodeURIComponent(rawCookieValue);
-    console.log('getCookie: Found raw cookie value:', rawCookieValue);
-    console.log('getCookie: Decoded cookie value:', cookieValue);
+
+
     
     try {
       // Attempt to parse the decoded cookie value as a JSON array and get the first element
       const cookieArray = JSON.parse(cookieValue);
-      console.log('getCookie: Result of JSON.parse:', cookieArray);
+
       
       if (Array.isArray(cookieArray) && cookieArray.length > 0 && typeof cookieArray[0] === 'string') {
-        console.log('getCookie: Successfully parsed and found token.');
+
         return cookieArray[0]; // The actual JWT is the first element
       } else {
-        console.log('getCookie: Unexpected cookie value format, returning decoded value');
+
         return cookieValue; // Return the decoded value as fallback
       }
     } catch (parseError) {
-      console.log('getCookie: Error parsing JSON:', parseError);
+
       
       // Check if the value itself looks like a JWT (has two dots separating three parts)
       if (cookieValue.split('.').length === 3) {
-        console.log('getCookie: Value appears to be a JWT, returning as-is');
+
         return cookieValue;
       }
       
       // Try to extract a JWT from the string (looking for a pattern that looks like a JWT)
       const jwtMatch = cookieValue.match(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/);
       if (jwtMatch) {
-        console.log('getCookie: Found JWT pattern in string:', jwtMatch[0]);
+
         return jwtMatch[0];
       }
       
-      console.log('getCookie: Could not extract JWT, returning decoded value:', cookieValue);
+
       return cookieValue;
     }
   }
@@ -74,7 +74,7 @@ const getCookie = (name) => {
   const authCookies = allCookies.filter(c => c.includes('auth') || c.includes('token'));
   
   if (authCookies.length > 0) {
-    console.log('getCookie: No specific cookie found, but found other auth cookies:', authCookies);
+
     // You could implement fallback logic here if needed
   }
   
@@ -111,25 +111,24 @@ export default function SupplierSection({ formData, setFormData, children }) {
       try {
         // Retrieve the JWT from the cookie
         const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-        console.log("SupplierSection: authToken from cookie:", authToken ? authToken.substring(0, 20) + '...' : 'null'); // Add logging with partial token
-        console.log("SupplierSection: Type of authToken:", typeof authToken); // Add logging for type
+
         
         // For debugging: Check if the token is properly formatted
         if (authToken) {
           try {
             // Split the token to check its structure (header.payload.signature)
             const tokenParts = authToken.split('.');
-            console.log("SupplierSection: Token parts count:", tokenParts.length);
+
             
             if (tokenParts.length !== 3) {
               console.error("SupplierSection: Token does not have the expected JWT format (header.payload.signature)");
             } else {
-              console.log("SupplierSection: Token has valid JWT format with 3 parts");
+
               
               // Decode the payload (middle part) to check its content
               try {
                 const payload = JSON.parse(atob(tokenParts[1]));
-                console.log("SupplierSection: Decoded token payload:", payload);
+
               } catch (e) {
                 console.error("SupplierSection: Error decoding token payload:", e);
               }
@@ -156,8 +155,8 @@ export default function SupplierSection({ formData, setFormData, children }) {
           return;
         }
 
-        console.log("SupplierSection: Fetching suppliers with token:", authToken ? authToken.substring(0, 10) + '...' : 'null'); // Log partial token for security
-        console.log("SupplierSection: Authorization header:", `Bearer ${authToken ? authToken.substring(0, 10) + '...' : 'null'}`);
+
+
 
         const response = await fetch('/api/organization/suppliers', {
           headers: {
@@ -166,7 +165,7 @@ export default function SupplierSection({ formData, setFormData, children }) {
           },
         });
 
-        console.log("SupplierSection: Fetch response status:", response.status); // Log response status
+
         
         // If there's an error, log more details
         if (!response.ok) {
@@ -215,7 +214,7 @@ export default function SupplierSection({ formData, setFormData, children }) {
         try {
           // Retrieve the JWT from the cookie
           const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
-          console.log("SupplierDetails: Using auth token:", authToken ? authToken.substring(0, 10) + '...' : 'null');
+
           
           if (!authToken) {
             console.error("SupplierDetails: Authentication token not found in cookie.");
@@ -230,13 +229,13 @@ export default function SupplierSection({ formData, setFormData, children }) {
             },
           });
           
-          console.log("SupplierDetails: Fetch response status:", response.status);
+
           
           const result = await response.json();
           
           if (response.ok) {
             const fetchedSupplier = result.supplier;
-            console.log("SupplierDetails: Successfully fetched supplier:", fetchedSupplier.name);
+
             setSelectedSupplierDetails(fetchedSupplier);
 
             // Ensure the fetched supplier is in the combobox options
@@ -331,7 +330,7 @@ export default function SupplierSection({ formData, setFormData, children }) {
         isOpen={isNewSupplierModalOpen}
         onClose={() => setIsNewSupplierModalOpen(false)}
         onSupplierCreated={(newSupplier) => {
-          console.log("New supplier created:", newSupplier);
+
 
           const supplierId = newSupplier._id || newSupplier.id || newSupplier.code;
 

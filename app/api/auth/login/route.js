@@ -37,20 +37,20 @@ export async function POST(req) {
       },
     };
     
-    console.log('Login API: Using default organization ID:', defaultOrganizationId);
 
-    console.log('Login API: JWT_SECRET used for signing:', process.env.JWT_SECRET); // Temporary log
-    console.log('Login API: Payload to sign:', payload);
+
+
+
 
     // Ensure JWT_SECRET is a string and not undefined
     const jwtSecret = process.env.JWT_SECRET || 'fallback_secret';
-    console.log('Login API: Using JWT_SECRET:', jwtSecret);
+
 
     const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' });
     
     // Log the token format for debugging
-    console.log('Login API: Generated token format check - parts:', token.split('.').length);
-    console.log('Login API: Token preview:', token.substring(0, 20) + '...');
+
+
 
     // Set the token as a cookie that can be accessed by JavaScript
     // Store the token directly without wrapping in an array to avoid parsing issues

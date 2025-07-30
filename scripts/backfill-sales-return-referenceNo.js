@@ -21,14 +21,14 @@ async function main() {
     if (journal && journal.voucherNumber) {
       voucher.referenceNo = journal.voucherNumber;
       await voucher.save();
-      console.log(`Updated voucher ${voucher._id} with referenceNo ${journal.voucherNumber}`);
+
     } else {
       console.warn(`No journal found for voucher ${voucher._id}`);
     }
   }
 
   await mongoose.disconnect();
-  console.log('Done!');
+
 }
 
 main().catch(err => {

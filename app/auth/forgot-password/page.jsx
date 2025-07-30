@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle forgot password logic here
-    console.log("Forgot password request for:", email);
+
     // Redirect or show success message
   };
 

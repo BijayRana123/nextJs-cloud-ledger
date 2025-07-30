@@ -36,11 +36,7 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Invalid amount. Must be a positive number.' }, { status: 400 });
     }
 
-    console.log('Recording payment receipt with details:', {
-      ...paymentDetails,
-      amount,
-      organizationId
-    });
+
 
     // Fetch customer name
     const customer = await Customer.findOne({ _id: paymentDetails.customerId, organization: organizationId });

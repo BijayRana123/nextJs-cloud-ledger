@@ -86,7 +86,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
       // Retrieve the JWT from the cookie
       const authToken = getCookie('sb-mnvxxmmrlvjgpnhditxc-auth-token');
       
-      console.log("CustomerDetails: Using auth token:", authToken ? authToken.substring(0, 10) + '...' : 'null');
+
       
       // Make the API call with the authentication token
       const response = await fetch(`/api/organization/customers/${customerId}`, {
@@ -96,12 +96,12 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
         },
       });
       
-      console.log("CustomerDetails: Fetch response status:", response.status);
+
       
       if (response.ok) {
         const result = await response.json();
         const fetchedCustomer = result.customer;
-        console.log("CustomerDetails: Successfully fetched customer:", fetchedCustomer.name);
+
         setCustomerDetails(fetchedCustomer);
       } else {
         // If unauthorized, redirect to login
@@ -123,7 +123,7 @@ const CustomerSection = ({ formData, setFormData, counterType = 'sales', voucher
   };
 
   const handleCustomerCreated = (newCustomer) => {
-    console.log("New customer created:", newCustomer);
+
     
     // Format the new customer for the combobox
     const newOption = {

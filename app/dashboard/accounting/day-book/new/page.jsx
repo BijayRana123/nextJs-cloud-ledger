@@ -104,7 +104,7 @@ export default function NewJournalEntryPage() {
       updatedTransactions[index][field] = isNaN(numValue) ? '' : value;
       
       // Add debugging log for amount value
-      console.log(`Transaction amount changed: value=${value}, parsed=${numValue}, type=${typeof numValue}`);
+
     } else {
       updatedTransactions[index][field] = value;
     }
@@ -184,7 +184,7 @@ export default function NewJournalEntryPage() {
           // Ensure it's treated as a number in JSON
           numAmount = Number(numAmount.toFixed(2));
           
-          console.log(`Formatted transaction amount: ${amount} => ${numAmount} (${typeof numAmount})`);
+
         } catch (error) {
           console.error(error);
           throw new Error(`Invalid amount for ${account}: ${amount}`);
@@ -199,10 +199,8 @@ export default function NewJournalEntryPage() {
       });
       
       if (debugMode) {
-        console.log("Formatted transactions for submission:", formattedTransactions);
-        console.log("Data types:", formattedTransactions.map(t => 
-          `${t.account}: ${t.amount} (${typeof t.amount})`
-        ));
+
+
       }
       
       const response = await fetch("/api/accounting/journal-entries", {
@@ -243,7 +241,7 @@ export default function NewJournalEntryPage() {
       try {
         data = await response.json();
         if (debugMode) {
-          console.log("API success response:", data);
+
         }
       } catch (jsonError) {
         console.error("Error parsing JSON response:", jsonError);

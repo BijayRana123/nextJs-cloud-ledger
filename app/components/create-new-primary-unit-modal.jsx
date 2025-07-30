@@ -25,7 +25,7 @@ export default function CreateNewPrimaryUnitModal({ isOpen, onClose, onUnitCreat
   const handleSubmit = (e) => {
     e.preventDefault();
     // TODO: Implement API call to create new primary unit
-    console.log("Submitting New Primary Unit:", formData);
+
 
     // Mock unit data to return
     const newMockUnit = {

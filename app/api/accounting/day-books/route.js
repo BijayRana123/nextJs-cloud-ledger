@@ -75,7 +75,7 @@ export async function GET(request) {
     if (!organizationId && request.headers && request.headers.get) {
       organizationId = request.headers.get('x-organization-id');
     }
-    console.log('Day Book API: organizationId used:', organizationId);
+
 
     // Get search parameters from the request
     const { searchParams } = new URL(request.url);
@@ -89,7 +89,7 @@ export async function GET(request) {
 
     // Build query object
     const query = {}; // No filters
-    console.log('Day Book API query:', query);
+
 
     // Options for pagination
     const options = {

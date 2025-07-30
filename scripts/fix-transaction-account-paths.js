@@ -17,7 +17,7 @@ const AccountingTransaction = mongoose.model('AccountingTransaction', transactio
 
 async function fixPaths() {
   await mongoose.connect(MONGODB_URI);
-  console.log('Connected to MongoDB');
+
 
   // Update Sundry Debtors -> Accounts Receivable
   const debtors = await AccountingTransaction.find({ account_path: { $regex: 'Sundry Debtors' } });
@@ -27,7 +27,7 @@ async function fixPaths() {
     await txn.save();
     debtorsUpdated++;
   }
-  console.log(`Updated ${debtorsUpdated} transactions from Sundry Debtors to Accounts Receivable`);
+
 
   // Update Sundry Creditors -> Accounts Payable
   const creditors = await AccountingTransaction.find({ account_path: { $regex: 'Sundry Creditors' } });
@@ -37,10 +37,10 @@ async function fixPaths() {
     await txn.save();
     creditorsUpdated++;
   }
-  console.log(`Updated ${creditorsUpdated} transactions from Sundry Creditors to Accounts Payable`);
+
 
   await mongoose.disconnect();
-  console.log('Done.');
+
 }
 
 fixPaths().catch(err => {

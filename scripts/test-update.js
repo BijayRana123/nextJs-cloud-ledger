@@ -7,7 +7,7 @@ const result = await SalesVoucher2.updateOne(
   { _id: id },
   { salesVoucherNumber: 'SV-TEST-FINAL' }
 );
-console.log('Result:', result);
+
 const doc = await SalesVoucher2.findById(id);
-console.log('Doc:', doc);
+
 await mongoose.disconnect();

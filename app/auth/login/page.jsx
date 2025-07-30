@@ -49,14 +49,14 @@ export function LoginPage() {
 
       if (response.ok) {
         // Login successful
-        console.log("Login successful:", result);
+
         
         // The cookie is set by the server in the login API response
         // We don't need to set it client-side with js-cookie
         
         // Just verify that we received a token in the response
         if (result.token) {
-          console.log("LoginPage: Auth token received from server:", result.token.substring(0, 10) + "..."); // Log partial token for security
+
           
           // For debugging: Check if the token is properly formatted
           try {
@@ -65,37 +65,37 @@ export function LoginPage() {
             if (tokenParts.length !== 3) {
               console.error("LoginPage: Token does not have the expected JWT format (header.payload.signature)");
             } else {
-              console.log("LoginPage: Token has valid JWT format with 3 parts");
+
               
               // Decode the payload (middle part) to check its content
               const payload = JSON.parse(atob(tokenParts[1]));
-              console.log("LoginPage: Decoded token payload:", payload);
+
             }
           } catch (e) {
             console.error("LoginPage: Error analyzing token format:", e);
           }
         } else if (result.authToken) {
-          console.log("LoginPage: Auth token received from server (authToken field):", result.authToken.substring(0, 10) + "...");
+
         } else {
           console.error("LoginPage: No token found in login response:", result);
         }
         
         // Verify that the cookie was set by the server
-        console.log("LoginPage: Cookies after login:", document.cookie);
+
         
         if (result.organizationId) {
           localStorage.setItem('organizationId', result.organizationId); // Keep organizationId in local storage
-          console.log("LoginPage: Organization ID stored in localStorage:", result.organizationId);
+
         }
 
         // Check if there's a returnUrl in the query parameters
         const returnUrl = searchParams.get('returnUrl');
         
         if (returnUrl) {
-          console.log("LoginPage: Redirecting to return URL:", returnUrl);
+
           router.push(returnUrl); // Redirect back to the original page
         } else {
-          console.log("LoginPage: No return URL found, redirecting to default page");
+
           // Redirect to the appropriate page (e.g., dashboard or organization setup)
           router.push('/onboarding/org-setup');
         }

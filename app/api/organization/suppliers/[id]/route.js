@@ -30,13 +30,12 @@ export async function GET(req, context) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
     
-    console.log(`Supplier API: Using organization ID: ${organizationId}`);
+
 
     // Get the supplier ID from the URL parameters after awaiting params
     const supplierId = params.id;
     
-    // Log for debugging
-    console.log(`Fetching supplier with ID: ${supplierId} for organization: ${organizationId}`);
+
 
     // Find the supplier by ID and organization ID
     const supplier = await Supplier.findOne({ _id: supplierId, organization: organizationId });

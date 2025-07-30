@@ -216,7 +216,7 @@ function Step3({ onBack, onNext, phoneNumber, setPhoneNumber, orgEmail, setOrgEm
 function Step4({ onBack, onSubmit, referralCode, setReferralCode, loading }) {
   const handleSubmitClick = () => {
     // Simulate submission with referral code
-    console.log("Submitting organization setup with referral code:", referralCode);
+
     onSubmit(referralCode); // Call the parent onSubmit with referral code
   };
 
@@ -296,7 +296,7 @@ export default function OrgSetupPage() {
   };
 
   const handleSubmit = async () => { // Make handleSubmit async
-    console.log("Frontend: handleSubmit called"); // Add this log
+
     setError(null); // Clear previous errors
     setLoading(true); // Set loading to true
 
@@ -316,8 +316,7 @@ export default function OrgSetupPage() {
       referralCode,
     };
 
-    console.log("Submitting organization setup...", organizationData); // Log data being sent
-    console.log("Frontend: Request body being sent:", JSON.stringify(organizationData)); // Log the stringified body
+
 
     try {
       // Call the backend API to create and link the organization
@@ -334,7 +333,7 @@ export default function OrgSetupPage() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Organization setup successful:", data);
+
         // Store the new organization ID in local storage
         if (data.organizationId) { // Assuming the API returns the new organization ID as 'organizationId'
           // Clear any existing organization IDs first

@@ -36,7 +36,7 @@ export default function SelectOrganizationPage() {
   }, []);
 
   const handleSelectOrganization = async (orgId) => {
-    console.log('Frontend: handleSelectOrganization called with orgId:', orgId); // Add this log
+
     try {
       const res = await fetch('/api/user/switch-organization', {
         method: 'POST',

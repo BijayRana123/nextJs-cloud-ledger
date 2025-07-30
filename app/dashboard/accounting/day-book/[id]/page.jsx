@@ -41,7 +41,7 @@ export default function JournalEntryDetailPage({ params }) {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching journal entry with ID:", entryId);
+
         const response = await fetch(`/api/accounting/journal-entries/${entryId}`);
         
         if (!response.ok) {
@@ -49,17 +49,13 @@ export default function JournalEntryDetailPage({ params }) {
         }
         
         const data = await response.json();
-        console.log("Journal entry data:", data);
+
         
         if (data.journalEntry) {
           // Ensure all transaction amounts exist and are numbers
           if (data.journalEntry.transactions) {
             data.journalEntry.transactions = data.journalEntry.transactions.map(transaction => {
-              // Log the original transaction amount for debugging
-              console.log(`Transaction ${transaction._id} original amount:`, {
-                amount: transaction.amount,
-                type: typeof transaction.amount
-              });
+
               
               // Parse amount to ensure it's a proper number
               let numAmount;
@@ -81,7 +77,7 @@ export default function JournalEntryDetailPage({ params }) {
               }
               
               // Log the processed amount for debugging
-              console.log(`Transaction ${transaction._id} processed amount: ${numAmount} (${typeof numAmount})`);
+
               
               return {
                 ...transaction,
@@ -90,12 +86,7 @@ export default function JournalEntryDetailPage({ params }) {
               };
             });
             
-            // Log all processed transactions
-            console.log('All processed transactions:', data.journalEntry.transactions.map(t => ({
-              id: t._id,
-              amount: t.amount,
-              type: typeof t.amount
-            })));
+
           }
           
           setJournalEntry(data.journalEntry);

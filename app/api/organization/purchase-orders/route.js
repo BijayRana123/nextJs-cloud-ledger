@@ -44,11 +44,7 @@ export async function POST(request) {
       purchaseOrderData.referenceNo = `PV-${Date.now()}`;
     }
 
-    // Log the data being sent to the database
-    console.log("Purchase Order Data to save:", {
-      ...purchaseOrderData,
-      organization: organizationId,
-    });
+
 
     // Save dueDate and supplierBillNo if provided, always set them
     const newPurchaseOrder = new PurchaseOrder({
@@ -71,7 +67,7 @@ export async function POST(request) {
     // Fetch the updated purchase order
     const updatedPurchaseOrder = await PurchaseOrder.findById(newPurchaseOrder._id).populate('supplier');
 
-    console.log("New Purchase Order saved:", newPurchaseOrder);
+
 
     return NextResponse.json({ message: "Purchase Order created successfully", purchaseOrder: updatedPurchaseOrder }, { status: 201 });
   } catch (error) {

@@ -55,9 +55,7 @@ export default function SalesVoucherDetailPage() {
     }
   };
 
-  useEffect(() => {
-    console.log("Sales Voucher state updated:", salesVoucher);
-  }, [salesVoucher]);
+
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this sales voucher?")) {

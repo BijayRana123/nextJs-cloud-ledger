@@ -20,7 +20,7 @@ export async function POST(request) {
             path: { $regex: /^Assets:[^:]+$/ } // Paths like "Assets:Susmita"
         });
 
-        console.log('Found customer accounts to fix:', customerAccounts.length);
+
 
         const results = [];
         for (const account of customerAccounts) {
@@ -30,7 +30,7 @@ export async function POST(request) {
             
             // Only update if the path is not already correct
             if (oldPath !== newPath) {
-                console.log(`Fixing account: ${oldPath} -> ${newPath}`);
+
                 // Update the account path
                 await ChartOfAccount.findByIdAndUpdate(account._id, {
                     path: newPath,

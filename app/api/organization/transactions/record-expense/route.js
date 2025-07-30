@@ -33,11 +33,7 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Invalid amount. Must be a positive number.' }, { status: 400 });
     }
 
-    console.log('Recording expense with details:', {
-      ...expenseDetails,
-      amount,
-      organizationId
-    });
+
 
     // Create the accounting entry with the validated data
     await createExpenseEntry({

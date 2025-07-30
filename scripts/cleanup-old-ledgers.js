@@ -5,8 +5,8 @@ import mongoose from 'mongoose';
 import { Ledger, LedgerGroup } from '../lib/models.js';
 import AccountingTransaction from '../lib/models/AccountingTransaction.js';
 
-console.log('MONGODB_URI:', process.env.MONGODB_URI);
-console.log('ORG_ID:', process.env.ORG_ID);
+
+
 // List of old account paths to remove (as provided by user)
 const OLD_PATHS = [
   'Assets:Current Assets:Accounts Receivable',
@@ -84,11 +84,11 @@ async function main() {
   const groupDeleteResult = await LedgerGroup.deleteMany({ _id: { $in: groupIds } });
 
   // 6. Log results
-  console.log('Deleted ledgers:', ledgerPathsToDelete);
-  console.log('Deleted groups:', groupPathsToDelete);
-  console.log('Deleted', txnDeleteResult.deletedCount, 'transactions.');
-  console.log('Deleted', ledgerDeleteResult.deletedCount, 'ledgers.');
-  console.log('Deleted', groupDeleteResult.deletedCount, 'groups.');
+
+
+
+
+
 
   process.exit(0);
 }

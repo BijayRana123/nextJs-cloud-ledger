@@ -39,7 +39,7 @@ export async function GET(request) {
         balance -= txn.amount;
       }
     }
-    console.log('Ledger:', ledger.name, 'Path:', accountPath, 'Balance:', balance);
+
     return { ...ledger, path: accountPath, balance };
   }));
 
@@ -51,9 +51,9 @@ export async function GET(request) {
     const childLedgers = ledgersWithBalances.filter(l => l.path && l.path.startsWith(groupPath + ':'));
     const groupBalance = childLedgers.reduce((sum, l) => sum + (l.balance || 0), 0);
     groupBalances[group._id] = groupBalance;
-    console.log('Group:', group.name, 'ID:', group._id, 'Balance:', groupBalance, 'Child ledgers:', childLedgers.map(l => l.name));
+
   }
-  console.log('Final groupBalances:', groupBalances);
+
 
   // Return both groups (with balances) and ledgers with balances for frontend rendering
   return NextResponse.json({ success: true, groups: groups.map(g => ({ ...g, balance: groupBalances[g._id] || 0 })), ledgers: ledgersWithBalances });

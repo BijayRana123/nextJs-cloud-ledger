@@ -30,7 +30,7 @@ async function backfillJournalVoucherLinks() {
         { _id: journal._id },
         { $set: { 'meta.salesVoucherId': salesVoucher._id } }
       );
-      console.log(`Linked journal ${journal._id} to SalesVoucher ${salesVoucher._id}`);
+
       updatedCount++;
       found = true;
       continue;
@@ -42,7 +42,7 @@ async function backfillJournalVoucherLinks() {
         { _id: journal._id },
         { $set: { 'meta.paymentVoucherId': paymentVoucher._id } }
       );
-      console.log(`Linked journal ${journal._id} to PaymentVoucher ${paymentVoucher._id}`);
+
       updatedCount++;
       found = true;
       continue;
@@ -54,7 +54,7 @@ async function backfillJournalVoucherLinks() {
         { _id: journal._id },
         { $set: { 'meta.invoiceId': invoice._id } }
       );
-      console.log(`Linked journal ${journal._id} to Invoice ${invoice._id}`);
+
       updatedCount++;
       found = true;
       continue;
@@ -66,7 +66,7 @@ async function backfillJournalVoucherLinks() {
         { _id: journal._id },
         { $set: { 'meta.creditNoteId': creditNote._id } }
       );
-      console.log(`Linked journal ${journal._id} to CreditNote ${creditNote._id}`);
+
       updatedCount++;
       found = true;
       continue;
@@ -78,17 +78,17 @@ async function backfillJournalVoucherLinks() {
         { _id: journal._id },
         { $set: { 'meta.paymentId': payment._id } }
       );
-      console.log(`Linked journal ${journal._id} to Payment ${payment._id}`);
+
       updatedCount++;
       found = true;
       continue;
     }
     if (!found) {
       notFoundCount++;
-      console.log(`No voucher found for journal ${journal._id} (voucherNumber: ${voucherNumber})`);
+
     }
   }
-  console.log(`\nBackfill complete. Updated: ${updatedCount}, Not found: ${notFoundCount}, Total processed: ${total}`);
+
   await mongoose.disconnect();
 }
 

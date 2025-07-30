@@ -22,9 +22,9 @@ async function backfillJournalVoucherNumbers() {
       { $set: { voucherNumber } }
     );
     updatedCount++;
-    console.log(`Updated journal ${journal._id} with voucherNumber ${voucherNumber}`);
+
   }
-  console.log(`Backfill complete. Updated ${updatedCount} journal entries.`);
+
   await mongoose.disconnect();
 }
 

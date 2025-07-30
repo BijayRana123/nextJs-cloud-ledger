@@ -88,7 +88,7 @@ export default function CreateNewSupplierModal({ isOpen, onClose, onSupplierCrea
 
       if (response.ok) {
         // Supplier created successfully
-        console.log("Supplier saved successfully:", result.supplier);
+
         // Call the callback function with the new supplier data
         if (onSupplierCreated) {
           onSupplierCreated(result.supplier); // Pass the entire supplier object

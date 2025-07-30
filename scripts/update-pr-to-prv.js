@@ -11,7 +11,7 @@ const db = mongoose.connection;
 
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', async () => {
-  console.log('Connected to MongoDB');
+
 
   try {
     // Update all purchase return vouchers with referenceNo starting with 'PR-'
@@ -27,11 +27,11 @@ db.once('open', async () => {
         }
       ]
     );
-    console.log(`Updated ${result.modifiedCount} purchase return vouchers.`);
+
   } catch (error) {
     console.error('Error updating purchase return vouchers:', error);
   } finally {
     await mongoose.connection.close();
-    console.log('MongoDB connection closed');
+
   }
 }); 

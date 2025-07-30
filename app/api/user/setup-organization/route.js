@@ -14,7 +14,7 @@ export async function POST(req) {
 
   try {
     const requestBody = await req.json(); // Get the entire request body
-    console.log('Setup Org API: Received request body:', requestBody); // Log the received body
+
 
     const { organizationName } = requestBody; // Get organizationName from the logged body
 

@@ -24,7 +24,7 @@ export default function EditLedgerPage() {
       if (!currentOrganization || !currentOrganization._id) return;
       setLoading(true);
       try {
-        console.log('Fetching ledger:', id, 'for org:', currentOrganization._id);
+
         const [ledgerRes, groupRes] = await Promise.all([
           fetch(`/api/accounting/ledgers/${id}`, {
             headers: { 'x-organization-id': currentOrganization._id },
@@ -42,11 +42,11 @@ export default function EditLedgerPage() {
           setOpeningBalance(ledgerData.ledger.openingBalance || 0);
           setGroups(groupData.groups);
         } else {
-          console.log('Ledger API error:', ledgerData, 'Group API error:', groupData);
+
           setError(ledgerData.error || groupData.error || "Failed to fetch data");
         }
       } catch (e) {
-        console.log('Fetch exception:', e);
+
         setError("Failed to fetch data");
       } finally {
         setLoading(false);

@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useRouter } from 'next/navigation';
 import { getCookie } from '@/lib/utils';
-import CustomerSection from "@/app/components/sales/customer-section";
-import ItemsSection from "@/app/components/sales/items-section";
-import CalculationSection from "@/app/components/sales/calculation-section";
-import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/app/components/sales/items-section";
+import CustomerSection from "@/components/sales/customer-section";
+import ItemsSection from "@/components/sales/items-section";
+import CalculationSection from "@/components/sales/calculation-section";
+import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/sales/items-section";
 import { Printer, FileEdit, Trash2, CheckCircle, Mail, MoreVertical, FileSpreadsheet, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 import SalesVoucherExcelDownload from "@/components/sales/SalesVoucherExcelDownload";
 import SalesVoucherPdfDownload from "@/components/sales/SalesVoucherPdfDownload";
 
@@ -54,7 +54,7 @@ export default function SalesOrderDetailPage() {
       }
 
       const data = await response.json();
-      console.log("Sales Order Data:", data.salesOrder);
+
       setSalesOrder(data.salesOrder);
     } catch (err) {
       console.error("Error fetching sales order:", err);
@@ -64,10 +64,7 @@ export default function SalesOrderDetailPage() {
     }
   };
 
-  // Log salesOrder state after it's updated
-  useEffect(() => {
-    console.log("Sales Order state updated:", salesOrder);
-  }, [salesOrder]);
+
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this sales order?")) {
