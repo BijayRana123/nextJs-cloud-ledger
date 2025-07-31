@@ -69,12 +69,12 @@ export async function POST(request) {
 
 
 
-    return NextResponse.json({ message: "Purchase Order created successfully", purchaseOrder: updatedPurchaseOrder }, { status: 201 });
+    return NextResponse.json({ message: "Purchase Voucher created successfully", purchaseOrder: updatedPurchaseOrder }, { status: 201 });
   } catch (error) {
     console.error("Error creating purchase order:", error);
     
     // Provide more detailed error message
-    let errorMessage = "Failed to create purchase order";
+    let errorMessage = "Failed to create purchase voucher";
     
     // Check if it's a validation error
     if (error.name === 'ValidationError') {

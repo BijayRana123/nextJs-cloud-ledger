@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
-import { Item, StockEntry, SalesVoucher2, PurchaseOrder, SalesReturnVoucher } from '@/lib/models';
+import { Item, StockEntry, SalesVoucher2, PurchaseOrder, SalesReturnVoucher, PurchaseReturnVoucher } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request, { params }) {
@@ -128,15 +128,19 @@ export async function GET(request, { params }) {
         case 'purchase':
           transactionType = 'Purchase';
           description = 'Stock purchased from supplier';
-          reference = 'Purchase Order';
+          reference = 'Purchase Voucher';
           
-          // Fetch actual purchase order to get the real voucher number
+          // Fetch actual purchase order to get the real voucher number and supplier name
           if (entry.referenceId) {
             try {
-              const purchaseOrder = await PurchaseOrder.findById(entry.referenceId).lean();
-              if (purchaseOrder && purchaseOrder.purchaseOrderNumber) {
-                reference = purchaseOrder.purchaseOrderNumber;
-                description = `Stock purchased from supplier (${reference})`;
+              const purchaseOrder = await PurchaseOrder.findById(entry.referenceId)
+                .populate('supplier', 'name')
+                .lean();
+              if (purchaseOrder) {
+                // Use referenceNo (PV-) instead of purchaseOrderNumber (PO-)
+                reference = purchaseOrder.referenceNo || purchaseOrder.purchaseOrderNumber || 'Purchase Voucher';
+                const supplierName = purchaseOrder.supplier?.name || 'Unknown Supplier';
+                description = `Stock purchased from ${supplierName}`;
               }
             } catch (err) {
               console.error('Error fetching purchase order:', err);
@@ -164,7 +168,23 @@ export async function GET(request, { params }) {
         case 'purchase_return':
           transactionType = 'Purchase Return';
           description = 'Stock returned to supplier';
-          reference = entry.referenceId ? `PR-${entry.referenceId.toString().slice(-6)}` : 'Purchase Return';
+          reference = 'Purchase Return';
+          
+          // Fetch actual purchase return voucher to get the real voucher number
+          if (entry.referenceId) {
+            try {
+              const purchaseReturn = await PurchaseReturnVoucher.findById(entry.referenceId)
+                .populate('supplier', 'name')
+                .lean();
+              if (purchaseReturn) {
+                reference = purchaseReturn.referenceNo || 'Purchase Return';
+                const supplierName = purchaseReturn.supplier?.name || 'Unknown Supplier';
+                description = `Stock returned to ${supplierName}`;
+              }
+            } catch (err) {
+              console.error('Error fetching purchase return voucher:', err);
+            }
+          }
           break;
         case 'adjustment':
         default:
@@ -184,7 +204,8 @@ export async function GET(request, { params }) {
         quantityOut,
         balance: currentStock,
         warehouse: entry.warehouse?.name || 'Main Warehouse',
-        notes: entry.notes
+        notes: entry.notes,
+        referenceId: entry.referenceId
       };
     }));
 

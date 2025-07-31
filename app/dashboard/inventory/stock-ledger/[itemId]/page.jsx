@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrganization } from '@/lib/context/OrganizationContext';
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function StockLedgerPage() {
   const { itemId } = useParams();
+  const router = useRouter();
   const { currentOrganization } = useOrganization();
   const [item, setItem] = useState(null);
   const [stockMovements, setStockMovements] = useState([]);
@@ -47,6 +48,29 @@ export default function StockLedgerPage() {
     
     fetchStockLedger();
   }, [itemId, currentOrganization]);
+
+  const handleRowClick = (movement) => {
+    if (!movement.referenceId) return;
+    
+    // Navigate to the appropriate detail page based on transaction type
+    switch (movement.transactionType) {
+      case 'Purchase':
+        router.push(`/dashboard/purchase/purchase-bills/${movement.referenceId}`);
+        break;
+      case 'Sales':
+        router.push(`/dashboard/sales/sales-vouchers/${movement.referenceId}`);
+        break;
+      case 'Purchase Return':
+        router.push(`/dashboard/purchase/purchase-return-vouchers/${movement.referenceId}`);
+        break;
+      case 'Sales Return':
+        router.push(`/dashboard/sales/sales-return-vouchers/${movement.referenceId}`);
+        break;
+      default:
+        // For other transaction types, don't navigate
+        break;
+    }
+  };
 
   const getTransactionTypeBadge = (type) => {
     const variants = {
@@ -147,7 +171,11 @@ export default function StockLedgerPage() {
                       </TableRow>
                     ) : (
                       stockMovements.map((movement, idx) => (
-                        <TableRow key={idx} className="hover:bg-gray-50">
+                        <TableRow 
+                          key={idx} 
+                          className={`hover:bg-gray-50 ${movement.referenceId ? 'cursor-pointer' : ''}`}
+                          onClick={() => handleRowClick(movement)}
+                        >
                           <TableCell>
                             {new Date(movement.date).toLocaleDateString()}
                           </TableCell>

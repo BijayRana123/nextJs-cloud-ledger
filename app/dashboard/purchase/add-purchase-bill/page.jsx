@@ -190,11 +190,11 @@ export function AddPurchaseBillPage() {
         // Redirect to the purchase order detail page
         router.push(`/dashboard/purchase/purchase-orders/${result.purchaseOrder._id}`);
       } else {
-        console.error("Error saving Purchase Order:", result.message);
+        console.error("Error saving Purchase Voucher:", result.message);
         // TODO: Display an error message to the user
       }
     } catch (error) {
-      console.error("Error saving Purchase Order:", error);
+      console.error("Error saving Purchase Voucher:", error);
       // TODO: Display a generic error message to the user
     }
   };

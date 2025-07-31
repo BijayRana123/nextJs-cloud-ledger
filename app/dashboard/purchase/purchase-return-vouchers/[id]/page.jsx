@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams, useRouter } from 'next/navigation';
 import { getCookieValue } from '@/utils/getCookieValue';
-import SupplierSection from "@/app/components/purchase/supplier-section";
+import SupplierSection from "@/components/purchase/supplier-section";
 import { CustomTable, CustomTableHeader, CustomTableBody, CustomTableRow, CustomTableHead, CustomTableCell } from "@/components/ui/CustomTable";
 import { Printer, FileEdit, Trash2, CheckCircle, MoreVertical, Mail, FileSpreadsheet, FileText } from "lucide-react";
 import PurchaseReturnExcelDownload from "@/components/purchase/PurchaseReturnExcelDownload";
 import PurchaseReturnPdfDownload from "@/components/purchase/PurchaseReturnPdfDownload";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 
 export default function PurchaseReturnVoucherDetailPage() {
   const { id } = useParams();

@@ -80,7 +80,7 @@ async function handleInventoryItemLedger(account, startDate, endDate) {
                 case 'purchase':
                     transactionType = 'Purchase';
                     description = 'Stock purchased from supplier';
-                    reference = entry.referenceId ? `PO-${entry.referenceId.toString().slice(-6)}` : 'Purchase Order';
+                    reference = entry.referenceId ? `PV-${entry.referenceId.toString().slice(-6)}` : 'Purchase Voucher';
                     break;
                 case 'sales_return':
                     transactionType = 'Sales Return';
@@ -233,6 +233,8 @@ export async function GET(request, { params }) {
             account.path, // Original path from ChartOfAccount
             `Assets:${account.path}`, // Full path with Assets prefix
             `Assets:Current Assets:${account.path}`, // Full path with Current Assets
+            `Liabilities:${account.path}`, // Full path with Liabilities prefix
+            `Liabilities:Current Liabilities:${account.path}`, // Full path with Current Liabilities
         ];
         
         // If the path already starts with Assets, also try without it
@@ -241,6 +243,14 @@ export async function GET(request, { params }) {
             possiblePaths.push(pathWithoutAssets);
             const pathWithoutCurrentAssets = account.path.replace(/^Assets:Current Assets:/, '');
             possiblePaths.push(pathWithoutCurrentAssets);
+        }
+        
+        // If the path already starts with Liabilities, also try without it
+        if (account.path.startsWith('Liabilities:')) {
+            const pathWithoutLiabilities = account.path.replace(/^Liabilities:/, '');
+            possiblePaths.push(pathWithoutLiabilities);
+            const pathWithoutCurrentLiabilities = account.path.replace(/^Liabilities:Current Liabilities:/, '');
+            possiblePaths.push(pathWithoutCurrentLiabilities);
         }
         
         // Also add capitalized versions (since standardizeAccountName capitalizes names)
@@ -252,9 +262,9 @@ export async function GET(request, { params }) {
         
 
         
-        // Build the main query with possible paths
+        // Build the main query with possible paths (case-insensitive)
         let transactionQuery = {
-            $or: possiblePaths.map(path => ({ accounts: new RegExp(`^${path}`) }))
+            $or: possiblePaths.map(path => ({ accounts: new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }))
         };
         
         // If this is a customer account (Accounts Receivable), also search for generic AR transactions with customer metadata
@@ -294,6 +304,44 @@ export async function GET(request, { params }) {
             }
         }
         
+        // If this is a supplier account (Accounts Payable), also search for generic AP transactions with supplier metadata
+        if (account.path.includes('Accounts Payable:')) {
+            const supplierName = account.path.split(':').pop(); // Get the supplier name from the path
+            console.log(`DEBUG: Supplier account detected. Path: ${account.path}, Supplier name: ${supplierName}`);
+            
+            // We need to find the actual supplier ID from the supplier name
+            // First, let's try to find the supplier by name
+            try {
+                const Supplier = mongoose.models.Supplier || mongoose.model('Supplier');
+                const supplier = await Supplier.findOne({ 
+                    name: supplierName, 
+                    organization: account.organization 
+                }).lean();
+                
+                if (supplier) {
+                    console.log(`DEBUG: Supplier found: ${supplier._id}`);
+                    
+                    // Add additional query for generic Accounts Payable transactions that have this supplier ID
+                    transactionQuery.$or.push({
+                        accounts: new RegExp('^Liabilities:Accounts Payable$', 'i'),
+                        'meta.supplierId': supplier._id
+                    });
+                    
+                    // Also try with exact string match for the account
+                    transactionQuery.$or.push({
+                        accounts: 'Liabilities:Accounts Payable',
+                        'meta.supplierId': supplier._id
+                    });
+                    
+                    console.log(`DEBUG: Added supplier queries to transaction search`);
+                } else {
+                    console.log(`DEBUG: Supplier not found for name: ${supplierName}`);
+                }
+            } catch (error) {
+                console.error('Error finding supplier:', error);
+            }
+        }
+        
         // If organizationId is available, include it in the query
         if (account.organization) {
             transactionQuery.organizationId = account.organization;
@@ -305,14 +353,24 @@ export async function GET(request, { params }) {
         const transactionModel = mongoose.model('Medici_Transaction');
         const journalModel = mongoose.model('Medici_Journal');
         
+        console.log(`DEBUG: Transaction query:`, JSON.stringify(transactionQuery, null, 2));
+        
         let transactions = await transactionModel.find(transactionQuery).sort({ datetime: 1, timestamp: 1 }).lean();
+        
+        console.log(`DEBUG: Found ${transactions.length} transactions for account ${account.path}`);
         
 
         
         // If no transactions found, let's try a broader search to see what's actually in the database
         if (transactions.length === 0) {
+            console.log(`DEBUG: No transactions found, doing broader search...`);
             const broadQuery = { organizationId: account.organization };
             const allTransactions = await transactionModel.find(broadQuery).sort({ datetime: -1 }).limit(15).lean();
+            
+            console.log(`DEBUG: Found ${allTransactions.length} total transactions in organization`);
+            allTransactions.forEach((tx, idx) => {
+                console.log(`DEBUG: Transaction ${idx + 1}: accounts=${tx.accounts}, meta.supplierId=${tx.meta?.supplierId}, meta.customerId=${tx.meta?.customerId}`);
+            });
             
             // Let's also check what customer the transactions actually belong to
             const uniqueCustomerIds = [...new Set(allTransactions

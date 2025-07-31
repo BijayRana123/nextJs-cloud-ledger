@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrganization } from '@/lib/context/OrganizationContext';
 
 export default function LedgerDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const { currentOrganization } = useOrganization();
   const [ledger, setLedger] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -58,6 +59,21 @@ export default function LedgerDetailPage() {
     fetchLedgerAndTransactions();
   }, [id, currentOrganization]);
 
+  const handleRowClick = (row) => {
+    if (!row.referenceId || !row.meta) return;
+    
+    // Navigate based on the transaction metadata
+    if (row.meta.purchaseVoucherId) {
+      router.push(`/dashboard/purchase/purchase-bills/${row.meta.purchaseVoucherId}`);
+    } else if (row.meta.salesVoucherId) {
+      router.push(`/dashboard/sales/sales-vouchers/${row.meta.salesVoucherId}`);
+    } else if (row.meta.purchaseReturnId) {
+      router.push(`/dashboard/purchase/purchase-return-vouchers/${row.meta.purchaseReturnId}`);
+    } else if (row.meta.salesReturnId) {
+      router.push(`/dashboard/sales/sales-return-vouchers/${row.meta.salesReturnId}`);
+    }
+  };
+
   // Calculate running balance for regular accounts or stock for inventory items
   let runningBalance = ledger?.openingBalance || 0;
   const rows = [];
@@ -88,6 +104,8 @@ export default function LedgerDetailPage() {
         debit: debit ? debit.toFixed(2) : '',
         credit: credit ? credit.toFixed(2) : '',
         balance: runningBalance.toFixed(2),
+        meta: tx.meta || {},
+        referenceId: tx._id,
       });
     });
   }
@@ -167,7 +185,11 @@ export default function LedgerDetailPage() {
                     </TableRow>
                   ) : (
                     rows.map((row, idx) => (
-                      <TableRow key={idx}>
+                      <TableRow 
+                        key={idx}
+                        className={`hover:bg-gray-50 ${row.meta && Object.keys(row.meta).length > 0 ? 'cursor-pointer' : ''}`}
+                        onClick={() => handleRowClick(row)}
+                      >
                         <TableCell>{row.date}</TableCell>
                         <TableCell>{row.reference}</TableCell>
                         <TableCell>{row.description}</TableCell>

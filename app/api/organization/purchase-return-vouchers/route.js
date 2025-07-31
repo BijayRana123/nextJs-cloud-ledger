@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { PurchaseReturnVoucher, Organization } from '@/lib/models';
+import { PurchaseReturnVoucher, Organization, StockEntry, Warehouse } from '@/lib/models';
 import { protect } from '@/lib/middleware/auth';
 import { createPurchaseReturnEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
@@ -65,6 +65,43 @@ export async function POST(request) {
       createdAt: new Date()
     });
     await newPurchaseReturn.save();
+    
+    
+    // Create stock entries for each item in the purchase return
+    if (newPurchaseReturn.items && newPurchaseReturn.items.length > 0) {
+      // Find or create default warehouse
+      let defaultWarehouse = await Warehouse.findOne({ 
+        name: 'Main Warehouse', 
+        organization: organizationId 
+      });
+      
+      if (!defaultWarehouse) {
+        defaultWarehouse = await Warehouse.create({
+          name: 'Main Warehouse',
+          location: 'Default Location',
+          organization: organizationId
+        });
+      }
+
+      for (const item of newPurchaseReturn.items) {
+        try {
+          await StockEntry.create({
+            item: item.item,
+            warehouse: defaultWarehouse._id,
+            quantity: -Math.abs(item.quantity), // Negative quantity for return
+            transactionType: 'purchase_return',
+            referenceId: newPurchaseReturn._id,
+            date: newPurchaseReturn.date || new Date(),
+            organization: organizationId,
+            notes: `Purchase return - ${newPurchaseReturn.referenceNo}`
+          });
+        } catch (stockError) {
+          console.error('Error creating stock entry for purchase return:', stockError);
+          // Don't fail the entire transaction for stock errors
+        }
+      }
+    }
+    
     // Fetch organization name using organizationId
     const orgDoc = await Organization.findById(organizationId);
     if (!orgDoc) {

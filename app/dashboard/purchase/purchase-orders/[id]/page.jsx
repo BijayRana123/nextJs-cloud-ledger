@@ -1,5 +1,5 @@
 "use client";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,9 +13,9 @@ import { getCookie } from '@/lib/utils';
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from "@/components/ui/CustomTable";
 
 // Import components that might be reused for display
-import SupplierSection from "@/app/components/purchase/supplier-section";
-import ItemsSection from "@/app/components/purchase/items-section";
-import CalculationSection from "@/app/components/purchase/calculation-section";
+import SupplierSection from "@/components/purchase/supplier-section";
+import ItemsSection from "@/components/purchase/items-section";
+import CalculationSection from "@/components/purchase/calculation-section";
 import { useCalendar } from "@/lib/context/CalendarContext";
 import { Printer, FileEdit, Trash2, CheckCircle, Mail, MoreVertical, FileSpreadsheet, FileText } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -83,7 +83,7 @@ export default function PurchaseOrderDetailPage() {
 
 
   useEffect(() => {
-    import('@/app/dashboard/sales/sales-vouchers-details/[id]/print/generatePdfBase64')
+    import('@/dashboard/sales/sales-vouchers-details/[id]/print/generatePdfBase64')
       .then(module => setGeneratePdfBase64(() => module.generatePdfBase64))
       .catch(error => console.error('Failed to load PDF generation module:', error));
   }, []);

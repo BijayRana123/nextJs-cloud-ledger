@@ -141,6 +141,52 @@ export async function GET(request) {
       }
     }
     
+    // For supplier ledgers, also try to find transactions using supplier ID and case variations
+    if (accountPath.includes("Liabilities:Accounts Payable:") && transactions.length === 0) {
+      const supplierName = accountPath.split(":").pop(); // Get the last part (supplier name)
+      
+      // Try to find the supplier by name (case-insensitive)
+      const Supplier = mongoose.models.Supplier || mongoose.model('Supplier');
+      const supplierDoc = await Supplier.findOne({ 
+        name: { $regex: new RegExp(`^${supplierName}$`, 'i') }, 
+        organization: orgId 
+      });
+      
+      if (supplierDoc) {
+        // Try supplier ID path
+        const supplierIdPath = `Liabilities:Accounts Payable:${supplierDoc._id}`;
+        const supplierIdTransactions = await MediciTransaction.find({
+          accounts: supplierIdPath,
+          organizationId: orgId
+        });
+        if (supplierIdTransactions.length > 0) {
+          transactions = supplierIdTransactions;
+        }
+      }
+      
+      // If still no transactions, try case variations of the supplier name
+      if (transactions.length === 0) {
+        const nameVariations = [
+          supplierName, // original
+          supplierName.toLowerCase(), // lowercase
+          supplierName.charAt(0).toUpperCase() + supplierName.slice(1).toLowerCase(), // Title case
+          supplierName.toUpperCase() // uppercase
+        ];
+        
+        for (const nameVariation of nameVariations) {
+          const variationPath = `Liabilities:Accounts Payable:${nameVariation}`;
+          const variationTransactions = await MediciTransaction.find({
+            accounts: variationPath,
+            organizationId: orgId
+          });
+          if (variationTransactions.length > 0) {
+            transactions = variationTransactions;
+            break;
+          }
+        }
+      }
+    }
+    
     for (const txn of transactions) {
       if (txn.debit) {
         balance += txn.amount;

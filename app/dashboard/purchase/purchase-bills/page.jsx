@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 
 export default function PurchaseBillsPage() {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
