@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart2, ChevronDown, ChevronRight, FileText, LineChart, PieChart, DollarSign } from "lucide-react";
+import { BarChart2, ChevronDown, ChevronRight, FileText, LineChart, PieChart, DollarSign, Scale } from "lucide-react";
 
 export function ReportsMenu({ isExpanded: isSidebarExpanded }) { // Accept isExpanded prop from sidebar
   const [isMenuExpanded, setIsMenuExpanded] = useState(false); // State for this menu's expansion
@@ -19,6 +19,7 @@ export function ReportsMenu({ isExpanded: isSidebarExpanded }) { // Accept isExp
   };
 
   const reportItems = [
+    { label: "Trial Balance", href: "/dashboard/accounting/reports/trial-balance", icon: <Scale className="h-4 w-4" /> },
     { label: "Day Book", href: "/dashboard/accounting/reports/day-book", icon: <PieChart className="h-4 w-4" /> },
     { label: "Transaction Ledger", href: "/dashboard/accounting/ledger", icon: <FileText className="h-4 w-4" /> },
     { 

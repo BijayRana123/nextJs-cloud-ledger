@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Users, ShoppingCart, BarChart2, Package, FileText, List, CreditCard } from "lucide-react"
+import { Calendar, Users, ShoppingCart, BarChart2, Package, FileText, List, CreditCard, Scale } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,12 +16,14 @@ import { getCurrentDate } from "@/lib/utils/dateUtils"
 import { MobileSidebar } from "../components/mobile-sidebar" // Assuming MobileSidebar is needed
 import AddCustomerModal from '@/components/sales/add-customer-modal';
 import CreateNewProductModal from '@/components/create-new-product-modal';
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("sales")
   const { isNepaliCalendar } = useCalendar()
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  const router = useRouter();
 
   const quickLinks = [
     {
@@ -33,6 +35,11 @@ export default function Dashboard() {
       title: 'Add Item',
       icon: <Package className="h-4 w-4" />,
       onClick: () => setIsAddItemModalOpen(true),
+    },
+    {
+      title: 'Trial Balance',
+      icon: <Scale className="h-4 w-4" />,
+      onClick: () => router.push('/dashboard/accounting/reports/trial-balance'),
     },
   ];
 

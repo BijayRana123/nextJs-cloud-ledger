@@ -10,12 +10,20 @@ export default function ReportsPage() {
   // Financial reports
   const reports = [
     {
+      title: "Trial Balance",
+      description: "Verify that debits equal credits across all accounts",
+      path: "/dashboard/accounting/reports/trial-balance",
+      color: "bg-indigo-50 hover:bg-indigo-100",
+      textColor: "text-indigo-700",
+      icon: "⚖️"
+    },
+    {
       title: "Income Statement",
       description: "View profit and loss over a period",
       path: "/dashboard/accounting/reports/income-statement",
       color: "bg-green-50 hover:bg-green-100",
       textColor: "text-green-700",
-      icon: "💹"
+      icon: "📊"
     },
     {
       title: "Balance Sheet",
@@ -23,7 +31,7 @@ export default function ReportsPage() {
       path: "/dashboard/accounting/reports/balance-sheet",
       color: "bg-blue-50 hover:bg-blue-100",
       textColor: "text-blue-700",
-      icon: "⚖️"
+      icon: "📊"
     },
     {
       title: "General Ledger",
@@ -47,7 +55,7 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {reports.map((report, index) => (
           <Card 
             key={index} 
@@ -83,6 +91,7 @@ export default function ReportsPage() {
               Our financial reports provide comprehensive insights into your business's financial health:
             </p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
+              <li><span className="font-medium">Trial Balance:</span> Verifies that total debits equal total credits and helps identify posting errors</li>
               <li><span className="font-medium">Income Statement:</span> Shows your revenue, expenses, and profit/loss over a specific period</li>
               <li><span className="font-medium">Balance Sheet:</span> Displays your assets, liabilities, and equity at a specific point in time</li>
               <li><span className="font-medium">General Ledger:</span> Provides a detailed record of all transactions across all accounts</li>
