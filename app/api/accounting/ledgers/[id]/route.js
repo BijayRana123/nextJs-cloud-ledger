@@ -7,54 +7,77 @@ export async function GET(request, { params }) {
   await dbConnect();
   const orgId = request.headers.get('x-organization-id');
   if (!orgId) return NextResponse.json({ error: 'Organization required' }, { status: 400 });
-const { id } = await params;
-  const ledger = await Ledger.findOne({ _id: id, organization: orgId }).populate('group').lean();
-  if (!ledger) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  // Find or create ChartOfAccount for this ledger
-  const groupName = ledger.group?.name || 'Misc';
-  const code = `${groupName}:${ledger.name}`;
-  let coa = await ChartOfAccount.findOne({ code, organization: orgId, name: ledger.name });
-  if (!coa) {
-    // Generate path: GroupName:LedgerName
-    const path = `${groupName}:${ledger.name}`;
-    // Guess type and subtype from group name (simple heuristic)
-    let type = 'asset';
-    let subtype = 'current';
-    if (/liab/i.test(groupName)) { type = 'liability'; subtype = 'current_liability'; }
-    if (/revenue|income/i.test(groupName)) { type = 'revenue'; subtype = 'operating_revenue'; }
-    if (/expense/i.test(groupName)) { type = 'expense'; subtype = 'operating_expense'; }
-    if (/equity/i.test(groupName)) { type = 'equity'; subtype = 'capital'; }
+  const { id } = await params;
+  
+  // First try to find as a Ledger
+  let ledger = await Ledger.findOne({ _id: id, organization: orgId }).populate('group').lean();
+  let coa = null;
+  
+  if (!ledger) {
+    // If not found as Ledger, try to find as ChartOfAccount
+    coa = await ChartOfAccount.findOne({ _id: id, organization: orgId }).lean();
+    if (!coa) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
     
-    // Use findOneAndUpdate with upsert to prevent duplicate key errors
-    try {
-      coa = await ChartOfAccount.findOneAndUpdate(
-        { code, organization: orgId },
-        {
-          $setOnInsert: {
-            name: ledger.name,
-            path,
-            type,
-            code,
-            subtype,
-            organization: orgId,
-            active: true,
-          }
-        },
-        { 
-          new: true, 
-          upsert: true,
-          setDefaultsOnInsert: true
-        }
-      );
-    } catch (error) {
-      // Fallback error handling in case upsert still fails
-      if (error.code === 11000) {
-        return NextResponse.json({ error: 'Duplicate key error: code already exists' }, { status: 409 });
-      }
-      throw error;
+    // Create a ledger-like object from ChartOfAccount
+    ledger = {
+      _id: coa._id,
+      name: coa.name,
+      code: coa.code,
+      description: coa.description || '',
+      openingBalance: 0, // TODO: Calculate from transactions
+      organization: coa.organization,
+      group: null // ChartOfAccount doesn't have groups
+    };
   }
-}
+
+  // If we don't have a ChartOfAccount yet, find or create one
+  if (!coa) {
+    const groupName = ledger.group?.name || 'Misc';
+    const code = `${groupName}:${ledger.name}`;
+    coa = await ChartOfAccount.findOne({ code, organization: orgId, name: ledger.name });
+    if (!coa) {
+      // Generate path: GroupName:LedgerName
+      const path = `${groupName}:${ledger.name}`;
+      // Guess type and subtype from group name (simple heuristic)
+      let type = 'asset';
+      let subtype = 'current';
+      if (/liab/i.test(groupName)) { type = 'liability'; subtype = 'current_liability'; }
+      if (/revenue|income/i.test(groupName)) { type = 'revenue'; subtype = 'operating_revenue'; }
+      if (/expense/i.test(groupName)) { type = 'expense'; subtype = 'operating_expense'; }
+      if (/equity/i.test(groupName)) { type = 'equity'; subtype = 'capital'; }
+      
+      // Use findOneAndUpdate with upsert to prevent duplicate key errors
+      try {
+        coa = await ChartOfAccount.findOneAndUpdate(
+          { code, organization: orgId },
+          {
+            $setOnInsert: {
+              name: ledger.name,
+              path,
+              type,
+              code,
+              subtype,
+              organization: orgId,
+              active: true,
+            }
+          },
+          { 
+            new: true, 
+            upsert: true,
+            setDefaultsOnInsert: true
+          }
+        );
+      } catch (error) {
+        // Fallback error handling in case upsert still fails
+        if (error.code === 11000) {
+          return NextResponse.json({ error: 'Duplicate key error: code already exists' }, { status: 409 });
+        }
+        throw error;
+      }
+    }
+  }
   return NextResponse.json({ ledger, chartOfAccount: { _id: coa._id, path: coa.path } });
 }
 
