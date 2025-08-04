@@ -86,6 +86,12 @@ export default function TrialBalancePage() {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
+  const handleAccountClick = (accountId) => {
+    if (accountId) {
+      router.push(`/dashboard/accounting/ledger/${accountId}`);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -94,7 +100,7 @@ export default function TrialBalancePage() {
     if (!trialBalanceData) return;
 
     // Create CSV content with organization info
-    const headers = ['Account Code', 'Account Name', 'Account Type', 'Account Subtype', 'Debit Amount', 'Credit Amount'];
+    const headers = ['Account Code', 'Account Name', 'Account Type', 'Account Subtype', 'Debit Amount', 'Credit Amount', 'Account ID'];
     const csvContent = [
       `Trial Balance Report`,
       `Organization: ${currentOrganization?.name || 'N/A'}`,
@@ -109,7 +115,8 @@ export default function TrialBalancePage() {
         account.accountType,
         account.accountSubtype || '',
         account.debitAmount.toFixed(2),
-        account.creditAmount.toFixed(2)
+        account.creditAmount.toFixed(2),
+        account.accountId || ''
       ].join(',')),
       '',
       `TOTALS,,,,,`,
@@ -301,9 +308,15 @@ export default function TrialBalancePage() {
                 </TableHeader>
                 <TableBody>
                   {trialBalanceData.accounts.map((account, index) => (
-                    <TableRow key={index} className="print:text-xs">
+                    <TableRow key={index} className="print:text-xs hover:bg-gray-50">
                       <TableCell className="font-mono">{account.accountCode}</TableCell>
-                      <TableCell>{account.accountName}</TableCell>
+                      <TableCell 
+                        className="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline print:text-black print:no-underline print:cursor-default"
+                        onClick={() => handleAccountClick(account.accountId)}
+                        title="Click to view account ledger"
+                      >
+                        {account.accountName}
+                      </TableCell>
                       <TableCell className="print:hidden">
                         <Badge 
                           variant="outline" 
