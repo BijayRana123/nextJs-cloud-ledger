@@ -1,23 +1,38 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import mongoose from 'mongoose';
+import ReceiptVoucher from '@/lib/models/ReceiptVoucher';
+import { protect } from '@/lib/middleware/auth';
 
 export async function GET(request) {
   await dbConnect();
+  
   try {
+    const authResult = await protect(request);
+    if (authResult && authResult.status !== 200) {
+      return authResult;
+    }
+
+    // Get organization ID from request headers
+    const organizationId = request.headers.get('x-organization-id') || request.organizationId;
+    if (!organizationId) {
+      return NextResponse.json({ unique: false, error: 'No organization context found' }, { status: 400 });
+    }
+
     const { searchParams } = new URL(request.url);
     const number = searchParams.get('number');
     if (!number) {
-      return NextResponse.json({ unique: false, message: 'No voucher number provided' }, { status: 400 });
+      return NextResponse.json({ unique: false, error: 'No number provided' }, { status: 400 });
     }
-    // Check in Medici journals for RcV- voucher number
-    const db = mongoose.connection.db;
-    const journal = await db.collection('medici_journals').findOne({ voucherNumber: number });
-    if (journal) {
-      return NextResponse.json({ unique: false, message: 'Voucher number already exists' });
-    }
-    return NextResponse.json({ unique: true });
+    
+    // Check if number exists within the organization
+    const exists = await ReceiptVoucher.exists({ 
+      receiptVoucherNumber: number,
+      organization: organizationId
+    });
+    
+    return NextResponse.json({ unique: !exists });
   } catch (error) {
-    return NextResponse.json({ unique: false, message: error.message }, { status: 500 });
+    console.error("Error checking receipt voucher number:", error);
+    return NextResponse.json({ unique: false, error: error.message }, { status: 500 });
   }
 } 

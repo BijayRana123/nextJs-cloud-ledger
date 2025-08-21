@@ -34,14 +34,14 @@ export async function POST(request) {
 
     const purchaseOrderData = await request.json();
     
-    // Ensure purchaseOrderNumber is set
-    if (!purchaseOrderData.purchaseOrderNumber) {
-      purchaseOrderData.purchaseOrderNumber = `PO-${Date.now()}`;
+    // Remove frontend-generated referenceNo if present - let accounting function generate proper number
+    if (purchaseOrderData.referenceNo) {
+      delete purchaseOrderData.referenceNo;
     }
 
-    // Generate referenceNo with PV- prefix if not provided
-    if (!purchaseOrderData.referenceNo) {
-      purchaseOrderData.referenceNo = `PV-${Date.now()}`;
+    // Ensure purchaseOrderNumber is set (this is separate from referenceNo)
+    if (!purchaseOrderData.purchaseOrderNumber) {
+      purchaseOrderData.purchaseOrderNumber = `PO-${Date.now()}`;
     }
 
 
@@ -57,19 +57,38 @@ export async function POST(request) {
 
     await newPurchaseOrder.save();
 
-    // Create accounting entry for the purchase order
-    const generatedVoucherNumber = await createPurchaseEntry(newPurchaseOrder, organizationId, organizationName);
-    // Update the PurchaseOrder with the generated voucher number
-    await PurchaseOrder.updateOne(
-      { _id: newPurchaseOrder._id },
-      { referenceNo: generatedVoucherNumber }
-    );
+    // Try/catch for voucher number generation and save
+    let generatedVoucherNumber = null;
+    try {
+      generatedVoucherNumber = await createPurchaseEntry(newPurchaseOrder, organizationId, organizationName);
+      
+      // Update the PurchaseOrder with the generated voucher number
+      await PurchaseOrder.updateOne(
+        { _id: newPurchaseOrder._id },
+        { referenceNo: generatedVoucherNumber }
+      );
+    } catch (err) {
+      console.error('Error in createPurchaseEntry:', err);
+      console.error('Error stack:', err.stack);
+      // Optionally: delete the purchase order if you want to enforce atomicity
+      // await PurchaseOrder.deleteOne({ _id: newPurchaseOrder._id });
+      return NextResponse.json({ 
+        message: "Failed to generate voucher number", 
+        error: err.message, 
+        stack: err.stack 
+      }, { status: 500 });
+    }
+
     // Fetch the updated purchase order
     const updatedPurchaseOrder = await PurchaseOrder.findById(newPurchaseOrder._id).populate('supplier');
 
 
 
-    return NextResponse.json({ message: "Purchase Voucher created successfully", purchaseOrder: updatedPurchaseOrder }, { status: 201 });
+    return NextResponse.json({ 
+      message: "Purchase Voucher created successfully", 
+      purchaseOrder: updatedPurchaseOrder,
+      voucherNumber: generatedVoucherNumber 
+    }, { status: 201 });
   } catch (error) {
     console.error("Error creating purchase order:", error);
     

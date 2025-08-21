@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { CustomTableCell, CustomTableRow } from "@/components/ui/CustomTable";
 import { accounts } from "@/lib/accountingClient";
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
+import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
 import AccountAutocompleteInput from "@/components/accounting/AccountAutocompleteInput";
 
 // Add this at the top to avoid ReferenceError

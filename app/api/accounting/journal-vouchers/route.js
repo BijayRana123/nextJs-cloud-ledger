@@ -93,7 +93,8 @@ export async function POST(request) {
     await createJournalEntry(journalVoucher, organizationId, organizationName);
     return NextResponse.json({ message: 'Journal voucher created', _id: journalVoucher._id, journalVoucher }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ message: 'Failed to create journal voucher', error: error.message }, { status: 500 });
+    console.error('Journal voucher creation error:', error);
+    return NextResponse.json({ error: 'Failed to create journal voucher', message: error.message, details: error.stack }, { status: 500 });
   }
 }
 

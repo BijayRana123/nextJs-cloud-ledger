@@ -18,12 +18,12 @@ export default function ReportsPage() {
       icon: "⚖️"
     },
     {
-      title: "Income Statement",
-      description: "View profit and loss over a period",
+      title: "Profit & Loss Statement",
+      description: "Comprehensive P&L with period comparison, charts, and drill-down analysis",
       path: "/dashboard/accounting/reports/income-statement",
       color: "bg-green-50 hover:bg-green-100",
       textColor: "text-green-700",
-      icon: "📊"
+      icon: "💰"
     },
     {
       title: "Balance Sheet",
@@ -92,7 +92,7 @@ export default function ReportsPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
               <li><span className="font-medium">Trial Balance:</span> Verifies that total debits equal total credits and helps identify posting errors</li>
-              <li><span className="font-medium">Income Statement:</span> Shows your revenue, expenses, and profit/loss over a specific period</li>
+              <li><span className="font-medium">Profit & Loss Statement:</span> Comprehensive P&L with revenue, expenses, period comparison, visual charts, and transaction drill-down</li>
               <li><span className="font-medium">Balance Sheet:</span> Displays your assets, liabilities, and equity at a specific point in time</li>
               <li><span className="font-medium">General Ledger:</span> Provides a detailed record of all transactions across all accounts</li>
             </ul>

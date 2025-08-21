@@ -30,26 +30,46 @@ export default function LedgerDetailPage() {
         const ledgerData = await ledgerRes.json();
         if (!ledgerRes.ok) throw new Error(ledgerData.error || 'Failed to fetch ledger');
         setLedger(ledgerData.ledger);
-        // Fetch Medici transactions using ChartOfAccount _id
-        if (ledgerData.chartOfAccount && ledgerData.chartOfAccount._id) {
-          const txRes = await fetch(`/api/accounting/ledger/${ledgerData.chartOfAccount._id}`, {
+        
+        // The ledgers API should return or create a ChartOfAccount
+        // If we have a chartOfAccount._id, use it; otherwise the ledger system needs to be fixed
+        const accountId = ledgerData.chartOfAccount?._id;
+        console.log('Ledger data:', ledgerData);
+        console.log('Chart of Account ID:', accountId);
+        
+        if (!accountId) {
+          console.warn('No ChartOfAccount ID found for ledger. This ledger may not have associated transactions.');
+          setTransactions([]);
+          return;
+        }
+        
+        try {
+          const txRes = await fetch(`/api/accounting/ledger/${accountId}`, {
             headers: { 'x-organization-id': currentOrganization._id },
           });
           const txData = await txRes.json();
-          if (!txRes.ok || txData.success === false) throw new Error(txData.error || 'Failed to fetch transactions');
           
-          // Check if this is an inventory item
-          if (txData.data?.isInventoryItem) {
-            setIsInventoryItem(true);
-            setStockData(txData.data);
-            setTransactions(txData.data?.transactions || []);
+          console.log('Transaction API response:', txData);
+          
+          if (txRes.ok && txData.success) {
+            // Check if this is an inventory item
+            if (txData.data?.isInventoryItem) {
+              setIsInventoryItem(true);
+              setStockData(txData.data);
+              setTransactions(txData.data?.transactions || []);
+            } else {
+              setIsInventoryItem(false);
+              setTransactions(txData.data?.transactions || []);
+            }
           } else {
-            setIsInventoryItem(false);
-            setTransactions(txData.data?.transactions || []);
+            console.warn('Failed to fetch transactions:', txData.error);
+            setTransactions([]);
           }
-        } else {
+        } catch (txError) {
+          console.error('Error fetching transactions:', txError);
           setTransactions([]);
         }
+        
       } catch (e) {
         setError(e.message);
       } finally {
@@ -60,17 +80,38 @@ export default function LedgerDetailPage() {
   }, [id, currentOrganization]);
 
   const handleRowClick = (row) => {
-    if (!row.referenceId || !row.meta) return;
+    if (!row.referenceId && !row.meta && !row.journalId) return;
     
     // Navigate based on the transaction metadata
-    if (row.meta.purchaseVoucherId) {
-      router.push(`/dashboard/purchase/purchase-bills/${row.meta.purchaseVoucherId}`);
-    } else if (row.meta.salesVoucherId) {
-      router.push(`/dashboard/sales/sales-vouchers/${row.meta.salesVoucherId}`);
-    } else if (row.meta.purchaseReturnId) {
-      router.push(`/dashboard/purchase/purchase-return-vouchers/${row.meta.purchaseReturnId}`);
-    } else if (row.meta.salesReturnId) {
-      router.push(`/dashboard/sales/sales-return-vouchers/${row.meta.salesReturnId}`);
+    if (row.meta && Object.keys(row.meta).length > 0) {
+      if (row.meta.purchaseVoucherId) {
+        router.push(`/dashboard/purchase/purchase-bills/${row.meta.purchaseVoucherId}`);
+      } else if (row.meta.salesVoucherId) {
+        router.push(`/dashboard/sales/sales-vouchers/${row.meta.salesVoucherId}`);
+      } else if (row.meta.purchaseReturnId) {
+        router.push(`/dashboard/purchase/purchase-return-vouchers/${row.meta.purchaseReturnId}`);
+      } else if (row.meta.salesReturnId) {
+        router.push(`/dashboard/sales/sales-return-vouchers/${row.meta.salesReturnId}`);
+      } else if (row.meta.paymentVoucherId) {
+        router.push(`/dashboard/accounting/vouchers/payment/${row.meta.paymentVoucherId}`);
+      } else if (row.meta.receiptVoucherId) {
+        router.push(`/dashboard/accounting/vouchers/receipt/${row.meta.receiptVoucherId}`);
+      } else if (row.meta.expenseVoucherId) {
+        router.push(`/dashboard/accounting/vouchers/expense/${row.meta.expenseVoucherId}`);
+      } else if (row.meta.incomeVoucherId) {
+        router.push(`/dashboard/accounting/vouchers/income/${row.meta.incomeVoucherId}`);
+      } else {
+        // If we have meta but no specific voucher ID, try to navigate to journal entry
+        if (row.journalId) {
+          router.push(`/dashboard/accounting/journal-entries/${row.journalId}`);
+        }
+      }
+    } else if (row.journalId) {
+      // Navigate to journal entry if we have a journal ID
+      router.push(`/dashboard/accounting/journal-entries/${row.journalId}`);
+    } else if (row.referenceId) {
+      // Create a general transaction detail page
+      router.push(`/dashboard/accounting/transactions/${row.referenceId}`);
     }
   };
 
@@ -85,6 +126,7 @@ export default function LedgerDetailPage() {
         date: tx.date ? new Date(tx.date).toLocaleDateString() : '',
         reference: tx.reference || '',
         description: tx.description || '',
+        transactionType: tx.transactionType || '',
         quantityIn: tx.quantityIn || '',
         quantityOut: tx.quantityOut || '',
         balance: tx.balance || 0,
@@ -106,6 +148,7 @@ export default function LedgerDetailPage() {
         balance: runningBalance.toFixed(2),
         meta: tx.meta || {},
         referenceId: tx._id,
+        journalId: tx.journalId,
       });
     });
   }
@@ -184,43 +227,47 @@ export default function LedgerDetailPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rows.map((row, idx) => (
-                      <TableRow 
-                        key={idx}
-                        className={`hover:bg-gray-50 ${row.meta && Object.keys(row.meta).length > 0 ? 'cursor-pointer' : ''}`}
-                        onClick={() => handleRowClick(row)}
-                      >
-                        <TableCell>{row.date}</TableCell>
-                        <TableCell>{row.reference}</TableCell>
-                        <TableCell>{row.description}</TableCell>
-                        {isInventoryItem ? (
-                          <>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                row.transactionType === 'Sales' ? 'bg-red-100 text-red-800' :
-                                row.transactionType === 'Purchase' ? 'bg-green-100 text-green-800' :
-                                row.transactionType === 'Sales Return' ? 'bg-blue-100 text-blue-800' :
-                                row.transactionType === 'Purchase Return' ? 'bg-yellow-100 text-yellow-800' :
-                                row.transactionType === 'Opening Stock' ? 'bg-purple-100 text-purple-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {row.transactionType}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">{row.quantityIn || ''}</TableCell>
-                            <TableCell className="text-right">{row.quantityOut || ''}</TableCell>
-                            <TableCell className="text-right">{row.balance}</TableCell>
-                            <TableCell>{row.warehouse}</TableCell>
-                          </>
-                        ) : (
-                          <>
-                            <TableCell className="text-right">{row.debit}</TableCell>
-                            <TableCell className="text-right">{row.credit}</TableCell>
-                            <TableCell className="text-right">{row.balance}</TableCell>
-                          </>
-                        )}
-                      </TableRow>
-                    ))
+                    rows.map((row, idx) => {
+                      const isClickable = (row.referenceId || (row.meta && Object.keys(row.meta).length > 0) || row.journalId);
+                      return (
+                        <TableRow 
+                          key={idx}
+                          className={`hover:bg-gray-50 ${isClickable ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                          onClick={() => handleRowClick(row)}
+                          title={isClickable ? 'Click to view transaction details' : ''}
+                        >
+                          <TableCell>{row.date}</TableCell>
+                          <TableCell>{row.reference}</TableCell>
+                          <TableCell>{row.description}</TableCell>
+                          {isInventoryItem ? (
+                            <>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  row.transactionType === 'Sales' ? 'bg-red-100 text-red-800' :
+                                  row.transactionType === 'Purchase' ? 'bg-green-100 text-green-800' :
+                                  row.transactionType === 'Sales Return' ? 'bg-blue-100 text-blue-800' :
+                                  row.transactionType === 'Purchase Return' ? 'bg-yellow-100 text-yellow-800' :
+                                  row.transactionType === 'Opening Stock' ? 'bg-purple-100 text-purple-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {row.transactionType}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">{row.quantityIn || ''}</TableCell>
+                              <TableCell className="text-right">{row.quantityOut || ''}</TableCell>
+                              <TableCell className="text-right">{row.balance}</TableCell>
+                              <TableCell>{row.warehouse}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{row.debit}</TableCell>
+                              <TableCell className="text-right">{row.credit}</TableCell>
+                              <TableCell className="text-right">{row.balance}</TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -230,4 +277,4 @@ export default function LedgerDetailPage() {
       </Card>
     </div>
   );
-} 
+}

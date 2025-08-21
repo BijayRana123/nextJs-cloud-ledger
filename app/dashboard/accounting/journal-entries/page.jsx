@@ -13,7 +13,16 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+const fetcher = (url) => {
+  // Get current organization from localStorage
+  const currentOrganization = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+  
+  return fetch(url, {
+    headers: {
+      'x-organization-id': currentOrganization._id || '',
+    },
+  }).then((res) => res.json());
+};
 
 function generateJournalEntryPdf(entry) {
   if (!entry) return;

@@ -15,6 +15,12 @@ export async function POST(request) {
       );
     }
 
+    // Get organization ID from headers
+    const orgId = request.headers.get('x-organization-id');
+    if (!orgId) {
+      return NextResponse.json({ error: 'Organization required' }, { status: 400 });
+    }
+
     // Optional: Add authentication check
     const authResult = await protect(request);
     if (authResult && authResult.status !== 200) {
@@ -29,10 +35,11 @@ export async function POST(request) {
     // Get the book instance
     const book = await getBook();
     
-    // Create query to get all transactions up to the asOfDate
+    // Create query to get all transactions up to the asOfDate for this organization
     const query = {
       datetime: { $lte: asOfDate },
-      voided: false
+      voided: false,
+      organizationId: new mongoose.Types.ObjectId(orgId)
     };
 
     // Initialize asset categories

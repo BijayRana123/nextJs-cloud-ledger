@@ -36,8 +36,21 @@ export default function JournalEntryPage({ params }) {
 
   const fetchJournalEntry = async () => {
     try {
-      const response = await fetch(`/api/accounting/journal-vouchers/${id}`);
+      // Get current organization from localStorage or context
+      const currentOrganization = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+      
+      const response = await fetch(`/api/accounting/journal-vouchers/${id}`, {
+        headers: {
+          'x-organization-id': currentOrganization._id || '',
+        },
+      });
       const data = await response.json();
+
+      // Handle redirect to correct ID
+      if (data.redirect && data.correctId) {
+        router.replace(`/dashboard/accounting/journal-entries/${data.correctId}`);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch journal entry');
@@ -58,8 +71,14 @@ export default function JournalEntryPage({ params }) {
 
     setIsDeleting(true);
     try {
+      // Get current organization from localStorage or context
+      const currentOrganization = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+      
       const response = await fetch(`/api/accounting/journal-vouchers/${id}`, {
         method: 'DELETE',
+        headers: {
+          'x-organization-id': currentOrganization._id || '',
+        },
       });
 
       if (!response.ok) {

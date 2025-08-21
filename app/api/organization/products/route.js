@@ -63,6 +63,18 @@ export async function POST(request) {
 
     const newProductData = await request.json();
 
+    // Check if a product with the same name already exists in this organization
+    const existingProduct = await Item.findOne({ 
+      name: newProductData.name, 
+      organization: organizationId 
+    });
+    
+    if (existingProduct) {
+      return NextResponse.json({ 
+        message: "A product with this name already exists in your organization" 
+      }, { status: 409 });
+    }
+
     const productToSave = new Item({
       ...newProductData,
       organization: organizationId, // Associate product with organization
@@ -84,15 +96,46 @@ export async function POST(request) {
     // Find or create the Inventory group for this organization
     let inventoryGroup = await LedgerGroup.findOne({ name: /inventory/i, organization: organizationId });
     if (!inventoryGroup) {
-      inventoryGroup = await LedgerGroup.create({ name: 'Inventory', organization: organizationId });
+      // Generate a code for the new LedgerGroup
+      const existingGroupCodes = await LedgerGroup.find({ 
+        organization: organizationId, 
+        code: { $exists: true, $ne: null } 
+      }).select('code').lean();
+      
+      const usedCodes = existingGroupCodes.map(g => parseInt(g.code)).filter(code => !isNaN(code));
+      let newGroupCode = 1000;
+      while (usedCodes.includes(newGroupCode)) {
+        newGroupCode += 100;
+      }
+      
+      inventoryGroup = await LedgerGroup.create({ 
+        name: 'Inventory', 
+        code: newGroupCode.toString(),
+        organization: organizationId 
+      });
     }
     // Ledger path: Assets:Inventory:Item Name
     const ledgerPath = `Assets:Inventory:${savedProduct.name}`;
     // Check for existing ledger by name/org
     let existingLedger = await Ledger.findOne({ name: savedProduct.name, organization: organizationId });
     if (!existingLedger) {
+      // Generate ledger code based on group code
+      const baseCode = parseInt(inventoryGroup.code);
+      const existingLedgers = await Ledger.find({ 
+        group: inventoryGroup._id, 
+        organization: organizationId,
+        code: { $exists: true, $ne: null }
+      }).select('code').lean();
+      
+      const usedLedgerCodes = existingLedgers.map(l => parseInt(l.code)).filter(code => !isNaN(code));
+      let newLedgerCode = baseCode + 1;
+      while (usedLedgerCodes.includes(newLedgerCode)) {
+        newLedgerCode++;
+      }
+
       await Ledger.create({
         name: savedProduct.name,
+        code: newLedgerCode.toString(),
         group: inventoryGroup._id,
         organization: organizationId,
         path: ledgerPath,

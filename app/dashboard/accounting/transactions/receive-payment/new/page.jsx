@@ -8,22 +8,45 @@ export default function AddReceiptVoucherPage() {
   const [tab, setTab] = useState('simple');
   const [voucherNumber, setVoucherNumber] = useState("");
 
-  // Fetch next available receipt voucher number on mount (peek, do not increment)
+  // Fetch next unique receipt voucher number on mount
   useEffect(() => {
-    const fetchNextReceiptVoucherNumber = async () => {
+    let baseNumber = 0;
+    let candidate = '';
+    let isUnique = false;
+    const fetchNextUniqueReceiptVoucherNumber = async () => {
       try {
         const response = await fetch('/api/accounting/counters/next?type=receipt');
         let nextNumber = 'RcV-0001';
         if (response.ok) {
           const data = await response.json();
-          nextNumber = data.nextNumber || nextNumber;
+          nextNumber = data.nextNumber.startsWith('RcV-') ? data.nextNumber : `RcV-${data.nextNumber}`;
         }
-        setVoucherNumber(nextNumber);
+        // Extract numeric part for incrementing
+        const match = nextNumber.match(/RcV-(\d+)/);
+        baseNumber = match ? parseInt(match[1], 10) : 1;
       } catch (err) {
-        setVoucherNumber('RcV-0001');
+        baseNumber = 1;
       }
+      // Try to find a unique number
+      while (!isUnique) {
+        candidate = `RcV-${baseNumber.toString().padStart(5, '0')}`;
+        // Check uniqueness via backend
+        try {
+          const checkRes = await fetch(`/api/organization/receipt-vouchers/check-number?number=${candidate}`);
+          const checkData = await checkRes.json();
+          if (checkRes.ok && checkData.unique) {
+            isUnique = true;
+          } else {
+            baseNumber++;
+          }
+        } catch (e) {
+          // If check fails, assume unique to avoid infinite loop
+          isUnique = true;
+        }
+      }
+      setVoucherNumber(candidate);
     };
-    fetchNextReceiptVoucherNumber();
+    fetchNextUniqueReceiptVoucherNumber();
   }, []);
 
   return (

@@ -29,7 +29,7 @@ export default function AddPaymentVoucherPage() {
       }
       // Try to find a unique number
       while (!isUnique) {
-        candidate = `PaV-${baseNumber.toString().padStart(4, '0')}`;
+        candidate = `PaV-${baseNumber.toString().padStart(5, '0')}`;
         // Check uniqueness via backend
         try {
           const checkRes = await fetch(`/api/organization/payment-vouchers/check-number?number=${candidate}`);

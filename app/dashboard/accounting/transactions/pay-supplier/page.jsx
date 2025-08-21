@@ -8,9 +8,10 @@ import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomT
 import { Rocket, ChevronLeft, ChevronRight, X, Search, Printer, Mail, FileSpreadsheet, FileText } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useCalendar } from "@/lib/context/CalendarContext";
+import { useOrganization } from "@/lib/context/OrganizationContext";
 import { formatDate } from "@/lib/utils/dateUtils";
 import { useRouter } from "next/navigation";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 import PaymentVoucherPdfDownload from "@/components/accounting/PaymentVoucherPdfDownload";
 import PaymentVoucherExcelDownload from "@/components/accounting/PaymentVoucherExcelDownload";
 
@@ -20,16 +21,26 @@ export default function PaymentVouchersPage() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { isNepaliCalendar } = useCalendar();
+  const { currentOrganization } = useOrganization();
   const router = useRouter();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailVoucher, setEmailVoucher] = useState(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
 
   const fetchPaymentVouchers = async () => {
+    if (!currentOrganization?._id) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/organization/payment-vouchers');
+      const response = await fetch('/api/organization/payment-vouchers', {
+        headers: {
+          'x-organization-id': currentOrganization._id,
+        },
+      });
       const result = await response.json();
       if (response.ok) {
         setPaymentVouchers(result.paymentVouchers || result.paymentVoucher || []);
@@ -44,8 +55,10 @@ export default function PaymentVouchersPage() {
   };
 
   useEffect(() => {
-    fetchPaymentVouchers();
-  }, []);
+    if (currentOrganization?._id) {
+      fetchPaymentVouchers();
+    }
+  }, [currentOrganization]);
 
   const formatDateDisplay = (dateString) => {
     if (!dateString) return "N/A";
@@ -112,6 +125,17 @@ export default function PaymentVouchersPage() {
     }
     return doc.output('datauristring');
   };
+
+  // Show loading state if organization is not loaded yet
+  if (!currentOrganization) {
+    return (
+      <div className="p-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading organization...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <div className="p-4">Loading payment vouchers...</div>;

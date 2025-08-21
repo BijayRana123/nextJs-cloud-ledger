@@ -108,7 +108,23 @@ async function run() {
         // Move to Accounts Receivable group if not already
         let arGroup = arGroups[0];
         if (!arGroup) {
-          arGroup = await LedgerGroup.create({ name: 'Accounts Receivable', organization: ledger.organization });
+          // Generate a code for the new LedgerGroup
+          const existingGroupCodes = await LedgerGroup.find({ 
+            organization: ledger.organization, 
+            code: { $exists: true, $ne: null } 
+          }).select('code').lean();
+          
+          const usedCodes = existingGroupCodes.map(g => parseInt(g.code)).filter(code => !isNaN(code));
+          let newGroupCode = 1000;
+          while (usedCodes.includes(newGroupCode)) {
+            newGroupCode += 100;
+          }
+          
+          arGroup = await LedgerGroup.create({ 
+            name: 'Accounts Receivable', 
+            code: newGroupCode.toString(),
+            organization: ledger.organization 
+          });
         }
         // Check for duplicate
         const duplicate = await Ledger.findOne({ name: customer.name, organization: ledger.organization, _id: { $ne: ledger._id } });

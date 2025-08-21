@@ -9,12 +9,16 @@ import { Rocket, ChevronLeft, ChevronRight, X, Search, Printer, Mail, FileSpread
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import EmailModal from '@/app/components/email-modal';
+import { useOrganization } from '@/lib/context/OrganizationContext';
+import EmailModal from '@/components/email-modal';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+const fetcher = (url, orgId) => 
+  fetch(url, {
+    headers: orgId ? { 'x-organization-id': orgId } : {}
+  }).then((res) => res.json());
 
 function generateReceiptVoucherPdf(voucher) {
   if (!voucher) return;
@@ -25,42 +29,24 @@ function generateReceiptVoucherPdf(voucher) {
   // Customer Info
   doc.setFontSize(12);
   doc.text('Customer Information', 14, 32);
-  const customer = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || 'N/A';
+  const customer = voucher.customer?.name || 'N/A';
   doc.text(`Name: ${customer}`, 14, 39);
   // Voucher Info
-  doc.text(`Voucher No: ${voucher.voucherNumber || 'N/A'}`, 150, 32);
-  doc.text(`Date: ${voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A'}`, 150, 39);
-  const paymentMethod = voucher.transactions?.find(t => t.debit)?.accounts?.split(':').pop() || 'N/A';
-  doc.text(`Payment Method: ${paymentMethod}`, 150, 46);
+  doc.text(`Voucher No: ${voucher.receiptVoucherNumber || 'N/A'}`, 150, 32);
+  doc.text(`Date: ${voucher.date ? new Date(voucher.date).toLocaleDateString() : 'N/A'}`, 150, 39);
+  doc.text(`Payment Method: ${voucher.paymentMethod || 'N/A'}`, 150, 46);
   // Amount
   doc.setFontSize(14);
   doc.text('Amount:', 14, 70);
-  doc.text(`${voucher.amount?.toFixed(2) || voucher.transactions?.[0]?.amount?.toFixed(2) || '0.00'}`, 50, 70);
-  // Memo
-  if (voucher.memo) {
+  doc.text(`${voucher.amount?.toFixed(2) || '0.00'}`, 50, 70);
+  // Notes
+  if (voucher.notes) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Memo:', 14, 80);
-    doc.text(voucher.memo, 14, 87, { maxWidth: 180 });
+    doc.text('Notes:', 14, 80);
+    doc.text(voucher.notes, 14, 87, { maxWidth: 180 });
   }
-  // Transactions Table
-  const txns = (voucher.transactions || []).map(t => [
-    t.accounts ? t.accounts.split(':').pop() : 'N/A',
-    t.amount,
-    t.debit ? 'Debit' : t.credit ? 'Credit' : 'N/A',
-  ]);
-  autoTable(doc, {
-    startY: 100,
-    head: [['Account', 'Amount', 'Type']],
-    body: txns,
-    theme: 'striped',
-    headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0] },
-    bodyStyles: { textColor: [0, 0, 0] },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    styles: { cellPadding: 3, fontSize: 10, valign: 'middle', halign: 'center' },
-    columnStyles: { 0: { halign: 'left' } }
-  });
-  doc.save(`ReceiptVoucher-${voucher.voucherNumber || voucher._id}.pdf`);
+  doc.save(`ReceiptVoucher-${voucher.receiptVoucherNumber || voucher._id}.pdf`);
 }
 
 function generateReceiptVoucherPdfBase64(voucher) {
@@ -70,37 +56,20 @@ function generateReceiptVoucherPdfBase64(voucher) {
   doc.text('Receipt Voucher', 14, 22);
   doc.setFontSize(12);
   doc.text('Customer Information', 14, 32);
-  const customer = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || 'N/A';
+  const customer = voucher.customer?.name || 'N/A';
   doc.text(`Name: ${customer}`, 14, 39);
-  doc.text(`Voucher No: ${voucher.voucherNumber || 'N/A'}`, 150, 32);
-  doc.text(`Date: ${voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A'}`, 150, 39);
-  const paymentMethod = voucher.transactions?.find(t => t.debit)?.accounts?.split(':').pop() || 'N/A';
-  doc.text(`Payment Method: ${paymentMethod}`, 150, 46);
+  doc.text(`Voucher No: ${voucher.receiptVoucherNumber || 'N/A'}`, 150, 32);
+  doc.text(`Date: ${voucher.date ? new Date(voucher.date).toLocaleDateString() : 'N/A'}`, 150, 39);
+  doc.text(`Payment Method: ${voucher.paymentMethod || 'N/A'}`, 150, 46);
   doc.setFontSize(14);
   doc.text('Amount:', 14, 70);
-  doc.text(`${voucher.amount?.toFixed(2) || voucher.transactions?.[0]?.amount?.toFixed(2) || '0.00'}`, 50, 70);
-  if (voucher.memo) {
+  doc.text(`${voucher.amount?.toFixed(2) || '0.00'}`, 50, 70);
+  if (voucher.notes) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Memo:', 14, 80);
-    doc.text(voucher.memo, 14, 87, { maxWidth: 180 });
+    doc.text('Notes:', 14, 80);
+    doc.text(voucher.notes, 14, 87, { maxWidth: 180 });
   }
-  const txns = (voucher.transactions || []).map(t => [
-    t.accounts ? t.accounts.split(':').pop() : 'N/A',
-    t.amount,
-    t.debit ? 'Debit' : t.credit ? 'Credit' : 'N/A',
-  ]);
-  autoTable(doc, {
-    startY: 100,
-    head: [['Account', 'Amount', 'Type']],
-    body: txns,
-    theme: 'striped',
-    headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0] },
-    bodyStyles: { textColor: [0, 0, 0] },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    styles: { cellPadding: 3, fontSize: 10, valign: 'middle', halign: 'center' },
-    columnStyles: { 0: { halign: 'left' } }
-  });
   return doc.output('datauristring');
 }
 
@@ -108,22 +77,31 @@ function downloadReceiptVoucherExcel(voucher) {
   if (!voucher) return;
   const ws = XLSX.utils.json_to_sheet([
     {
-      'Receipt Voucher No': voucher.voucherNumber,
-      'Customer': voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || 'N/A',
-      'Date': voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A',
-      'Payment Method': voucher.transactions?.find(t => t.debit)?.accounts?.split(':').pop() || 'N/A',
-      'Amount': voucher.amount?.toFixed(2) || voucher.transactions?.[0]?.amount?.toFixed(2) || '0.00',
+      'Receipt Voucher No': voucher.receiptVoucherNumber,
+      'Customer': voucher.customer?.name || 'N/A',
+      'Date': voucher.date ? new Date(voucher.date).toLocaleDateString() : 'N/A',
+      'Payment Method': voucher.paymentMethod || 'N/A',
+      'Amount': voucher.amount?.toFixed(2) || '0.00',
+      'Notes': voucher.notes || ''
     }
   ]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ReceiptVoucher');
-  XLSX.writeFile(wb, `ReceiptVoucher-${voucher.voucherNumber || voucher._id}.xlsx`);
+  XLSX.writeFile(wb, `ReceiptVoucher-${voucher.receiptVoucherNumber || voucher._id}.xlsx`);
 }
 
 export default function ReceiptVoucherListPage() {
   const router = useRouter();
-  const { data, error, isLoading } = useSWR('/api/accounting/journal-entries?limit=100&searchTerm=^Payment%20Received%20from%20Customer', fetcher, { refreshInterval: 10000 });
-  const vouchers = data?.journalEntries || [];
+  const { currentOrganization } = useOrganization();
+  
+  const { data, error, isLoading } = useSWR(
+    currentOrganization?._id 
+      ? ['/api/organization/receipt-vouchers', currentOrganization._id]
+      : null,
+    ([url, orgId]) => fetcher(url, orgId),
+    { refreshInterval: 10000 }
+  );
+  const vouchers = data?.receiptVouchers || [];
 
   // State for search, pagination, and rows count
   const [searchQuery, setSearchQuery] = useState("");
@@ -137,9 +115,9 @@ export default function ReceiptVoucherListPage() {
   const filteredVouchers = useMemo(() => {
     return vouchers
       .filter(voucher => {
-        const customer = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || '';
-        const voucherNo = voucher.voucherNumber || '';
-        const amount = voucher.amount || voucher.transactions?.[0]?.amount || '';
+        const customer = voucher.customer?.name || '';
+        const voucherNo = voucher.receiptVoucherNumber || '';
+        const amount = voucher.amount || '';
         return (
           searchQuery === "" ||
           (customer && customer.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -149,8 +127,8 @@ export default function ReceiptVoucherListPage() {
       })
       .sort((a, b) => {
         // Sort by date descending first
-        const dateA = a.datetime ? new Date(a.datetime).getTime() : 0;
-        const dateB = b.datetime ? new Date(b.datetime).getTime() : 0;
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
         if (dateA !== dateB) {
           return dateB - dateA;
         }
@@ -160,7 +138,7 @@ export default function ReceiptVoucherListPage() {
           const match = ref.match(/\d+/g);
           return match ? parseInt(match.join(''), 10) : 0;
         };
-        return getNum(b.voucherNumber) - getNum(a.voucherNumber);
+        return getNum(b.receiptVoucherNumber) - getNum(a.receiptVoucherNumber);
       });
   }, [vouchers, searchQuery]);
 
@@ -176,6 +154,17 @@ export default function ReceiptVoucherListPage() {
   const handlePrint = (id) => {
     window.open(`/dashboard/accounting/transactions/receive-payment/${id}/print`, '_blank');
   };
+
+  // Show loading state if organization is not loaded yet
+  if (!currentOrganization) {
+    return (
+      <div className="p-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading organization...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -241,10 +230,10 @@ export default function ReceiptVoucherListPage() {
           </CustomTableHeader>
           <CustomTableBody>
             {paginatedVouchers.map((voucher) => {
-              const customer = voucher.transactions?.find(t => t.meta?.customerName)?.meta?.customerName || '';
-              const receiptVoucherNumber = voucher.voucherNumber || '';
-              const amount = voucher.amount || voucher.transactions?.[0]?.amount || '';
-              const paymentMethod = voucher.transactions?.find(t => t.debit)?.accounts?.split(':').pop() || '';
+              const customer = voucher.customer?.name || '';
+              const receiptVoucherNumber = voucher.receiptVoucherNumber || '';
+              const amount = voucher.amount || '';
+              const paymentMethod = voucher.paymentMethod || '';
               return (
                 <CustomTableRow
                   key={voucher._id}
@@ -260,7 +249,7 @@ export default function ReceiptVoucherListPage() {
                 >
                   <CustomTableCell>{customer}</CustomTableCell>
                   <CustomTableCell>{receiptVoucherNumber}</CustomTableCell>
-                  <CustomTableCell>{voucher.datetime ? new Date(voucher.datetime).toLocaleDateString() : 'N/A'}</CustomTableCell>
+                  <CustomTableCell>{voucher.date ? new Date(voucher.date).toLocaleDateString() : 'N/A'}</CustomTableCell>
                   <CustomTableCell>{amount}</CustomTableCell>
                   <CustomTableCell>{paymentMethod}</CustomTableCell>
                   <CustomTableCell>

@@ -6,18 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
 import { useCalendar } from "@/lib/context/CalendarContext";
+import { useOrganization } from "@/lib/context/OrganizationContext";
 import { formatDate, formatDateForInput } from "@/lib/utils/dateUtils";
 import { Printer, Download, RefreshCw } from "lucide-react";
 
 export default function BalanceSheetPage() {
   const router = useRouter();
   const { isNepaliCalendar, nepaliLanguage } = useCalendar();
+  const { currentOrganization } = useOrganization();
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [asOfDate, setAsOfDate] = useState(new Date());
 
   // Generate balance sheet report
   const generateReport = async () => {
+    if (!currentOrganization?._id) {
+      console.error('No organization selected');
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Fetch real data from API
@@ -25,6 +32,7 @@ export default function BalanceSheetPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-organization-id': currentOrganization._id,
         },
         body: JSON.stringify({
           asOfDate: asOfDate.toISOString(),
@@ -58,10 +66,23 @@ export default function BalanceSheetPage() {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   };
 
-  // Generate report on mount or when date changes
+  // Generate report on mount or when date/organization changes
   useEffect(() => {
-    generateReport();
-  }, [asOfDate]);
+    if (currentOrganization?._id) {
+      generateReport();
+    }
+  }, [asOfDate, currentOrganization]);
+
+  // Show loading state if organization is not loaded yet
+  if (!currentOrganization) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading organization...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6">

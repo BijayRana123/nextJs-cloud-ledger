@@ -46,7 +46,7 @@ export async function POST(request) {
     const customerName = customer.name;
     // Use customer name in memo
     const memo = `Payment Received from Customer ${customerName}`;
-    const receiptVoucherNumber = await generateVoucherNumber(memo);
+    const receiptVoucherNumber = await generateVoucherNumber(memo, organizationId);
 
     // Create the accounting entry with validated data
     const journal = await createPaymentReceivedEntry({

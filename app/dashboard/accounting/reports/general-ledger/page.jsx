@@ -241,6 +241,7 @@ export default function GeneralLedgerPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-organization-id': currentOrganization._id,
         },
         body: JSON.stringify(reportParams),
       });

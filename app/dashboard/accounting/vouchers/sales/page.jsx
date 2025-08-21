@@ -15,7 +15,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ConditionalDatePicker } from "@/app/components/ConditionalDatePicker";
+import { ConditionalDatePicker } from "@/components/ConditionalDatePicker";
 
 export default function SalesVoucherPage() {
   const router = useRouter();

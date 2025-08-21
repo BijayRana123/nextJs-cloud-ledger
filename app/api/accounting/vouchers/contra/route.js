@@ -12,7 +12,7 @@ export async function POST(request) {
     if (authResult && authResult.status !== 200) {
       return authResult;
     }
-    const organizationId = request.organizationId;
+    const organizationId = request.headers.get('x-organization-id') || request.organizationId;
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
@@ -76,7 +76,7 @@ export async function GET(request) {
     if (authResult && authResult.status !== 200) {
       return authResult;
     }
-    const organizationId = request.organizationId;
+    const organizationId = request.headers.get('x-organization-id') || request.organizationId;
     if (!organizationId) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }

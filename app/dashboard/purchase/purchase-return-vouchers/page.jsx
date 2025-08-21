@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import PurchaseReturnExcelDownload from "@/components/purchase/PurchaseReturnExcelDownload";
 import PurchaseReturnPdfDownload from "@/components/purchase/PurchaseReturnPdfDownload";
-import EmailModal from "@/app/components/email-modal";
+import EmailModal from "@/components/email-modal";
 
 export default function PurchaseReturnVouchersPage() {
   const [purchaseReturns, setPurchaseReturns] = useState([]);

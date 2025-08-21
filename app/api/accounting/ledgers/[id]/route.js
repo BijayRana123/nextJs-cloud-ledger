@@ -36,7 +36,15 @@ export async function GET(request, { params }) {
   if (!coa) {
     const groupName = ledger.group?.name || 'Misc';
     const code = `${groupName}:${ledger.name}`;
-    coa = await ChartOfAccount.findOne({ code, organization: orgId, name: ledger.name });
+    
+    // First try to find existing account by various combinations
+    coa = await ChartOfAccount.findOne({
+      $or: [
+        { code, organization: orgId },
+        { name: ledger.name, organization: orgId, path: { $regex: new RegExp(ledger.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } }
+      ]
+    });
+    
     if (!coa) {
       // Generate path: GroupName:LedgerName
       const path = `${groupName}:${ledger.name}`;
@@ -44,12 +52,14 @@ export async function GET(request, { params }) {
       let type = 'asset';
       let subtype = 'current';
       if (/liab/i.test(groupName)) { type = 'liability'; subtype = 'current_liability'; }
-      if (/revenue|income/i.test(groupName)) { type = 'revenue'; subtype = 'operating_revenue'; }
+      if (/revenue|income|sales/i.test(groupName)) { type = 'revenue'; subtype = 'operating_revenue'; }
       if (/expense/i.test(groupName)) { type = 'expense'; subtype = 'operating_expense'; }
       if (/equity/i.test(groupName)) { type = 'equity'; subtype = 'capital'; }
+      if (/cash/i.test(ledger.name)) { type = 'asset'; subtype = 'current'; }
       
-      // Use findOneAndUpdate with upsert to prevent duplicate key errors
+      // Try multiple approaches to prevent duplicate key errors
       try {
+        // First attempt: try with the original code
         coa = await ChartOfAccount.findOneAndUpdate(
           { code, organization: orgId },
           {
@@ -70,11 +80,59 @@ export async function GET(request, { params }) {
           }
         );
       } catch (error) {
-        // Fallback error handling in case upsert still fails
         if (error.code === 11000) {
-          return NextResponse.json({ error: 'Duplicate key error: code already exists' }, { status: 409 });
+          // If duplicate key error, try to find existing account with similar criteria
+          coa = await ChartOfAccount.findOne({
+            $or: [
+              { code, organization: orgId },
+              { name: ledger.name, organization: orgId },
+              { path, organization: orgId }
+            ]
+          });
+          
+          // If still not found, generate a unique code
+          if (!coa) {
+            let uniqueCode = code;
+            let counter = 1;
+            
+            while (!coa) {
+              try {
+                uniqueCode = `${code}_${counter}`;
+                coa = await ChartOfAccount.findOneAndUpdate(
+                  { code: uniqueCode, organization: orgId },
+                  {
+                    $setOnInsert: {
+                      name: ledger.name,
+                      path,
+                      type,
+                      code: uniqueCode,
+                      subtype,
+                      organization: orgId,
+                      active: true,
+                    }
+                  },
+                  { 
+                    new: true, 
+                    upsert: true,
+                    setDefaultsOnInsert: true
+                  }
+                );
+                break;
+              } catch (innerError) {
+                if (innerError.code === 11000) {
+                  counter++;
+                  if (counter > 100) { // Prevent infinite loop
+                    throw new Error('Unable to create unique chart of account code');
+                  }
+                } else {
+                  throw innerError;
+                }
+              }
+            }
+          }
+        } else {
+          throw error;
         }
-        throw error;
       }
     }
   }

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "fix-payment-vouchers": "node scripts/fix-payment-voucher-duplicates.js"
   },
   "type": "module",
   "dependencies": {

@@ -48,12 +48,11 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Supplier not found.' }, { status: 404 });
     }
 
-    // Fetch organization name using organizationId
+    // Validate organization exists
     const orgDoc = await Organization.findById(organizationId);
     if (!orgDoc) {
       return NextResponse.json({ message: 'Organization not found.' }, { status: 400 });
     }
-    const organizationName = orgDoc.name;
 
     // Create the payment voucher document (use ObjectId for organization)
     const paymentVoucher = new PaymentVoucher({
@@ -65,16 +64,25 @@ export async function POST(request) {
       date: new Date()
     });
 
-    // Generate the payment voucher number using organizationName for the counter
-    const counter = await Counter.findOneAndUpdate(
-      { name: 'payment_voucher', organization: organizationName },
-      { $inc: { value: 1 } },
-      { new: true, upsert: true }
-    );
-    if (!counter) {
-      throw new Error('Failed to generate payment voucher counter');
+    // Generate a unique payment voucher number (scoped per organization) with safety checks
+    const orgStr = organizationId.toString();
+    let paymentVoucherNumber = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const seq = await Counter.getNextSequence('payment_voucher', {
+        prefix: 'PaV-',
+        organization: orgStr,
+        paddingSize: 5
+      });
+      // Ensure uniqueness per organization even if counter was stale
+      const exists = await PaymentVoucher.exists({ paymentVoucherNumber: seq, organization: organizationId });
+      if (!exists) {
+        paymentVoucherNumber = seq;
+        break;
+      }
     }
-    const paymentVoucherNumber = `PaV-${counter.value.toString().padStart(5, '0')}`;
+    if (!paymentVoucherNumber) {
+      throw new Error('Failed to generate a unique payment voucher number');
+    }
     paymentVoucher.paymentVoucherNumber = paymentVoucherNumber;
 
     // Save the payment voucher
@@ -90,14 +98,14 @@ export async function POST(request) {
       }
     }
 
-    // Create the accounting entry (use organizationName for counter logic)
+    // Create the accounting entry (use organizationId for counter logic)
     await createPaymentSentEntry({
       ...paymentDetails,
       amount,
       supplierName: supplier.name,
       paymentVoucherNumber: paymentVoucherNumber,
       _id: paymentVoucher._id
-    }, orgIdString, organizationName);
+    }, orgIdString, organizationId.toString());
 
     // Fetch the saved payment voucher with populated fields
     const savedVoucher = await PaymentVoucher.findById(paymentVoucher._id)

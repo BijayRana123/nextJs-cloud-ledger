@@ -7,13 +7,36 @@ import { Button } from '@/components/ui/button';
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from '@/components/ui/CustomTable';
 import { Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useOrganization } from '@/lib/context/OrganizationContext';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+const fetcher = (url, orgId) => 
+  fetch(url, {
+    headers: orgId ? { 'x-organization-id': orgId } : {}
+  }).then((res) => res.json());
 
 export default function ExpenseVoucherListPage() {
   const router = useRouter();
-  const { data, error, isLoading } = useSWR('/api/accounting/journal-entries?limit=50&searchTerm=^Expense:', fetcher, { refreshInterval: 10000 });
+  const { currentOrganization } = useOrganization();
+  
+  const { data, error, isLoading } = useSWR(
+    currentOrganization?._id 
+      ? ['/api/accounting/journal-entries?limit=50&searchTerm=^Expense:', currentOrganization._id]
+      : null,
+    ([url, orgId]) => fetcher(url, orgId),
+    { refreshInterval: 10000 }
+  );
   const vouchers = data?.journalEntries || [];
+
+  // Show loading state if organization is not loaded yet
+  if (!currentOrganization) {
+    return (
+      <div className="p-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading organization...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">

@@ -16,13 +16,35 @@ export async function GET(request, context) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
 
-    const journalVoucher = await JournalVoucher.findOne({
+    let journalVoucher = await JournalVoucher.findOne({
       _id: id,
       organization: organizationId
     }).lean();
+
+    // If not found, try to find a similar ID (in case of typo in last character)
+    if (!journalVoucher && id.length === 24) {
+      // Get all vouchers for this organization and check for similar IDs
+      const allVouchers = await JournalVoucher.find({
+        organization: organizationId
+      }).select('_id').lean();
+      
+      const baseId = id.substring(0, 23); // Get first 23 characters
+      const similarVouchers = allVouchers.filter(voucher => 
+        voucher._id.toString().substring(0, 23) === baseId
+      );
+      
+      if (similarVouchers.length === 1) {
+        // Found exactly one similar voucher, redirect to correct ID
+        return NextResponse.json({ 
+          redirect: true, 
+          correctId: similarVouchers[0]._id.toString(),
+          message: 'Redirecting to correct journal voucher ID' 
+        }, { status: 302 });
+      }
+    }
 
     if (!journalVoucher) {
       return NextResponse.json({ message: 'Journal voucher not found' }, { status: 404 });
@@ -46,7 +68,7 @@ export async function PUT(request, context) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
     const data = await request.json();
 
@@ -108,7 +130,7 @@ export async function DELETE(request, context) {
       return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
     }
 
-    const params = context.params;
+    const params = await context.params;
     const id = params.id;
 
     const journalVoucher = await JournalVoucher.findOneAndDelete({

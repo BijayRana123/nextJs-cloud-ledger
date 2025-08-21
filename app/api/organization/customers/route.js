@@ -62,15 +62,46 @@ export async function POST(request) {
     // Find or create the Accounts Receivable group for this organization
     let arGroup = await LedgerGroup.findOne({ name: /accounts receivable/i, organization: organizationId });
     if (!arGroup) {
-      arGroup = await LedgerGroup.create({ name: 'Accounts Receivable', organization: organizationId });
+      // Generate a code for the new LedgerGroup
+      const existingGroupCodes = await LedgerGroup.find({ 
+        organization: organizationId, 
+        code: { $exists: true, $ne: null } 
+      }).select('code').lean();
+      
+      const usedCodes = existingGroupCodes.map(g => parseInt(g.code)).filter(code => !isNaN(code));
+      let newGroupCode = 1000;
+      while (usedCodes.includes(newGroupCode)) {
+        newGroupCode += 100;
+      }
+      
+      arGroup = await LedgerGroup.create({ 
+        name: 'Accounts Receivable', 
+        code: newGroupCode.toString(),
+        organization: organizationId 
+      });
     }
     // Ledger path: Assets:Accounts Receivable:Customer Name
     const ledgerPath = `Assets:Accounts Receivable:${newCustomer.name}`;
     // Check for existing ledger by name/org
     let existingLedger = await Ledger.findOne({ name: newCustomer.name, organization: organizationId });
     if (!existingLedger) {
+      // Generate ledger code based on group code
+      const baseCode = parseInt(arGroup.code);
+      const existingLedgers = await Ledger.find({ 
+        group: arGroup._id, 
+        organization: organizationId,
+        code: { $exists: true, $ne: null }
+      }).select('code').lean();
+      
+      const usedLedgerCodes = existingLedgers.map(l => parseInt(l.code)).filter(code => !isNaN(code));
+      let newLedgerCode = baseCode + 1;
+      while (usedLedgerCodes.includes(newLedgerCode)) {
+        newLedgerCode++;
+      }
+
       await Ledger.create({
         name: newCustomer.name,
+        code: newLedgerCode.toString(),
         group: arGroup._id,
         organization: organizationId,
         path: ledgerPath

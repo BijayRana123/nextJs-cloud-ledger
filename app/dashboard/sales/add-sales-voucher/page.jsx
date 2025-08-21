@@ -12,6 +12,7 @@ import ItemsSection from "@/components/purchase/items-section";
 import CalculationSection from "@/components/purchase/calculation-section";
 import { useOrganization } from '@/lib/context/OrganizationContext';
 import AddCustomerModal from "@/components/sales/add-customer-modal";
+import StockWarningModal from "@/components/StockWarningModal";
 
 export function AddSalesBillPage() {
   const router = useRouter();
@@ -35,6 +36,13 @@ export function AddSalesBillPage() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [stockModal, setStockModal] = useState({
+    isOpen: false,
+    stockErrors: [],
+    stockWarnings: [],
+    allowBypass: false
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const salesVoucherId = searchParams.get('id');
@@ -105,8 +113,26 @@ export function AddSalesBillPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!organizationId || !organizationName) {
+      alert('Please select an organization first');
       return;
     }
+    
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      await submitSalesVoucher();
+    } catch (error) {
+      console.error('Error during submission:', error);
+      alert('Error creating sales voucher: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Function to actually submit the sales voucher
+  const submitSalesVoucher = async (bypassStockValidation = false) => {
     const salesVoucherId = searchParams.get('id');
     // Calculate total amount
     const totalAmount = formData.items.reduce((sum, item) => {
@@ -132,9 +158,12 @@ export function AddSalesBillPage() {
       currency: 'NPR',
       exchangeRateToNPR: parseFloat(formData.exchangeRateToNPR) || 1,
       isImport: formData.isImport,
+      bypassStockValidation: bypassStockValidation,
     };
+    
     const method = isEditing ? 'PUT' : 'POST';
     const url = '/api/organization/sales-vouchers';
+    
     try {
       const response = await fetch(url, {
         method: method,
@@ -143,8 +172,17 @@ export function AddSalesBillPage() {
         },
         body: JSON.stringify(isEditing ? { ...dataToSend, id: salesVoucherId } : dataToSend),
       });
+      
       const result = await response.json();
+      
       if (response.ok) {
+        // Success - check if there are stock warnings in the response
+        if (result.stockWarnings && result.stockWarnings.length > 0) {
+          alert(`Sales voucher created successfully!\n\nStock warnings:\n${result.stockWarnings.map(w => `- ${w.itemName}: ${w.remainingAfterSale} remaining`).join('\n')}`);
+        } else {
+          alert('Sales voucher created successfully!');
+        }
+        
         const sv = result.salesVoucher;
         if (sv && sv._id) {
           router.push(`/dashboard/sales/sales-vouchers/${sv._id}`);
@@ -152,10 +190,21 @@ export function AddSalesBillPage() {
           router.push('/dashboard/sales/sales-vouchers');
         }
       } else {
-        // handle error
+        // Handle API errors - Check if it's a stock validation error
+        if (response.status === 400 && (result.stockErrors || result.message === "Insufficient stock for sale")) {
+          setStockModal({
+            isOpen: true,
+            stockErrors: result.stockErrors || [],
+            stockWarnings: result.stockWarnings || [],
+            allowBypass: result.bypassOption || false
+          });
+        } else {
+          alert('Error: ' + (result.message || 'Failed to create sales voucher'));
+        }
       }
     } catch (error) {
-      // handle error
+      console.error('Error submitting sales voucher:', error);
+      alert('Error creating sales voucher: ' + error.message);
     }
   };
 
@@ -166,12 +215,45 @@ export function AddSalesBillPage() {
     // Optionally: trigger a refresh in CustomerSection if needed
   };
 
+  // Handle proceeding despite warnings (this won't be shown for errors)
+  const handleProceedWithWarnings = async () => {
+    setStockModal({ isOpen: false, stockErrors: [], stockWarnings: [], allowBypass: false });
+    // Note: This would only be called for warnings, not errors
+    // The submitSalesVoucher should be called again here if needed
+  };
+
+  // Handle force submit with bypass (for stock errors)
+  const handleForceSubmit = async () => {
+    setStockModal({ isOpen: false, stockErrors: [], stockWarnings: [], allowBypass: false });
+    setIsSubmitting(true);
+    
+    try {
+      await submitSalesVoucher(true); // bypass stock validation
+    } catch (error) {
+      console.error('Error during force submission:', error);
+      alert('Error creating sales voucher: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle closing the stock modal
+  const handleCloseStockModal = () => {
+    setStockModal({ isOpen: false, stockErrors: [], stockWarnings: [], allowBypass: false });
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{isEditing ? 'Edit Sales Voucher' : 'Add New Sales Voucher'}</h1>
         <div className="flex items-center gap-4">
-          <Button className="bg-green-500 hover:bg-green-600" onClick={handleSubmit} disabled={!organizationId}>Save</Button>
+          <Button 
+            className="bg-green-500 hover:bg-green-600" 
+            onClick={handleSubmit} 
+            disabled={!organizationId || isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </Button>
           <Button variant="ghost" size="icon"><XIcon className="h-5 w-5" /></Button>
         </div>
       </div>
@@ -232,6 +314,17 @@ export function AddSalesBillPage() {
 
       {/* Calculation Section */}
       <CalculationSection items={formData.items} />
+
+      {/* Stock Warning Modal */}
+      <StockWarningModal
+        isOpen={stockModal.isOpen}
+        onClose={handleCloseStockModal}
+        onProceed={handleProceedWithWarnings}
+        onForceSubmit={handleForceSubmit}
+        stockErrors={stockModal.stockErrors}
+        stockWarnings={stockModal.stockWarnings}
+        allowBypass={stockModal.allowBypass}
+      />
     </div>
   );
 }

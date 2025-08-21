@@ -7,14 +7,18 @@ import { Button } from '@/components/ui/button';
 import { CustomTable, CustomTableBody, CustomTableCell, CustomTableHead, CustomTableHeader, CustomTableRow } from '@/components/ui/CustomTable';
 import { Rocket, ChevronLeft, ChevronRight, X, Search, Printer, Mail, FileSpreadsheet, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useOrganization } from '@/lib/context/OrganizationContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import EmailModal from '@/app/components/email-modal';
+import EmailModal from '@/components/email-modal';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const fetcher = (url) => fetch(url).then((res) => res.json());
+const fetcher = (url, orgId) => 
+  fetch(url, {
+    headers: orgId ? { 'x-organization-id': orgId } : {}
+  }).then((res) => res.json());
 
 function generateContraVoucherPdf(voucher) {
   if (!voucher) return;
@@ -64,7 +68,15 @@ function downloadContraVoucherExcel(voucher) {
 
 export default function ContraVoucherListPage() {
   const router = useRouter();
-  const { data, error, isLoading } = useSWR('/api/accounting/vouchers/contra', fetcher, { refreshInterval: 10000 });
+  const { currentOrganization } = useOrganization();
+  
+  const { data, error, isLoading } = useSWR(
+    currentOrganization?._id 
+      ? ['/api/accounting/vouchers/contra', currentOrganization._id]
+      : null,
+    ([url, orgId]) => fetcher(url, orgId),
+    { refreshInterval: 10000 }
+  );
   const vouchers = data?.contraVouchers || [];
 
   // State for search, pagination, and rows count
@@ -120,6 +132,17 @@ export default function ContraVoucherListPage() {
   const handlePrint = (id) => {
     window.open(`/dashboard/accounting/transactions/contra-voucher/${id}/print`, '_blank');
   };
+
+  // Show loading state if organization is not loaded yet
+  if (!currentOrganization) {
+    return (
+      <div className="p-4">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Loading organization...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">

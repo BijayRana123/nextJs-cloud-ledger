@@ -1,6 +1,6 @@
 "use client";
 
-import RecordExpenseForm from '@/app/components/accounting/RecordExpenseForm';
+import RecordExpenseForm from '@/components/accounting/RecordExpenseForm';
 import { useRouter } from 'next/navigation';
 
 export default function AddExpenseVoucherPage() {

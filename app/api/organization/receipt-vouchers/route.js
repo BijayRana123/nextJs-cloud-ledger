@@ -52,9 +52,9 @@ export async function POST(request) {
     }
     const organizationName = orgDoc.name;
 
-    // Generate the receipt voucher number using organizationName for the counter
+    // Generate the receipt voucher number using organizationId for the counter
     const counter = await Counter.findOneAndUpdate(
-      { name: 'receipt_voucher', organization: organizationName },
+      { name: 'receipt_voucher', organization: organizationId.toString() },
       { $inc: { value: 1 } },
       { new: true, upsert: true }
     );

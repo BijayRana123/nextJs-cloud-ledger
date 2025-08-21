@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import { SalesReturnVoucher, User } from '@/lib/models'; // Import User and new SalesReturnVoucher model
+import { SalesReturnVoucher, User, Item } from '@/lib/models'; // Import User and new SalesReturnVoucher model
 import { protect } from '@/lib/middleware/auth';
 import { createSalesReturnEntry } from '@/lib/accounting';
 import Counter from '@/lib/models/Counter';
@@ -25,6 +25,7 @@ export async function POST(request) {
     }
     const organizationName = orgDoc.name;
     const salesReturnData = await request.json();
+    console.log(salesReturnData);
     // Handle cash sales return: if customer is 'CASH' or empty, remove the customer field
     if (salesReturnData.customer === 'CASH' || !salesReturnData.customer) {
       delete salesReturnData.customer;
@@ -119,32 +120,3 @@ export async function PUT(request) {
   }
 }
 
-// Add DELETE handler similar to Sales Orders if needed
-/*
-export async function DELETE(request, context) {
-  await dbConnect();
-  try {
-    const authResult = await protect(request);
-    if (authResult && authResult.status !== 200) {
-      return authResult;
-    }
-    const organizationId = request.organizationId;
-    if (!organizationId) {
-      return NextResponse.json({ message: 'No organization context found. Please select an organization.' }, { status: 400 });
-    }
-    const params = context.params;
-    const id = params.id;
-    const deleted = await SalesReturnVoucher.findOneAndDelete({
-      _id: id,
-      organization: organizationId
-    });
-    if (!deleted) {
-      return NextResponse.json({ message: 'Sales return voucher not found' }, { status: 404 });
-    }
-    return NextResponse.json({ message: 'Sales return voucher deleted successfully' }, { status: 200 });
-  } catch (error) {
-    console.error("Error deleting sales return voucher:", error);
-    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
-  }
-}
-*/

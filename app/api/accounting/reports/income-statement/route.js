@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
-import { getBook } from '@/lib/accounting';
+import ProfitLossService from '@/lib/services/ProfitLossService';
 
 export async function POST(request) {
   try {
@@ -14,134 +14,96 @@ export async function POST(request) {
       );
     }
 
-    // Parse request body to get the date range
+    // Get organization ID from headers (preferred) or body (fallback)
+    const orgIdFromHeader = request.headers.get('x-organization-id');
+    
+    // Parse request body to get parameters
     const body = await request.json();
-    const startDate = body.startDate ? new Date(body.startDate) : new Date(new Date().getFullYear(), 0, 1); // Default: Jan 1 current year
-    const endDate = body.endDate ? new Date(body.endDate) : new Date(); // Default: Today
-    
-    // Get the book instance
-    const book = await getBook();
-    
-    // Create query to get all transactions within the date range
-    const query = {
-      datetime: { 
-        $gte: startDate,
-        $lte: endDate 
-      },
-      voided: false
-    };
+    const { 
+      startDate, 
+      endDate, 
+      organizationId: orgIdFromBody,
+      format = 'json',
+      includeComparison = false,
+      previousStartDate,
+      previousEndDate
+    } = body;
 
-    // Initialize revenue and expense arrays
-    const revenues = [];
-    const expenses = [];
+    // Use header organization ID if available, otherwise use body
+    const organizationId = orgIdFromHeader || orgIdFromBody;
+
+    // Validate required parameters
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!startDate || !endDate) {
+      return NextResponse.json(
+        { error: 'Start date and end date are required' },
+        { status: 400 }
+      );
+    }
+
+    // Generate the profit & loss statement
+    let profitLossData;
     
-    // Define account categories
-    const revenueAccounts = [
-      'Income:Sales Revenue',
-      'Income:Service Revenue',
-      'Income:Interest Income',
-      'Income:Other Income'
-    ];
+    if (includeComparison && previousStartDate && previousEndDate) {
+      // Generate comparison report
+      profitLossData = await ProfitLossService.comparePeriods(
+        organizationId,
+        new Date(startDate),
+        new Date(endDate),
+        new Date(previousStartDate),
+        new Date(previousEndDate)
+      );
+    } else {
+      // Generate single period report
+      profitLossData = await ProfitLossService.generateProfitLossStatement(
+        organizationId,
+        new Date(startDate),
+        new Date(endDate)
+      );
+    }
+
+    // Add validation results
+    const validation = ProfitLossService.validateProfitLossStatement(
+      includeComparison ? profitLossData.currentPeriod : profitLossData
+    );
     
-    const expenseAccounts = [
-      'Expenses:Cost of Goods Sold',
-      'Expenses:Salary Expense',
-      'Expenses:Rent Expense',
-      'Expenses:Utilities Expense',
-      'Expenses:Advertising Expense',
-      'Expenses:Office Supplies',
-      'Expenses:Depreciation Expense',
-      'Expenses:Insurance Expense',
-      'Expenses:Interest Expense',
-      'Expenses:Travel Expense',
-      'Expenses:Meals and Entertainment'
-    ];
-    
-    // Use MongoDB's aggregation to get balances for each account category
-    const transactionModel = mongoose.model('Medici_Transaction');
-    
-    // Helper function to get account balance
-    async function getAccountBalance(accountPrefix) {
-      const result = await transactionModel.aggregate([
-        { 
-          $match: { 
-            ...query,
-            accounts: { $regex: new RegExp(`^${accountPrefix}`, 'i') }
-          } 
-        },
-        {
-          $group: {
-            _id: "$accounts",
-            amount: {
-              $sum: {
-                $cond: [
-                  { $eq: ["$credit", true] },
-                  "$amount",
-                  { $multiply: ["$amount", -1] }  // Negate debit amounts
-                ]
-              }
-            }
-          }
-        }
-      ]);
+    if (includeComparison) {
+      profitLossData.validation = validation;
+    } else {
+      profitLossData.validation = validation;
+    }
+
+    // Return CSV format if requested
+    if (format === 'csv') {
+      const csvContent = ProfitLossService.exportToCSV(
+        includeComparison ? profitLossData.currentPeriod : profitLossData
+      );
       
-      return result;
+      return new NextResponse(csvContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="profit-loss-statement-${new Date(startDate).toISOString().split('T')[0]}.csv"`
+        }
+      });
     }
-    
-    // Get revenue account balances
-    for (const account of revenueAccounts) {
-      const balances = await getAccountBalance(account);
-      for (const balance of balances) {
-        // Extract the last part of the account path as the display name
-        const accountName = balance._id.split(':').pop();
-        // Revenue accounts normally have credit balances (positive)
-        revenues.push({
-          account: accountName,
-          amount: balance.amount
-        });
-      }
-    }
-    
-    // Get expense account balances
-    for (const account of expenseAccounts) {
-      const balances = await getAccountBalance(account);
-      for (const balance of balances) {
-        // Extract the last part of the account path as the display name
-        const accountName = balance._id.split(':').pop();
-        // Expense accounts normally have debit balances, but we negate in the aggregation
-        // so we need to negate again to show positive values for expenses
-        expenses.push({
-          account: accountName,
-          amount: -balance.amount
-        });
-      }
-    }
-    
-    // Calculate totals
-    const totalRevenue = revenues.reduce((sum, item) => sum + item.amount, 0);
-    const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
-    const netIncome = totalRevenue - totalExpenses;
-    
-    // Format response
-    const response = {
-      period: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      },
-      revenues,
-      expenses,
-      totals: {
-        totalRevenue,
-        totalExpenses,
-        netIncome
-      }
-    };
-    
-    return NextResponse.json(response);
+
+    // Return JSON format
+    return NextResponse.json({
+      success: true,
+      data: profitLossData
+    });
+
   } catch (error) {
-    console.error("Error generating income statement:", error);
+    console.error("Error generating profit & loss statement:", error);
     return NextResponse.json(
-      { error: 'Failed to generate income statement', details: error.message },
+      { error: 'Failed to generate profit & loss statement', details: error.message },
       { status: 500 }
     );
   }
